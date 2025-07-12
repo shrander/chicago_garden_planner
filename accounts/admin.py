@@ -13,7 +13,7 @@ class UserProfileInline(admin.StackedInline):
     verbose_name_plural = 'Profile'
     fields = (
         'bio', 'location', 'gardening_zone', 'years_gardening',
-        'organics-only', 'interests', 'email_notifications', 'weekly_tips'
+        'organics_only', 'interests', 'email_notifications', 'weekly_tips'
     )
 
 @admin.register(User)
@@ -27,7 +27,7 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('username', 'password')}),
         (_('Personal info'), {'fields': ('first_name', 'last_name', 'email')}),
         (_('Permissions'), {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permoissions'),
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
         (_('Important dates'), {'fields': ('last_login', 'date_joined')}),
     )
@@ -44,5 +44,5 @@ class CustomUserAdmin(UserAdmin):
     def get_inline_instances(self, request, obj=None):
         if not obj:
             return list()
-        return super(CustomUserAdmin, self).get_inline_instance(request, obj) # type: ignore
+        return super(CustomUserAdmin, self).get_inline_instances(request, obj) # type: ignore
     

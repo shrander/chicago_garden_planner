@@ -1,0 +1,19 @@
+from django.urls import path
+from . import views
+
+app_name = 'gardens'
+
+urlpatterns = [
+    # garden views
+    path('', views.garden_list, name='garden_list'),
+    path('create/', views.garden_create, name='garden_create'),
+    path('<int:pk>/', views.garden_detail, name='garden_detail'),
+    path('<int:pk>/edit/', views.garden_edit, name='garden_edit'),
+    path('<int:pk>/delete/', views.garden_delete, name='garden_delete'),
+
+    # plant views
+    path('plants/', views.plant_library, name='plant_library'),
+    path('plants/create/', views.plant_create, name='plant_create'),
+    path('plants/<int:pk>/edit/', views.plant_edit, name='plant_edit'),
+    path('plants/<int:pk>/delete/', views.plant_delete, name='plant_delete'),
+]

@@ -85,7 +85,7 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = [
             'bio', 'location', 'gardening_zone', 'years_gardening',
-            'organic_only', 'interests', 'email_notifications',
+            'organics_only', 'interests', 'email_notifications',
             'weekly_tips', 'avatar'
         ]
         widgets = {
