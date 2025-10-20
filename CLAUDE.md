@@ -4,27 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chicago Garden Planner is a Django-based web application for planning and managing gardens with Chicago-specific growing advice (USDA zones 5b/6a). The app features:
-
-- Custom user authentication with case-insensitive username lookup
-- User profiles with gardening preferences and avatar support
-- Garden planning interface (intended for drag-and-drop functionality)
-- Plant library with Chicago-optimized default plants and companion planting relationships
-- User dashboard for managing multiple gardens
+Chicago Garden Planner is a Django web application designed to help gardeners in the Chicago area (USDA zones 5b/6a) plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design.
 
 ## Development Commands
 
-### Initial Setup
+### Environment Setup
 ```bash
+# Create virtual environment (if not exists)
+python3 -m venv garden_env
+
 # Activate virtual environment
-source garden_env/bin/activate  # macOS/Linux
+source garden_env/bin/activate  # Linux/macOS
 garden_env\Scripts\activate     # Windows
 
-# Run migrations
+# Install dependencies from requirements.txt
+pip install -r requirements.txt
+```
+
+### Database Operations
+```bash
+# Create migrations
 python manage.py makemigrations
+python manage.py makemigrations gardens
+python manage.py makemigrations accounts
+
+# Apply migrations
 python manage.py migrate
 
-# Populate database with Chicago plants and demo data
+# Populate database with Chicago-specific plants
 python manage.py populate_default_plants --create-sample-user
 
 # Create companion plant relationships
@@ -34,36 +41,15 @@ python manage.py create_companion_relationships
 python manage.py createsuperuser
 ```
 
-### Daily Development
+### Running the Application
 ```bash
 # Start development server
 python manage.py runserver
 
-# Run Django shell
-python manage.py shell
-
-# Collect static files
-python manage.py collectstatic
-```
-
-### Database Operations
-```bash
-# Create new migrations after model changes
-python manage.py makemigrations
-
-# Apply migrations
-python manage.py migrate
-
-# Backup data
-python manage.py dumpdata gardens > garden_backup.json
-python manage.py loaddata garden_backup.json
-
-# Reset database (development only)
-rm db.sqlite3
-rm gardens/migrations/0*.py accounts/migrations/0*.py
-python manage.py makemigrations
-python manage.py migrate
-python manage.py populate_default_plants --create-sample-user
+# Access points:
+# - Main app: http://127.0.0.1:8000/
+# - Admin: http://127.0.0.1:8000/admin/
+# - Demo login: username=demo_gardener, password=chicago2025
 ```
 
 ### Testing
@@ -74,86 +60,155 @@ python manage.py test
 # Run tests for specific app
 python manage.py test accounts
 python manage.py test gardens
+```
 
-# Run specific test class or method
-python manage.py test accounts.tests.TestClassName
-python manage.py test accounts.tests.TestClassName.test_method_name
+### Static Files
+```bash
+# Collect static files for production
+python manage.py collectstatic
+```
+
+### Database Management
+```bash
+# Backup data
+python manage.py dumpdata gardens > garden_backup.json
+python manage.py dumpdata accounts > accounts_backup.json
+
+# Restore data
+python manage.py loaddata garden_backup.json
 ```
 
 ## Architecture
 
 ### Custom User System
 
-The project uses a **custom user model** (`accounts.CustomUser`) instead of Django's default User model. This is critical to understand:
+This project uses a **custom user model** (`accounts.CustomUser`) instead of Django's default User model. Key characteristics:
 
-- **Custom user model**: `accounts.CustomUser` (set via `AUTH_USER_MODEL = 'accounts.CustomUser'`)
-- **Case-insensitive authentication**: Usernames are stored lowercase and lookups are case-insensitive via `CustomUserManager.get_by_natural_key()`
-- **Required fields**: Both username and email are required; email must be unique
-- **User profiles**: A `UserProfile` is automatically created for each user via Django signals ([accounts/signals.py:8-25](accounts/signals.py#L8-L25))
+- **Case-insensitive username**: Usernames are stored in lowercase and lookups are case-insensitive via `CustomUserManager.get_by_natural_key()`
+- **Required email field**: Email is unique and required for all users
+- **ASCII-only usernames**: Uses `ASCIIUsernameValidator` for consistency
+- **Auto-created profiles**: `UserProfile` is automatically created via signals when a user is created
+- **Location**: `accounts.models.CustomUser`
+- **Manager**: `accounts.managers.CustomUserManager`
 
-**Important**: The custom user model MUST be set before the first migration. If you need to change user-related models:
-1. Always import the user model with `get_user_model()`, never import `User` directly
-2. Use `settings.AUTH_USER_MODEL` for ForeignKey references in models
-3. The accounts app must be listed BEFORE `django.contrib.admin` in `INSTALLED_APPS` ([garden_planner/settings.py:40](garden_planner/settings.py#L40))
+**IMPORTANT**: The `AUTH_USER_MODEL = 'accounts.CustomUser'` setting must be set before the first migration. The accounts app must be listed in `INSTALLED_APPS` before `django.contrib.admin` to ensure the custom user model is registered properly.
 
-### Django Apps Structure
+### App Structure
 
-**accounts/** - User authentication and profile management
-- Custom user model with case-insensitive username lookup
-- User profiles with gardening preferences (zone, experience, notifications)
-- Signal-based profile creation (automatic on user creation)
-- Custom authentication form for case-insensitive login
+#### accounts app
+Handles user authentication, registration, and profile management.
 
-**gardens/** - Core garden planning functionality
-- Plant library (models not yet implemented in models.py)
-- Garden management (models referenced but not yet implemented)
-- Management commands for seeding Chicago-specific plant data
-- Placeholder views (implementation in progress)
+- **Models**:
+  - `CustomUser`: Custom user model extending AbstractBaseUser
+  - `UserProfile`: Extended profile with gardening preferences, bio, location, USDA zone, avatar
+- **Key Features**:
+  - Case-insensitive login
+  - User dashboard showing gardens and statistics
+  - Profile editing (both account info and extended profile)
+  - Password reset with email
+  - Signal-based profile creation (see `accounts/signals.py`)
+- **Views**: Class-based views for signup, login, profile editing; function-based for dashboard
+- **Forms**: Custom forms in `accounts/forms.py` including `CaseInsensitiveAuthenticationForm`
 
-**garden_planner/** - Django project configuration
-- Settings configured for Chicago timezone (`America/Chicago`)
-- Email backend set to console for development
-- Custom login redirects to user dashboard
-- Static/media file configuration
+#### gardens app
+Core garden planning functionality.
 
-### Key Patterns
-
-**Signals for Profile Management**: User profiles are created automatically via Django signals rather than form logic. See [accounts/signals.py](accounts/signals.py) - this ensures every user has a profile regardless of how the user is created.
-
-**Case-Insensitive Username**: The `CustomUserManager` overrides `get_by_natural_key()` to perform case-insensitive username lookups ([accounts/managers.py:46-51](accounts/managers.py#L46-L51)). Usernames are normalized to lowercase on save ([accounts/models.py:66](accounts/models.py#L66)).
-
-**Management Commands**: The project uses custom Django management commands for data seeding:
-- `populate_default_plants.py`: Seeds Chicago-optimized plants with growing information
-- `create_companion_relationship.py`: Creates companion planting relationships
-
-These should be extended (not replaced) when adding new default data.
-
-### Project State Notes
-
-- **gardens/models.py** is currently minimal - the Plant, Garden, and PlantingNote models referenced in views and commands are not yet implemented
-- **gardens/views.py** contains only placeholder views returning HTTP responses
-- Templates directory exists but is empty ([gardens/templates/gardens/](gardens/templates/gardens/))
-- The README indicates this project was set up from artifacts, suggesting it may be in mid-migration or setup phase
+- **Models** (implemented in `gardens/models.py`):
+  - `Plant`: Plant library with Chicago-specific growing info, companion planting relationships, and pest deterrent information
+    - Fields: name, latin_name, symbol, color, plant_type, planting_season, days_to_harvest, spacing_inches, chicago_notes
+    - Many-to-many relationship with itself for companion plants
+    - Can be user-created or system defaults (is_default flag)
+  - `Garden`: User's garden layouts with grid-based design
+    - Configurable sizes (4x4, 4x8, 8x8, 10x10, custom)
+    - JSON-based layout storage for plant positions
+    - Public/private sharing options
+  - `PlantingNote`: Journal entries for specific plants in gardens with timestamps
+- **Views**: Currently placeholder views (`gardens/views.py`) returning "coming soon" messages - need implementation
+- **Management Commands**:
+  - `populate_default_plants.py`: Loads 16+ default Chicago-optimized plants
+  - `create_companion_relationships.py`: Sets up companion planting data
 
 ### URL Structure
 
-- Root `/` redirects to `/gardens/`
+- Root (`/`) redirects to `/gardens/`
 - `/accounts/` - User authentication and profile management
-- `/gardens/` - Garden planning and plant library
+- `/gardens/` - Garden list, creation, editing, and plant library
 - `/admin/` - Django admin interface
 
 ### Settings Configuration
 
-- **Timezone**: `America/Chicago` - important for planting season calculations
-- **Database**: SQLite (development), should use PostgreSQL for production
-- **Static files**: Collected to `staticfiles/` directory
-- **Media files**: User uploads go to `media/` directory
-- **Email**: Console backend for development (prints to terminal)
-- **Debug mode**: Currently enabled (`DEBUG = True`)
+- **Time Zone**: `America/Chicago`
+- **Static Files**: STATIC_ROOT = `BASE_DIR / 'staticfiles'`
+- **Media Files**: MEDIA_ROOT = `BASE_DIR / 'media'` (for user avatars)
+- **Email**: Console backend in development
+- **Database**: SQLite3 (db.sqlite3)
+- **Login redirects**:
+  - LOGIN_URL = `'accounts:login'`
+  - LOGIN_REDIRECT_URL = `'accounts:dashboard'`
+  - LOGOUT_REDIRECT_URL = `'gardens:garden_list'`
 
-## Demo Credentials
+## Development Workflow
 
+### Adding New Features to gardens App
+
+The gardens app currently has minimal implementation. When adding features:
+
+1. Define models in `gardens/models.py` (Plant, Garden, etc.)
+2. Create and run migrations
+3. Update views in `gardens/views.py` (currently just placeholders)
+4. Create templates in `gardens/templates/gardens/`
+5. Add static files (CSS/JS) to `gardens/static/gardens/`
+
+### Working with Custom User Model
+
+When referencing the User model in code:
+
+```python
+from django.contrib.auth import get_user_model
+User = get_user_model()
 ```
-Username: demo_gardener
-Password: chicago2025
-```
+
+Do NOT import `django.contrib.auth.models.User` directly. Always use `get_user_model()` or reference `settings.AUTH_USER_MODEL` in foreign keys.
+
+### Signal System
+
+The accounts app uses Django signals (`accounts/signals.py`):
+- Automatically creates `UserProfile` when a user is created
+- Automatically saves profile when user is saved
+- Deletes avatar files when profile is deleted
+
+Ensure signals are connected by importing them in `accounts/apps.py`.
+
+### Management Commands Location
+
+Custom management commands go in:
+- `gardens/management/commands/`
+- Must include `__init__.py` files in both `management/` and `commands/` directories
+
+## Chicago-Specific Features
+
+This app is optimized for Chicago's climate (USDA zones 5b/6a):
+- Frost date awareness
+- Heat-tolerant plant varieties
+- Seasonal planting calendars
+- Humidity and pest management specific to the region
+- Default plants include chicago_notes field with zone-specific guidance
+
+## Dependencies
+
+The project dependencies are defined in [requirements.txt](requirements.txt):
+
+- **Django 4.2.7**: Web framework
+- **Pillow**: Required for `ImageField` support (user avatars in UserProfile)
+- **django-crispy-forms**: Form rendering with Bootstrap 5 styling
+- **crispy-bootstrap5**: Bootstrap 5 template pack for crispy forms
+
+When adding new dependencies, update requirements.txt and document any special configuration needed.
+
+## Important Notes
+
+- The project uses Django 4.2.7
+- SECRET_KEY in settings.py is for development only - use environment variables in production
+- Demo user credentials: `demo_gardener` / `chicago2025`
+- Virtual environment should be in `garden_env/` directory
+- The setup script (`setup_garden_project.py`) checks for virtual environment activation
