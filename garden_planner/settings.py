@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # local apps
     "accounts.apps.AccountsConfig", # must come before admin for custom user
+    "crispy_forms",
+    'crispy_bootstrap5',
     "gardens",
 ]
 
@@ -123,6 +125,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# crispy forms
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Email Configuration (console backend for development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
