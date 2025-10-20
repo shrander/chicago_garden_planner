@@ -1,0 +1,193 @@
+{% extends "gardens/base.html" %}
+
+{% block title %}{{ garden.name }} - Chicago Garden Planner{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'gardens:garden_list' %}">Gardens</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ garden.name }}</li>
+            </ol>
+        </nav>
+        <h1 class="display-5">{{ garden.name }}</h1>
+        <p class="text-muted">
+            <i class="bi bi-person"></i> Created by {{ garden.owner.username }}
+            &nbsp;|&nbsp;
+            <i class="bi bi-clock"></i> Updated {{ garden.updated_at|date:"F d, Y" }}
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        {% if can_edit %}
+        <div class="btn-group" role="group">
+            <a href="{% url 'gardens:garden_edit' garden.pk %}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil"></i> Edit
+            </a>
+            <a href="{% url 'gardens:garden_delete' garden.pk %}" class="btn btn-outline-danger">
+                <i class="bi bi-trash"></i> Delete
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Garden Info -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Garden Information</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ garden.description|default:"No description provided." }}</p>
+
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Size</h6>
+                        <p><span class="badge bg-primary">{{ garden.get_size_display }}</span></p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Dimensions</h6>
+                        <p><strong>{{ garden.width }}' × {{ garden.height }}'</strong></p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Total Plants</h6>
+                        <p><i class="bi bi-flower1 text-success"></i> <strong>{{ garden.get_plant_count }}</strong></p>
+                    </div>
+                </div>
+
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Visibility</h6>
+                        <p>
+                            {% if garden.is_public %}
+                            <span class="badge bg-info"><i class="bi bi-globe"></i> Public</span>
+                            {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-lock"></i> Private</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Grid Spaces</h6>
+                        <p><strong>{{ grid_data|length }} × {% if grid_data %}{{ grid_data.0|length }}{% else %}0{% endif %}</strong></p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Fill Rate</h6>
+                        <p>{{ fill_rate|floatformat:0 }}%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-flower2"></i> Plants in Garden</h5>
+            </div>
+            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                {% if plants_in_garden %}
+                <ul class="list-group list-group-flush">
+                    {% for plant in plants_in_garden %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <span class="badge" style="background-color: {{ plant.color }}; color: white;">
+                                {{ plant.symbol }}
+                            </span>
+                            {{ plant.name }}
+                        </span>
+                        <small class="text-muted">{{ plant.plant_type }}</small>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted text-center">No plants identified</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Garden Grid -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Garden Layout</h5>
+    </div>
+    <div class="card-body">
+        {% if grid_data %}
+        <div class="table-responsive">
+            <table class="table table-bordered garden-grid" style="width: auto; margin: 0 auto;">
+                {% for row in grid_data %}
+                <tr>
+                    {% for cell in row %}
+                    <td class="garden-cell text-center p-2"
+                        style="min-width: 60px; height: 60px; font-size: 0.75rem;">
+                        {% if cell %}
+                            {% if cell == 'path' or cell == '=' %}
+                            <span class="badge bg-secondary w-100" style="padding: 8px;">Path</span>
+                            {% elif cell == 'empty space' or cell == '•' %}
+                            <span class="badge bg-light text-dark w-100" style="padding: 8px;">Empty</span>
+                            {% else %}
+                            <span class="badge bg-success w-100" style="padding: 8px;" title="{{ cell }}">
+                                {{ cell|truncatechars:8 }}
+                            </span>
+                            {% endif %}
+                        {% else %}
+                        <span class="badge bg-light text-muted w-100" style="padding: 8px;">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted text-center">No layout data available for this garden.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Notes -->
+{% if notes %}
+<div class="card shadow-sm">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-journal-text"></i> Recent Planting Notes</h5>
+    </div>
+    <div class="card-body">
+        <div class="list-group list-group-flush">
+            {% for note in notes %}
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ note.title|default:"Note" }}</h6>
+                    <small class="text-muted">{{ note.note_date|date:"M d, Y" }}</small>
+                </div>
+                <p class="mb-1">{{ note.note_text|truncatewords:30 }}</p>
+                <small class="text-muted">
+                    {% if note.plant %}
+                    <i class="bi bi-flower1"></i> {{ note.plant.name }}
+                    {% endif %}
+                    {% if note.grid_position %}
+                    &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ note.grid_position }}
+                    {% endif %}
+                </small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.garden-grid td {
+    font-size: 0.7rem;
+    vertical-align: middle;
+}
+.garden-cell {
+    position: relative;
+}
+</style>
+{% endblock %}
