@@ -35,7 +35,7 @@ python manage.py migrate
 python manage.py populate_default_plants --create-sample-user
 
 # Create companion plant relationships
-python manage.py create_companion_relationships
+python manage.py create_companion_relationship
 
 # Create admin superuser
 python manage.py createsuperuser

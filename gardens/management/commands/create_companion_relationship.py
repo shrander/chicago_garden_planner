@@ -39,11 +39,12 @@ class Command(BaseCommand):
                     relationship_count +=1
                     self.stdout.write(f'  ✓ {plant.name} ↔ {companion.name}')
 
-                self.stdout.write(
-                    self.style.SUCCESS(f'🌿 Created {relationship_count} companion relationships!')
-                )
+            self.stdout.write(
+                self.style.SUCCESS(f'🌿 Created {relationship_count} companion relationships!')
+            )
 
-        except plant.DoesNotExist as e:
+        except Plant.DoesNotExist as e:
             self.stdout.write(
                 self.style.ERROR(f'❌ Error: Required plant not found. Run populate_default_plants first.')
             )
+            return
