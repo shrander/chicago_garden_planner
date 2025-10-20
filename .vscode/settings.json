@@ -1,0 +1,43 @@
+{
+    // Python interpreter - use the virtual environment
+    "python.defaultInterpreterPath": "${workspaceFolder}/garden_env/bin/python",
+
+    // Enable Pylance for better type checking
+    "python.languageServer": "Pylance",
+
+    // Python linting
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+
+    // Django-specific settings
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}"
+    ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportMissingModuleSource": "none"
+    },
+
+    // Format on save (optional)
+    "editor.formatOnSave": false,
+
+    // Python formatting
+    "python.formatting.provider": "none",
+
+    // Files to exclude from search
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/garden_env": true
+    },
+
+    // Auto-activate virtualenv in terminal
+    "python.terminal.activateEnvironment": true,
+
+    // Django settings
+    "[python]": {
+        "editor.rulers": [88, 120],
+        "editor.tabSize": 4
+    }
+}

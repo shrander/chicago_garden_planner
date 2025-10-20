@@ -1,7 +1,9 @@
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from gardens.models import Plant, Garden
 import json
+
+User = get_user_model()
 
 class Command(BaseCommand):
     help = 'populate db with default plants and sample garden'
