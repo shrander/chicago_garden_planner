@@ -105,7 +105,7 @@ class CaseInsensitiveAuthenticationForm(AuthenticationForm):
             'placeholder': 'Enter your username'
         })
     )
-    passowrd = forms.CharField(
+    password = forms.CharField(
         label=_("Password"),
         strip=False,
         widget=forms.PasswordInput(attrs={
@@ -115,7 +115,7 @@ class CaseInsensitiveAuthenticationForm(AuthenticationForm):
     )
 
     error_messages = {
-        'Invalid_login': _(
+        'invalid_login': _(
             "Please enter a correct username and password. "
             "Note that password is case-sensitive"
         ),

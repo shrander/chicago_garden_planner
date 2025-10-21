@@ -255,6 +255,12 @@
 }
 .garden-cell {
     position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.garden-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
 }
 .droppable {
     transition: background-color 0.2s;
@@ -265,6 +271,29 @@
 }
 .plant-item.dragging {
     opacity: 0.5;
+}
+.plant-item {
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.plant-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background-color: #e9ecef !important;
+}
+/* Remove any Bootstrap tooltip/popover effects */
+.garden-cell [title]:hover::after,
+.plant-item [title]:hover::after {
+    display: none !important;
+}
+/* Make card shadows permanent and stronger, prevent movement */
+.card {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transition: none !important;
+    transform: none !important;
+}
+.card:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
 }
 </style>
 {% endblock %}

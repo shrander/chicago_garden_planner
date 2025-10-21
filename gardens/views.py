@@ -9,6 +9,7 @@ from .models import Garden, Plant, PlantingNote
 from .forms import GardenForm, PlantForm, PlantingNoteForm
 
 
+@login_required
 def garden_list(request):
     """Display all public gardens and user's own gardens"""
 
@@ -49,6 +50,7 @@ def garden_list(request):
     return render(request, 'gardens/garden_list.html', context)
 
 
+@login_required
 def garden_detail(request, pk):
     """Display garden detail with grid layout"""
 
@@ -177,6 +179,7 @@ def garden_delete(request, pk):
     return render(request, 'gardens/garden_confirm_delete.html', {'garden': garden})
 
 
+@login_required
 def plant_library(request):
     """Display plant library"""
 

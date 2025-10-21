@@ -14,7 +14,7 @@ urlpatterns = [
     # auth
     path('signup/', views.SignUpView.as_view(), name='signup'),
     path('login/', views.CustomLoginView.as_view(), name='login'),
-    path('logout/', LogoutView.as_view(next_page='gardens:garden_list'), name='logout'),
+    path('logout/', LogoutView.as_view(next_page='accounts:login'), name='logout'),
     
     # profile and account management 
     path('profile/', views.profile_view, name='profile'),
@@ -36,7 +36,7 @@ urlpatterns = [
              template_name='registration/password_reset_done.html'
          ),
          name='password_reset_done'),
-    path('password/reset/<uuid64>/<token>/',
+    path('password/reset/<uidb64>/<token>/',
          PasswordResetConfirmView.as_view(
              template_name='registration/password_reset_confirm.html',
              success_url='/accounts/password/reset/complete/'
