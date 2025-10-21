@@ -1,4 +1,5 @@
 {% extends "gardens/base.html" %}
+{% load garden_filters %}
 
 {% block title %}{{ garden.name }} - Chicago Garden Planner{% endblock %}
 
@@ -12,7 +13,20 @@
                 <li class="breadcrumb-item active" aria-current="page">{{ garden.name }}</li>
             </ol>
         </nav>
+        {% if can_edit %}
+        <h1 class="display-5" id="gardenNameDisplay" style="cursor: pointer;" title="Click to edit">
+            {{ garden.name }}
+            <i class="bi bi-pencil-square ms-2" style="font-size: 0.7em; color: #6c757d;"></i>
+        </h1>
+        <input type="text"
+               id="gardenNameInput"
+               class="form-control form-control-lg d-none"
+               value="{{ garden.name }}"
+               maxlength="100">
+        <span id="gardenNameSaveStatus" class="badge ms-2"></span>
+        {% else %}
         <h1 class="display-5">{{ garden.name }}</h1>
+        {% endif %}
         <p class="text-muted">
             <i class="bi bi-person"></i> Created by {{ garden.owner.username }}
             &nbsp;|&nbsp;
@@ -33,50 +47,115 @@
     </div>
 </div>
 
-<!-- Garden Layout with Plant Library -->
+<!-- Garden Grid and Plant Library Side by Side -->
 <div class="row mb-4">
-    <!-- Plant Library Sidebar -->
+    <!-- Garden Grid (Left Column) -->
+    <div class="{% if can_edit %}col-md-8{% else %}col-md-12{% endif %}">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Garden Layout</h5>
+                </div>
+                {% if can_edit %}
+                <div>
+                    <span id="saveStatus" class="badge bg-secondary ms-2"></span>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if grid_data %}
+                <div class="table-responsive">
+                    <table class="table table-bordered garden-grid" id="gardenGrid" style="width: auto; margin: 0 auto;">
+                        {% for row in grid_data %}
+                        <tr data-row="{{ forloop.counter0 }}">
+                            {% for cell in row %}
+                            <td class="garden-cell text-center p-1 {% if can_edit %}droppable{% endif %}"
+                                data-row="{{ forloop.parentloop.counter0 }}"
+                                data-col="{{ forloop.counter0 }}"
+                                data-plant="{{ cell|lower }}"
+                                style="width: 70px; height: 70px; position: relative;">
+                                {% if cell %}
+                                    {% if cell == 'path' or cell == '=' %}
+                                    <span class="cell-content badge bg-secondary w-100 h-100 d-flex align-items-center justify-content-center"
+                                          style="font-size: 1.5rem; border-radius: 4px;">=</span>
+                                    {% elif cell == 'empty space' or cell == '•' %}
+                                    <span class="cell-content badge bg-light text-muted w-100 h-100 d-flex align-items-center justify-content-center"
+                                          style="font-size: 1.5rem; border-radius: 4px;">•</span>
+                                    {% else %}
+                                        {% with plant_info=plant_map|get_plant_info:cell %}
+                                        <span class="cell-content badge w-100 h-100 d-flex align-items-center justify-content-center"
+                                              style="background-color: {% if plant_info %}{{ plant_info.color }}{% else %}#90EE90{% endif %}; color: white; font-size: 1.8rem; font-weight: bold; border-radius: 4px;"
+                                              title="{% if plant_info %}{{ plant_info.name }}{% else %}{{ cell }}{% endif %}"
+                                              data-plant-name="{{ cell|lower }}">
+                                            {% if plant_info %}{{ plant_info.symbol }}{% else %}{{ cell|slice:":1"|upper }}{% endif %}
+                                        </span>
+                                        {% endwith %}
+                                    {% endif %}
+                                {% else %}
+                                <span class="cell-content badge bg-light text-muted w-100 h-100 d-flex align-items-center justify-content-center"
+                                      style="font-size: 1.5rem; border-radius: 4px;">•</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">No layout data available for this garden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Plant Library Sidebar (Right Column) -->
     {% if can_edit %}
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card shadow-sm sticky-top" style="top: 20px;">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0"><i class="bi bi-flower1"></i> Plant Library</h5>
-                <small>Drag plants to garden</small>
+                <small>Drag plants to garden or drag off to remove</small>
             </div>
             <div class="card-body p-2" style="max-height: 600px; overflow-y: auto;">
                 <div id="plantLibrary">
-                    <div class="plant-item draggable mb-2 p-2 border rounded"
-                         draggable="true"
-                         data-plant-name="empty space"
-                         data-plant-symbol="•"
-                         data-plant-color="#8FBC8F"
-                         style="cursor: move; background-color: #f8f9fa;">
-                        <span class="badge me-2" style="background-color: #8FBC8F;">•</span>
-                        <strong>Empty Space</strong>
-                    </div>
-                    <div class="plant-item draggable mb-2 p-2 border rounded"
-                         draggable="true"
-                         data-plant-name="path"
-                         data-plant-symbol="="
-                         data-plant-color="#D2B48C"
-                         style="cursor: move; background-color: #f8f9fa;">
-                        <span class="badge me-2" style="background-color: #D2B48C;">=</span>
-                        <strong>Path</strong>
-                    </div>
-                    <hr>
-                    {% for plant in all_plants %}
-                    <div class="plant-item draggable mb-2 p-2 border rounded"
+                    {% for plant in utility_plants %}
+                    <div class="plant-item draggable mb-2 p-2 border rounded d-flex align-items-center"
                          draggable="true"
                          data-plant-name="{{ plant.name|lower }}"
                          data-plant-symbol="{{ plant.symbol }}"
                          data-plant-color="{{ plant.color }}"
                          style="cursor: move; background-color: #f8f9fa;">
-                        <span class="badge me-2" style="background-color: {{ plant.color }}; color: white;">{{ plant.symbol }}</span>
-                        <strong>{{ plant.name }}</strong>
-                        <br>
-                        <small class="text-muted">{{ plant.latin_name|truncatechars:25 }}</small>
-                        <br>
-                        <small class="badge bg-secondary">{{ plant.get_plant_type_display }}</small>
+                        <div class="d-flex align-items-center justify-content-center me-2"
+                             style="min-width: 50px; min-height: 50px; background-color: {{ plant.color }}; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 4px;">
+                            {{ plant.symbol }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>{{ plant.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ plant.chicago_notes|truncatechars:30 }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <hr>
+                    {% for plant in all_plants %}
+                    <div class="plant-item draggable mb-2 p-2 border rounded d-flex align-items-center"
+                         draggable="true"
+                         data-plant-name="{{ plant.name|lower }}"
+                         data-plant-symbol="{{ plant.symbol }}"
+                         data-plant-color="{{ plant.color }}"
+                         style="cursor: move; background-color: #f8f9fa;">
+                        <div class="d-flex align-items-center justify-content-center me-2"
+                             style="min-width: 50px; min-height: 50px; background-color: {{ plant.color }}; color: white; font-size: 1.5rem; font-weight: bold; border-radius: 4px;">
+                            {{ plant.symbol }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>{{ plant.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ plant.latin_name|truncatechars:25 }}</small>
+                        </div>
+                        <div>
+                            <small class="badge bg-secondary">{{ plant.get_plant_type_display }}</small>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -84,10 +163,13 @@
         </div>
     </div>
     {% endif %}
+</div>
 
-    <!-- Garden Info -->
-    <div class="{% if can_edit %}col-md-9{% else %}col-md-8{% endif %}">
-        <div class="card shadow-sm">
+<!-- Garden Info and Plant Library Side by Side -->
+<div class="row mb-4">
+    <!-- Garden Info (Left Column) -->
+    <div class="{% if can_edit %}col-md-8{% else %}col-md-12{% endif %}">
+        <div class="card shadow-sm mb-3">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="bi bi-info-circle"></i> Garden Information</h5>
             </div>
@@ -131,87 +213,38 @@
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- Garden Grid -->
-<div class="card shadow-sm mb-4">
-    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-        <div>
-            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Garden Layout</h5>
-        </div>
-        {% if can_edit %}
-        <div>
-            <span id="saveStatus" class="badge bg-secondary ms-2"></span>
-        </div>
-        {% endif %}
-    </div>
-    <div class="card-body">
-        {% if grid_data %}
-        <div class="table-responsive">
-            <table class="table table-bordered garden-grid" id="gardenGrid" style="width: auto; margin: 0 auto;">
-                {% for row in grid_data %}
-                <tr data-row="{{ forloop.counter0 }}">
-                    {% for cell in row %}
-                    <td class="garden-cell text-center p-2 {% if can_edit %}droppable{% endif %}"
-                        data-row="{{ forloop.parentloop.counter0 }}"
-                        data-col="{{ forloop.counter0 }}"
-                        data-plant="{{ cell|lower }}"
-                        style="min-width: 60px; height: 60px; font-size: 0.75rem; position: relative;">
-                        {% if cell %}
-                            {% if cell == 'path' or cell == '=' %}
-                            <span class="cell-content badge bg-secondary w-100" style="padding: 8px;">Path</span>
-                            {% elif cell == 'empty space' or cell == '•' %}
-                            <span class="cell-content badge bg-light text-dark w-100" style="padding: 8px;">Empty</span>
-                            {% else %}
-                            <span class="cell-content badge bg-success w-100" style="padding: 8px;" title="{{ cell }}">
-                                {{ cell|truncatechars:8 }}
-                            </span>
-                            {% endif %}
-                        {% else %}
-                        <span class="cell-content badge bg-light text-muted w-100" style="padding: 8px;">—</span>
-                        {% endif %}
-                    </td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
-        {% else %}
-        <p class="text-muted text-center">No layout data available for this garden.</p>
-        {% endif %}
-    </div>
-</div>
-
-<!-- Recent Notes -->
-{% if notes %}
-<div class="card shadow-sm">
-    <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0"><i class="bi bi-journal-text"></i> Recent Planting Notes</h5>
-    </div>
-    <div class="card-body">
-        <div class="list-group list-group-flush">
-            {% for note in notes %}
-            <div class="list-group-item">
-                <div class="d-flex w-100 justify-content-between">
-                    <h6 class="mb-1">{{ note.title|default:"Note" }}</h6>
-                    <small class="text-muted">{{ note.note_date|date:"M d, Y" }}</small>
-                </div>
-                <p class="mb-1">{{ note.note_text|truncatewords:30 }}</p>
-                <small class="text-muted">
-                    {% if note.plant %}
-                    <i class="bi bi-flower1"></i> {{ note.plant.name }}
-                    {% endif %}
-                    {% if note.grid_position %}
-                    &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ note.grid_position }}
-                    {% endif %}
-                </small>
+        <!-- Recent Notes -->
+        {% if notes %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Recent Planting Notes</h5>
             </div>
-            {% endfor %}
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for note in notes %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ note.title|default:"Note" }}</h6>
+                            <small class="text-muted">{{ note.note_date|date:"M d, Y" }}</small>
+                        </div>
+                        <p class="mb-1">{{ note.note_text|truncatewords:30 }}</p>
+                        <small class="text-muted">
+                            {% if note.plant %}
+                            <i class="bi bi-flower1"></i> {{ note.plant.name }}
+                            {% endif %}
+                            {% if note.grid_position %}
+                            &nbsp;|&nbsp; <i class="bi bi-geo-alt"></i> {{ note.grid_position %}
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 {% endblock %}
 
 {% block extra_css %}
@@ -239,6 +272,9 @@
 {% block extra_js %}
 {% if can_edit %}
 <script>
+// Plant map for symbol and color lookup
+const plantMap = {{ plant_map_json|safe }};
+
 document.addEventListener('DOMContentLoaded', function() {
     let draggedPlant = null;
     let draggedCell = null;
@@ -307,6 +343,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
         cell.addEventListener('dragend', function(e) {
             this.style.opacity = '1';
+
+            // Check if the drop happened outside the garden grid (drag-off removal)
+            if (draggedCell) {
+                const gardenGrid = document.getElementById('gardenGrid');
+                const rect = gardenGrid.getBoundingClientRect();
+                const x = e.clientX;
+                const y = e.clientY;
+
+                // If coordinates are outside the grid bounds and not dropped on another cell
+                // (we check by seeing if the drag operation completed without a drop event)
+                const isOutsideGrid = x < rect.left || x > rect.right || y < rect.top || y > rect.bottom;
+
+                if (isOutsideGrid && draggedCell === this) {
+                    // Make the cell empty - plant was dragged off the grid
+                    updateCellContent(this, {
+                        name: 'empty space',
+                        symbol: '•',
+                        color: '#8FBC8F'
+                    });
+                    this.dataset.plant = 'empty space';
+
+                    // Auto-save the layout
+                    autoSaveLayout();
+                }
+            }
+
             draggedCell = null;
         });
 
@@ -373,21 +435,131 @@ document.addEventListener('DOMContentLoaded', function() {
         const contentSpan = cell.querySelector('.cell-content');
 
         if (plant.name === 'empty space') {
-            contentSpan.className = 'cell-content badge bg-light text-dark w-100';
-            contentSpan.style.padding = '8px';
-            contentSpan.textContent = 'Empty';
+            contentSpan.className = 'cell-content badge bg-light text-muted w-100 h-100 d-flex align-items-center justify-content-center';
+            contentSpan.style.fontSize = '1.5rem';
+            contentSpan.style.borderRadius = '4px';
+            contentSpan.textContent = '•';
+            contentSpan.title = 'Empty Space';
         } else if (plant.name === 'path') {
-            contentSpan.className = 'cell-content badge bg-secondary w-100';
-            contentSpan.style.padding = '8px';
-            contentSpan.textContent = 'Path';
+            contentSpan.className = 'cell-content badge bg-secondary w-100 h-100 d-flex align-items-center justify-content-center';
+            contentSpan.style.fontSize = '1.5rem';
+            contentSpan.style.borderRadius = '4px';
+            contentSpan.textContent = '=';
+            contentSpan.title = 'Path';
         } else {
-            contentSpan.className = 'cell-content badge w-100';
-            contentSpan.style.backgroundColor = plant.color;
+            // Use symbol from plant data, fallback to first letter
+            const plantSymbol = plant.symbol || plant.name.substring(0, 1).toUpperCase();
+
+            contentSpan.className = 'cell-content badge w-100 h-100 d-flex align-items-center justify-content-center';
+            contentSpan.style.backgroundColor = plant.color || '#90EE90';
             contentSpan.style.color = 'white';
-            contentSpan.style.padding = '8px';
-            contentSpan.textContent = plant.name.length > 8 ? plant.name.substring(0, 8) + '...' : plant.name;
+            contentSpan.style.fontSize = '1.8rem';
+            contentSpan.style.fontWeight = 'bold';
+            contentSpan.style.borderRadius = '4px';
+            contentSpan.textContent = plantSymbol;
             contentSpan.title = plant.name;
         }
+    }
+
+    // Garden name inline editing
+    const gardenNameDisplay = document.getElementById('gardenNameDisplay');
+    const gardenNameInput = document.getElementById('gardenNameInput');
+    const gardenNameSaveStatus = document.getElementById('gardenNameSaveStatus');
+
+    if (gardenNameDisplay && gardenNameInput) {
+        // Click to edit
+        gardenNameDisplay.addEventListener('click', function() {
+            gardenNameDisplay.classList.add('d-none');
+            gardenNameInput.classList.remove('d-none');
+            gardenNameInput.focus();
+            gardenNameInput.select();
+        });
+
+        // Save on blur (when user clicks away)
+        gardenNameInput.addEventListener('blur', function() {
+            saveGardenName();
+        });
+
+        // Save on Enter key
+        gardenNameInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur(); // Trigger the blur event to save
+            }
+        });
+
+        // Cancel on Escape key
+        gardenNameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                gardenNameInput.value = gardenNameDisplay.textContent.trim().replace(/\s+/g, ' ');
+                gardenNameInput.classList.add('d-none');
+                gardenNameDisplay.classList.remove('d-none');
+            }
+        });
+    }
+
+    function saveGardenName() {
+        const newName = gardenNameInput.value.trim();
+
+        // Get the old name without the pencil icon
+        const displayText = gardenNameDisplay.childNodes[0].textContent.trim();
+
+        if (newName === '' || newName === displayText) {
+            // No change or empty, just revert
+            gardenNameInput.classList.add('d-none');
+            gardenNameDisplay.classList.remove('d-none');
+            return;
+        }
+
+        // Show saving status
+        gardenNameSaveStatus.textContent = 'Saving...';
+        gardenNameSaveStatus.className = 'badge bg-info ms-2';
+
+        const gardenId = {{ garden.pk }};
+
+        fetch(`/gardens/${gardenId}/update-name/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ name: newName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update display - preserve the structure with the pencil icon
+                const textNode = document.createTextNode(newName + ' ');
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-pencil-square ms-2';
+                icon.style.fontSize = '0.7em';
+                icon.style.color = '#6c757d';
+
+                gardenNameDisplay.innerHTML = '';
+                gardenNameDisplay.appendChild(textNode);
+                gardenNameDisplay.appendChild(icon);
+
+                gardenNameInput.classList.add('d-none');
+                gardenNameDisplay.classList.remove('d-none');
+
+                // Show success
+                gardenNameSaveStatus.textContent = 'Saved';
+                gardenNameSaveStatus.className = 'badge bg-success ms-2';
+                setTimeout(() => {
+                    gardenNameSaveStatus.textContent = '';
+                }, 2000);
+            } else {
+                gardenNameSaveStatus.textContent = 'Error: ' + (data.error || 'Failed to save');
+                gardenNameSaveStatus.className = 'badge bg-danger ms-2';
+                // Keep the input visible so user can try again
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            gardenNameSaveStatus.textContent = 'Network error';
+            gardenNameSaveStatus.className = 'badge bg-danger ms-2';
+        });
     }
 
     // Auto-save garden layout

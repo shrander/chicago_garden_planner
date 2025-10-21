@@ -10,6 +10,7 @@ class Plant(models.Model):
     """Plant library with Chicago-specific growing info"""
 
     PLANT_TYPES = [
+        ('utility', 'Utility'),
         ('vegetable', 'Vegetable'),
         ('herb', 'Herb'),
         ('flower', 'Flower'),

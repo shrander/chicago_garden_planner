@@ -11,6 +11,7 @@ urlpatterns = [
     path('<int:pk>/edit/', views.garden_edit, name='garden_edit'),
     path('<int:pk>/delete/', views.garden_delete, name='garden_delete'),
     path('<int:pk>/save-layout/', views.garden_save_layout, name='garden_save_layout'),
+    path('<int:pk>/update-name/', views.garden_update_name, name='garden_update_name'),
 
     # plant views
     path('plants/', views.plant_library, name='plant_library'),

@@ -87,15 +87,36 @@ def garden_detail(request, pk):
 
     # Get all available plants for the plant library (if user can edit)
     all_plants = []
+    utility_plants = []
     if request.user.is_authenticated and garden.owner == request.user:
+        # Get utility plants (Empty Space, Path) - these go at the top
+        utility_plants = Plant.objects.filter(
+            plant_type='utility',
+            is_default=True
+        ).order_by('name')
+
+        # Get all other plants (non-utility) sorted alphabetically
         all_plants = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
-        ).order_by('plant_type', 'name')
+        ).exclude(plant_type='utility').order_by('name')  # Sort alphabetically by common name
 
     # Calculate fill rate
     total_spaces = garden.width * garden.height
     plant_count = garden.get_plant_count()
     fill_rate = (plant_count / total_spaces * 100) if total_spaces > 0 else 0
+
+    # Create a mapping of plant names to their symbols and colors for the grid display
+    plant_map = {}
+    for plant in Plant.objects.all():
+        plant_map[plant.name.lower()] = {
+            'symbol': plant.symbol,
+            'color': plant.color,
+            'name': plant.name
+        }
+
+    # Convert plant_map to JSON string for JavaScript
+    import json
+    plant_map_json = json.dumps(plant_map)
 
     context = {
         'garden': garden,
@@ -103,8 +124,11 @@ def garden_detail(request, pk):
         'notes': notes,
         'plants_in_garden': plants_in_garden,
         'all_plants': all_plants,
+        'utility_plants': utility_plants,
         'can_edit': request.user.is_authenticated and garden.owner == request.user,
         'fill_rate': fill_rate,
+        'plant_map_json': plant_map_json,
+        'plant_map': plant_map,  # Python dict for template lookup
     }
 
     return render(request, 'gardens/garden_detail.html', context)
@@ -272,6 +296,52 @@ def garden_save_layout(request, pk):
         return JsonResponse({
             'success': True,
             'message': 'Garden layout saved successfully'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def garden_update_name(request, pk):
+    """AJAX endpoint to update garden name"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+        new_name = data.get('name', '').strip()
+
+        # Validate name
+        if not new_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Garden name cannot be empty'
+            }, status=400)
+
+        if len(new_name) > 100:
+            return JsonResponse({
+                'success': False,
+                'error': 'Garden name must be 100 characters or less'
+            }, status=400)
+
+        # Update garden name
+        garden.name = new_name
+        garden.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Garden name updated successfully',
+            'name': garden.name
         })
 
     except json.JSONDecodeError:
