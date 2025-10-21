@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
 from .models import Garden, Plant, PlantingNote
 from .forms import GardenForm, PlantForm, PlantingNoteForm
 
@@ -82,6 +85,13 @@ def garden_detail(request, pk):
         except Plant.DoesNotExist:
             pass
 
+    # Get all available plants for the plant library (if user can edit)
+    all_plants = []
+    if request.user.is_authenticated and garden.owner == request.user:
+        all_plants = Plant.objects.filter(
+            Q(is_default=True) | Q(created_by=request.user)
+        ).order_by('plant_type', 'name')
+
     # Calculate fill rate
     total_spaces = garden.width * garden.height
     plant_count = garden.get_plant_count()
@@ -92,6 +102,7 @@ def garden_detail(request, pk):
         'grid_data': grid_data,
         'notes': notes,
         'plants_in_garden': plants_in_garden,
+        'all_plants': all_plants,
         'can_edit': request.user.is_authenticated and garden.owner == request.user,
         'fill_rate': fill_rate,
     }
@@ -227,3 +238,49 @@ def plant_delete(request, pk):
         return redirect('gardens:plant_library')
 
     return render(request, 'gardens/plant_confirm_delete.html', {'plant': plant})
+
+
+@login_required
+@require_POST
+def garden_save_layout(request, pk):
+    """AJAX endpoint to save garden layout changes"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+        grid = data.get('grid', [])
+
+        # Validate grid dimensions
+        if len(grid) != garden.height:
+            return JsonResponse({
+                'success': False,
+                'error': f'Grid height mismatch. Expected {garden.height}, got {len(grid)}'
+            }, status=400)
+
+        for row in grid:
+            if len(row) != garden.width:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Grid width mismatch. Expected {garden.width}, got {len(row)}'
+                }, status=400)
+
+        # Update garden layout
+        garden.layout_data = {'grid': grid}
+        garden.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Garden layout saved successfully'
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
