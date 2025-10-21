@@ -1,0 +1,255 @@
+{% extends "gardens/base.html" %}
+
+{% block title %}Dashboard - Chicago Garden Planner{% endblock %}
+
+{% block content %}
+<!-- Welcome Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5">
+            <i class="bi bi-speedometer2 text-success"></i> Welcome back, {{ user.username }}!
+        </h1>
+        <p class="text-muted">Here's what's happening in your garden planner</p>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <i class="bi bi-grid-3x3-gap text-success" style="font-size: 3rem;"></i>
+                <h3 class="mt-3 mb-1">{{ total_gardens }}</h3>
+                <p class="text-muted mb-0">Total Gardens</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <i class="bi bi-flower1 text-success" style="font-size: 3rem;"></i>
+                <h3 class="mt-3 mb-1">{{ total_plants }}</h3>
+                <p class="text-muted mb-0">Total Plants</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar-check text-success" style="font-size: 3rem;"></i>
+                <h3 class="mt-3 mb-1">{{ user.profile.years_gardening|default:"N/A" }}</h3>
+                <p class="text-muted mb-0">Years Gardening</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#createGardenModal">
+                            <i class="bi bi-plus-circle"></i> Create New Garden
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'gardens:plant_library' %}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-book"></i> Browse Plant Library
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'accounts:profile' %}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-person"></i> View Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Your Gardens -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Your Gardens</h5>
+                <a href="{% url 'gardens:garden_list' %}" class="btn btn-sm btn-light">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                {% if user_gardens %}
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {% for garden in user_gardens %}
+                    <div class="col">
+                        <div class="card h-100 border">
+                            <div class="card-header bg-success bg-opacity-10">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-0">{{ garden.name }}</h6>
+                                    {% if not garden.is_public %}
+                                    <span class="badge bg-secondary" title="Private">
+                                        <i class="bi bi-lock"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-info" title="Public">
+                                        <i class="bi bi-globe"></i>
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-muted small">
+                                    {{ garden.description|truncatewords:15|default:"No description" }}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-primary">{{ garden.get_size_display }}</span>
+                                    <small class="text-muted">
+                                        <i class="bi bi-flower1"></i> {{ garden.get_plant_count }} plants
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> Updated {{ garden.updated_at|timesince }} ago
+                                </small>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="{% url 'gardens:garden_detail' garden.pk %}" class="btn btn-sm btn-outline-success w-100">
+                                    <i class="bi bi-eye"></i> View Garden
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-grid-3x3-gap text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-muted">No Gardens Yet</h4>
+                    <p class="text-muted">Get started by creating your first garden!</p>
+                    <button type="button" class="btn btn-success mt-2" data-bs-toggle="modal" data-bs-target="#createGardenModal">
+                        <i class="bi bi-plus-circle"></i> Create Your First Garden
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chicago Gardening Tip -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow border-success">
+            <div class="card-header bg-success bg-opacity-10">
+                <h5 class="mb-0 text-success">
+                    <i class="bi bi-lightbulb"></i> Chicago Gardening Tip
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">
+                    <strong>USDA Zones 5b/6a:</strong> Chicago's last frost date is typically around mid-May,
+                    and the first fall frost arrives in mid-October. Plan your planting schedule accordingly!
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Garden Modal (reused from garden list) -->
+<div class="modal fade" id="createGardenModal" tabindex="-1" aria-labelledby="createGardenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'gardens:garden_create' %}" id="createGardenForm">
+                {% csrf_token %}
+                <div class="modal-header bg-success bg-opacity-10">
+                    <h5 class="modal-title" id="createGardenModalLabel">
+                        <i class="bi bi-plus-circle text-success"></i> Create New Garden
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Garden Name *</label>
+                        <input type="text" class="form-control" id="id_name" name="name" required
+                               placeholder="e.g., My Backyard Garden">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="3"
+                                  placeholder="Describe your garden layout and goals..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_size" class="form-label">Garden Size *</label>
+                            <select class="form-select" id="id_size" name="size" required>
+                                <option value="4x4">4' x 4' (16 sq ft)</option>
+                                <option value="4x8">4' x 8' (32 sq ft)</option>
+                                <option value="8x8">8' x 8' (64 sq ft)</option>
+                                <option value="10x10" selected>10' x 10' (100 sq ft)</option>
+                                <option value="custom">Custom Size</option>
+                            </select>
+                            <small class="form-text text-muted">Select a preset size or choose custom</small>
+                        </div>
+
+                        <div class="col-md-3 mb-3" id="widthField" style="display: none;">
+                            <label for="id_width" class="form-label">Width (ft)</label>
+                            <input type="number" class="form-control" id="id_width" name="width"
+                                   min="1" max="50" value="10">
+                        </div>
+
+                        <div class="col-md-3 mb-3" id="heightField" style="display: none;">
+                            <label for="id_height" class="form-label">Height (ft)</label>
+                            <input type="number" class="form-control" id="id_height" name="height"
+                                   min="1" max="50" value="10">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="id_is_public" name="is_public">
+                        <label class="form-check-label" for="id_is_public">
+                            <i class="bi bi-globe"></i> Make this garden public (allow others to view)
+                        </label>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Your garden will start with an empty grid. You can add plants using the garden editor after creation.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Create Garden
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide custom dimension fields based on size selection
+    document.getElementById('id_size').addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        document.getElementById('widthField').style.display = isCustom ? 'block' : 'none';
+        document.getElementById('heightField').style.display = isCustom ? 'block' : 'none';
+
+        // Auto-fill dimensions for preset sizes
+        if (!isCustom && this.value) {
+            const [height, width] = this.value.split('x').map(Number);
+            document.getElementById('id_width').value = width;
+            document.getElementById('id_height').value = height;
+        }
+    });
+</script>
+{% endblock %}

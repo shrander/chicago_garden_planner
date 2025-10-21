@@ -2,6 +2,36 @@
 
 {% block title %}My Gardens - Chicago Garden Planner{% endblock %}
 
+{% block extra_css %}
+<style>
+/* Remove hover effect from filter card */
+#filterCard {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transition: none !important;
+    transform: none !important;
+}
+#filterCard:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
+}
+
+/* Add highlighting to search input and size dropdown on focus and hover */
+.form-control:focus,
+.form-select:focus,
+.form-control:hover,
+.form-select:hover {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+/* Darken filter button hover color */
+.btn-primary:hover {
+    background-color: #0056b3 !important;
+    border-color: #004085 !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row mb-4">
     <div class="col-md-8">
@@ -20,7 +50,7 @@
 </div>
 
 <!-- Filters -->
-<div class="card mb-4">
+<div class="card mb-4" id="filterCard">
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-5">
