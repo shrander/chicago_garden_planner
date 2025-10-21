@@ -12,9 +12,9 @@
     </div>
     <div class="col-md-4 text-end">
         {% if user.is_authenticated %}
-        <a href="{% url 'gardens:garden_create' %}" class="btn btn-success">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createGardenModal">
             <i class="bi bi-plus-circle"></i> Create New Garden
-        </a>
+        </button>
         {% endif %}
     </div>
 </div>
@@ -128,5 +128,99 @@
         </li>
     </ul>
 </nav>
+{% endif %}
+
+<!-- Create Garden Modal -->
+{% if user.is_authenticated %}
+<div class="modal fade" id="createGardenModal" tabindex="-1" aria-labelledby="createGardenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'gardens:garden_create' %}" id="createGardenForm">
+                {% csrf_token %}
+                <div class="modal-header bg-success bg-opacity-10">
+                    <h5 class="modal-title" id="createGardenModalLabel">
+                        <i class="bi bi-plus-circle text-success"></i> Create New Garden
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="id_name" class="form-label">Garden Name *</label>
+                        <input type="text" class="form-control" id="id_name" name="name" required
+                               placeholder="e.g., My Backyard Garden">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="id_description" name="description" rows="3"
+                                  placeholder="Describe your garden layout and goals..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_size" class="form-label">Garden Size *</label>
+                            <select class="form-select" id="id_size" name="size" required>
+                                <option value="4x4">4' x 4' (16 sq ft)</option>
+                                <option value="4x8">4' x 8' (32 sq ft)</option>
+                                <option value="8x8">8' x 8' (64 sq ft)</option>
+                                <option value="10x10" selected>10' x 10' (100 sq ft)</option>
+                                <option value="custom">Custom Size</option>
+                            </select>
+                            <small class="form-text text-muted">Select a preset size or choose custom</small>
+                        </div>
+
+                        <div class="col-md-3 mb-3" id="widthField" style="display: none;">
+                            <label for="id_width" class="form-label">Width (ft)</label>
+                            <input type="number" class="form-control" id="id_width" name="width"
+                                   min="1" max="50" value="10">
+                        </div>
+
+                        <div class="col-md-3 mb-3" id="heightField" style="display: none;">
+                            <label for="id_height" class="form-label">Height (ft)</label>
+                            <input type="number" class="form-control" id="id_height" name="height"
+                                   min="1" max="50" value="10">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="id_is_public" name="is_public">
+                        <label class="form-check-label" for="id_is_public">
+                            <i class="bi bi-globe"></i> Make this garden public (allow others to view)
+                        </label>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Note:</strong> Your garden will start with an empty grid. You can add plants using the garden editor after creation.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Create Garden
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide custom dimension fields based on size selection
+    document.getElementById('id_size').addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        document.getElementById('widthField').style.display = isCustom ? 'block' : 'none';
+        document.getElementById('heightField').style.display = isCustom ? 'block' : 'none';
+
+        // Auto-fill dimensions for preset sizes
+        if (!isCustom && this.value) {
+            const [height, width] = this.value.split('x').map(Number);
+            document.getElementById('id_width').value = width;
+            document.getElementById('id_height').value = height;
+        }
+    });
+</script>
 {% endif %}
 {% endblock %}

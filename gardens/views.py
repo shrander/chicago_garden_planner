@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from .models import Garden, Plant, PlantingNote
+from .forms import GardenForm, PlantForm, PlantingNoteForm
 
 
 def garden_list(request):
@@ -60,7 +61,7 @@ def garden_detail(request, pk):
     grid_data = garden.layout_data.get('grid', []) if garden.layout_data else []
 
     # Get planting notes for this garden
-    notes = garden.notes.select_related('plant').order_by('-note_date')[:5]
+    notes = garden.notes.select_related('plant').order_by('-note_date')[:5]  # type: ignore[attr-defined]
 
     # Get unique plants in this garden
     unique_plants = set()
@@ -101,7 +102,23 @@ def garden_detail(request, pk):
 @login_required
 def garden_create(request):
     """Create a new garden"""
-    return render(request, 'gardens/garden_form.html', {'action': 'Create'})
+    if request.method == 'POST':
+        form = GardenForm(request.POST)
+        if form.is_valid():
+            garden = form.save(commit=False)
+            garden.owner = request.user
+            garden.save()
+            messages.success(request, f'Garden "{garden.name}" has been created successfully!')
+            return redirect('gardens:garden_detail', pk=garden.pk)
+        else:
+            # If form is invalid, show errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+            return redirect('gardens:garden_list')
+    else:
+        # GET request - redirect to garden list (modal is shown there)
+        return redirect('gardens:garden_list')
 
 
 @login_required
