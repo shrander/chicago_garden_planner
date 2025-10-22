@@ -240,7 +240,8 @@ def plant_library(request):
         plants = plants.filter(plant_type=plant_type)
 
     if season:
-        plants = plants.filter(planting_season=season)
+        # Filter by planting_seasons array containing the season
+        plants = plants.filter(planting_seasons__contains=[season])
 
     context = {
         'plants': plants.distinct(),
@@ -255,9 +256,46 @@ def plant_library(request):
 
 
 @login_required
+def plant_detail(request, pk):
+    """Display plant detail page"""
+    plant = get_object_or_404(Plant, pk=pk)
+
+    # Check if user can edit this plant
+    can_edit = request.user.is_superuser or (plant.created_by == request.user if plant.created_by else False)
+
+    # Get companion plants
+    companions = plant.companion_plants.all()
+
+    # Get plants that list this as a companion
+    companion_to = Plant.objects.filter(companion_plants=plant)
+
+    context = {
+        'plant': plant,
+        'can_edit': can_edit,
+        'companions': companions,
+        'companion_to': companion_to,
+    }
+
+    return render(request, 'gardens/plant_detail.html', context)
+
+
+@login_required
 def plant_create(request):
     """Create a new plant"""
-    return render(request, 'gardens/plant_form.html', {'action': 'Create'})
+    if request.method == 'POST':
+        form = PlantForm(request.POST)
+        if form.is_valid():
+            plant = form.save(commit=False)
+            plant.created_by = request.user
+            plant.is_default = request.user.is_superuser  # Only superusers can create default plants
+            plant.save()
+            form.save_m2m()  # Save many-to-many relationships
+            messages.success(request, f'Plant "{plant.name}" has been created successfully!')
+            return redirect('gardens:plant_detail', pk=plant.pk)
+    else:
+        form = PlantForm()
+
+    return render(request, 'gardens/plant_form.html', {'form': form, 'action': 'Create'})
 
 
 @login_required
@@ -265,16 +303,30 @@ def plant_edit(request, pk):
     """Edit a plant"""
     plant = get_object_or_404(Plant, pk=pk)
 
-    # Only allow editing if user owns it or it's not a default plant
-    if plant.is_default and not request.user.is_staff:
-        messages.error(request, 'You cannot edit default plants.')
+    # Only allow editing if user owns it or is superuser
+    if plant.is_default and not request.user.is_superuser:
+        messages.error(request, 'You cannot edit default plants. Only superusers can edit system plants.')
         return redirect('gardens:plant_library')
 
-    if plant.created_by and plant.created_by != request.user and not request.user.is_staff:
+    if plant.created_by and plant.created_by != request.user and not request.user.is_superuser:
         messages.error(request, 'You can only edit your own plants.')
         return redirect('gardens:plant_library')
 
-    return render(request, 'gardens/plant_form.html', {'plant': plant, 'action': 'Edit'})
+    if request.method == 'POST':
+        form = PlantForm(request.POST, instance=plant)
+        if form.is_valid():
+            updated_plant = form.save(commit=False)
+            # Superusers can toggle is_default, others cannot
+            if not request.user.is_superuser:
+                updated_plant.is_default = plant.is_default
+            updated_plant.save()
+            form.save_m2m()
+            messages.success(request, f'Plant "{updated_plant.name}" has been updated successfully!')
+            return redirect('gardens:plant_detail', pk=updated_plant.pk)
+    else:
+        form = PlantForm(instance=plant)
+
+    return render(request, 'gardens/plant_form.html', {'form': form, 'plant': plant, 'action': 'Edit'})
 
 
 @login_required

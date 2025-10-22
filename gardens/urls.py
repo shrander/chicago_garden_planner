@@ -17,6 +17,7 @@ urlpatterns = [
     # plant views
     path('plants/', views.plant_library, name='plant_library'),
     path('plants/create/', views.plant_create, name='plant_create'),
+    path('plants/<int:pk>/', views.plant_detail, name='plant_detail'),
     path('plants/<int:pk>/edit/', views.plant_edit, name='plant_edit'),
     path('plants/<int:pk>/delete/', views.plant_delete, name='plant_delete'),
 ]

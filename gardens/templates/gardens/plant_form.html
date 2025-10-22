@@ -1,0 +1,159 @@
+{% extends "gardens/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ action }} Plant - Chicago Garden Planner{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'gardens:plant_library' %}">Plant Library</a></li>
+                {% if plant %}
+                <li class="breadcrumb-item"><a href="{% url 'gardens:plant_detail' plant.pk %}">{{ plant.name }}</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active" aria-current="page">{{ action }} Plant</li>
+            </ol>
+        </nav>
+        <h1 class="display-5"><i class="bi bi-flower1"></i> {{ action }} Plant</h1>
+        <p class="text-muted">
+            {% if action == 'Create' %}
+            Add a new plant to your personal library
+            {% else %}
+            Edit plant details
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Form -->
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <!-- Basic Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Basic Information</h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form.name|as_crispy_field }}
+                            {{ form.latin_name|as_crispy_field }}
+                            {{ form.plant_type|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <!-- Visual Display -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-palette"></i> Visual Display</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.symbol|as_crispy_field }}
+                                    <small class="text-muted">1-2 character symbol for garden grid</small>
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.color|as_crispy_field }}
+                                    <small class="text-muted">Color for garden visualization</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Growing Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Growing Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Planting Seasons</label>
+                                <small class="text-muted d-block mb-2">Select all seasons when this plant can be planted</small>
+                                {{ form.planting_seasons }}
+                                {% if form.planting_seasons.errors %}
+                                <div class="text-danger">{{ form.planting_seasons.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.days_to_harvest|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.spacing_inches|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chicago-Specific Notes -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0"><i class="bi bi-map"></i> Chicago Zone 5b/6a Notes</h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form.chicago_notes|as_crispy_field }}
+                            <small class="text-muted">
+                                Tips and notes specific to growing in Chicago's climate
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Companion Planting -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Companion Planting & Pest Control</h5>
+                        </div>
+                        <div class="card-body">
+                            {{ form.pest_deterrent_for|as_crispy_field }}
+                            <small class="text-muted d-block mb-3">
+                                Comma-separated list of pests this plant helps deter (e.g., "aphids, cabbage worms")
+                            </small>
+
+                            {{ form.companion_plants|as_crispy_field }}
+                            <small class="text-muted">
+                                Select plants that grow well together with this one
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Superuser Options -->
+                    {% if user.is_superuser %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0"><i class="bi bi-shield-lock"></i> Admin Options</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="is_default"
+                                       name="is_default" {% if plant.is_default %}checked{% endif %}>
+                                <label class="form-check-label" for="is_default">
+                                    <strong>System Default Plant</strong>
+                                    <br><small class="text-muted">Make this plant available to all users</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% if plant %}{% url 'gardens:plant_detail' plant.pk %}{% else %}{% url 'gardens:plant_library' %}{% endif %}"
+                           class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> {{ action }} Plant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
