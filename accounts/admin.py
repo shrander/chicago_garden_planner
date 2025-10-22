@@ -12,7 +12,7 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name_plural = 'Profile'
     fields = (
-        'bio', 'location', 'gardening_zone', 'years_gardening',
+        'bio', 'location', 'gardening_zone', 'year_started_gardening',
         'organics_only', 'interests', 'email_notifications', 'weekly_tips'
     )
 
@@ -49,7 +49,7 @@ class CustomUserAdmin(UserAdmin):
 # Register UserProfile separately for direct access
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'location', 'gardening_zone', 'years_gardening', 'organics_only']
+    list_display = ['user', 'location', 'gardening_zone', 'year_started_gardening', 'organics_only']
     list_filter = ['gardening_zone', 'organics_only', 'email_notifications', 'weekly_tips']
     search_fields = ['user__username', 'user__email', 'location', 'interests']
     readonly_fields = ['user']
@@ -58,7 +58,7 @@ class UserProfileAdmin(admin.ModelAdmin):
             'fields': ('user',)
         }),
         ('Location & Experience', {
-            'fields': ('location', 'gardening_zone', 'years_gardening', 'bio')
+            'fields': ('location', 'gardening_zone', 'year_started_gardening', 'bio')
         }),
         ('Gardening Preferences', {
             'fields': ('organics_only', 'interests')

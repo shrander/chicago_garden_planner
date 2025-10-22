@@ -1,160 +1,246 @@
 {% extends "gardens/base.html" %}
+{% load crispy_forms_tags %}
 
 {% block title %}Profile - Chicago Garden Planner{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Prevent cards from moving on hover */
+    .card {
+        transition: box-shadow 0.3s ease;
+    }
+    .card:hover {
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Avatar upload styling */
+    .avatar-container {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+        cursor: pointer;
+    }
+
+    .avatar-container img,
+    .avatar-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .avatar-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .avatar-container:hover .avatar-overlay {
+        opacity: 1;
+    }
+
+    .avatar-overlay i {
+        color: white;
+        font-size: 3rem;
+    }
+
+    #id_avatar {
+        display: none;
+    }
+
+    /* Hide all Django file input labels and text */
+    .avatar-upload-wrapper {
+        position: absolute !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Keep only the file input itself functional */
+    .avatar-upload-wrapper input[type="file"] {
+        position: absolute !important;
+        pointer-events: auto !important;
+    }
+
+    .remove-avatar-btn {
+        margin-top: 10px;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row">
-    <!-- Profile Information -->
-    <div class="col-md-8">
-        <div class="card shadow mb-4">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0"><i class="bi bi-person-circle"></i> Profile Information</h4>
-            </div>
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-3 text-center">
-                        {% if user.profile.avatar %}
-                        <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}'s avatar"
-                             class="img-fluid rounded-circle mb-3" style="max-width: 150px;">
-                        {% else %}
-                        <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
-                             style="width: 150px; height: 150px;">
-                            <i class="bi bi-person-circle text-success" style="font-size: 5rem;"></i>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="row">
+        <!-- Profile Information -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-circle"></i> Profile Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3 text-center">
+                            <div class="avatar-container" onclick="document.getElementById('id_avatar').click();">
+                                {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}'s avatar" id="avatarImage">
+                                {% else %}
+                                <div class="avatar-placeholder bg-success bg-opacity-10 d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-person-circle text-success" style="font-size: 5rem;"></i>
+                                </div>
+                                {% endif %}
+                                <div class="avatar-overlay">
+                                    <i class="bi bi-plus-circle"></i>
+                                </div>
+                            </div>
+                            <div class="avatar-upload-wrapper">
+                                {{ profile_form.avatar }}
+                            </div>
+                            {% if profile_form.avatar.errors %}
+                                <div class="text-danger small mt-2">{{ profile_form.avatar.errors }}</div>
+                            {% endif %}
+                            {% if user.profile.avatar %}
+                            <button type="button" class="btn btn-danger remove-avatar-btn" id="removeAvatarBtn">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                            {% endif %}
                         </div>
-                        {% endif %}
+                        <div class="col-md-9">
+                            {{ user_form.username|as_crispy_field }}
+                            {{ user_form.email|as_crispy_field }}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ user_form.first_name|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ user_form.last_name|as_crispy_field }}
+                                </div>
+                            </div>
+                            {{ profile_form.bio|as_crispy_field }}
+                        </div>
                     </div>
-                    <div class="col-md-9">
-                        <h2>{{ user.get_full_name|default:user.username }}</h2>
-                        <p class="text-muted">@{{ user.username }}</p>
+                </div>
+            </div>
 
-                        {% if user.profile.bio %}
-                        <p class="mt-3">{{ user.profile.bio }}</p>
-                        {% else %}
-                        <p class="mt-3 text-muted fst-italic">No bio provided yet.</p>
-                        {% endif %}
-
-                        <div class="mt-4">
-                            <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary me-2">
-                                <i class="bi bi-pencil"></i> Edit Profile
-                            </a>
-                            <a href="{% url 'accounts:account_edit' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-gear"></i> Account Settings
-                            </a>
+            <!-- Account Details -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Account Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Member Since</h6>
+                            <p>{{ user.date_joined|date:"F d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Last Login</h6>
+                            <p>{{ user.last_login|date:"F d, Y g:i A" }}</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Account Details -->
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Account Details</h5>
+        <!-- Gardening Info Sidebar -->
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-flower1"></i> Gardening Info</h5>
+                </div>
+                <div class="card-body">
+                    {{ profile_form.location|as_crispy_field }}
+                    {{ profile_form.gardening_zone|as_crispy_field }}
+                    {{ profile_form.year_started_gardening|as_crispy_field }}
+                    {{ profile_form.organics_only|as_crispy_field }}
+                    {{ profile_form.interests|as_crispy_field }}
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">Email</h6>
-                        <p>{{ user.email }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">Username</h6>
-                        <p>{{ user.username }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">First Name</h6>
-                        <p>{{ user.first_name|default:"Not provided" }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">Last Name</h6>
-                        <p>{{ user.last_name|default:"Not provided" }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">Member Since</h6>
-                        <p>{{ user.date_joined|date:"F d, Y" }}</p>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <h6 class="text-muted">Last Login</h6>
-                        <p>{{ user.last_login|date:"F d, Y g:i A" }}</p>
-                    </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-bell"></i> Notifications</h5>
+                </div>
+                <div class="card-body">
+                    {{ profile_form.email_notifications|as_crispy_field }}
+                    {{ profile_form.weekly_tips|as_crispy_field }}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Gardening Info Sidebar -->
-    <div class="col-md-4">
-        <div class="card shadow mb-4">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="bi bi-flower1"></i> Gardening Info</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <h6 class="text-muted">Location</h6>
-                    <p>
-                        <i class="bi bi-geo-alt"></i>
-                        {{ user.profile.location|default:"Not specified" }}
-                    </p>
-                </div>
-
-                <div class="mb-3">
-                    <h6 class="text-muted">USDA Zone</h6>
-                    <p>
-                        <span class="badge bg-success">
-                            {{ user.profile.get_gardening_zone_display|default:"Not specified" }}
-                        </span>
-                    </p>
-                </div>
-
-                <div class="mb-3">
-                    <h6 class="text-muted">Years Gardening</h6>
-                    <p>{{ user.profile.years_gardening|default:"Not specified" }} years</p>
-                </div>
-
-                <div class="mb-3">
-                    <h6 class="text-muted">Gardening Style</h6>
-                    <p>
-                        {% if user.profile.organics_only %}
-                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Organic Only</span>
-                        {% else %}
-                        <span class="badge bg-secondary">Mixed Methods</span>
-                        {% endif %}
-                    </p>
-                </div>
-
-                {% if user.profile.interests %}
-                <div class="mb-3">
-                    <h6 class="text-muted">Interests</h6>
-                    <p class="small">{{ user.profile.interests }}</p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="card shadow">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="bi bi-bell"></i> Notifications</h5>
-            </div>
-            <div class="card-body">
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" disabled
-                           {% if user.profile.email_notifications %}checked{% endif %}>
-                    <label class="form-check-label">
-                        Email Notifications
-                    </label>
-                </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" disabled
-                           {% if user.profile.weekly_tips %}checked{% endif %}>
-                    <label class="form-check-label">
-                        Weekly Gardening Tips
-                    </label>
-                </div>
-                <small class="text-muted d-block mt-3">
-                    <a href="{% url 'accounts:profile_edit' %}">Edit preferences</a>
-                </small>
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-end gap-2 mb-4">
+                <button type="submit" class="btn btn-success btn-lg" id="saveButton">
+                    <i class="bi bi-check-circle"></i> Save Changes
+                </button>
+                <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </a>
             </div>
         </div>
     </div>
-</div>
+</form>
+
+<script>
+    // Auto-save when avatar image is uploaded or removed
+    document.addEventListener('DOMContentLoaded', function() {
+        const avatarInput = document.querySelector('input[name="avatar"]');
+        const form = document.querySelector('form');
+        const saveButton = document.getElementById('saveButton');
+        const removeAvatarBtn = document.getElementById('removeAvatarBtn');
+
+        // Handle avatar file selection
+        if (avatarInput) {
+            avatarInput.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    // Show loading state
+                    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+                    saveButton.disabled = true;
+
+                    // Submit the form
+                    form.submit();
+                }
+            });
+        }
+
+        // Handle remove avatar button
+        if (removeAvatarBtn) {
+            removeAvatarBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Add hidden input to signal avatar removal
+                const removeInput = document.createElement('input');
+                removeInput.type = 'hidden';
+                removeInput.name = 'avatar-clear';
+                removeInput.value = 'on';
+                form.appendChild(removeInput);
+
+                // Show loading state
+                saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Removing...';
+                saveButton.disabled = true;
+
+                // Submit the form
+                form.submit();
+            });
+        }
+    });
+</script>
 {% endblock %}

@@ -81,10 +81,18 @@ class CustomUserChangeForm(UserChangeForm):
 class UserProfileForm(forms.ModelForm):
     """orm for updating user profile info"""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Generate year choices from 1950 to current year
+        from django.utils import timezone
+        current_year = timezone.now().year
+        year_choices = [('', 'Select year')] + [(year, str(year)) for year in range(current_year, 1949, -1)]
+        self.fields['year_started_gardening'].widget = forms.Select(choices=year_choices)
+
     class Meta:
         model = UserProfile
         fields = [
-            'bio', 'location', 'gardening_zone', 'years_gardening',
+            'bio', 'location', 'gardening_zone', 'year_started_gardening',
             'organics_only', 'interests', 'email_notifications',
             'weekly_tips', 'avatar'
         ]
