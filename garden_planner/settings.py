@@ -137,6 +137,9 @@ CONTACT_EMAIL = 'help@chicagogarden.com'
 
 # login URLs
 LOGIN_URL = 'accounts:login'
+
+# Anthropic API Key for AI assistant
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
 LOGIN_REDIRECT_URL = 'accounts:dashboard'
 LOGOUT_REDIRECT_URL = 'gardens:garden_list'
 

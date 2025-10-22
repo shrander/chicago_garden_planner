@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.conf import settings
 import json
+import anthropic
 from .models import Garden, Plant, PlantingNote
 from .forms import GardenForm, PlantForm, PlantingNoteForm
 
@@ -446,6 +448,119 @@ def garden_update_name(request, pk):
             'success': False,
             'error': 'Invalid JSON data'
         }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def garden_ai_assistant(request, pk):
+    """AI assistant endpoint to get garden layout suggestions from Claude"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Get grid data
+        grid_data = garden.layout_data.get('grid', []) if garden.layout_data else []
+
+        # Find empty spaces
+        empty_cells = []
+        for row_idx, row in enumerate(grid_data):
+            for col_idx, cell in enumerate(row):
+                if not cell or cell.lower() in ['empty space', '=', '•', '']:
+                    empty_cells.append({'row': row_idx, 'col': col_idx})
+
+        # Get plants already in garden
+        plants_in_garden = set()
+        for row in grid_data:
+            for cell in row:
+                if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
+                    plants_in_garden.add(cell.lower())
+
+        # Get available plants with details
+        available_plants = Plant.objects.filter(
+            Q(is_default=True) | Q(created_by=request.user)
+        ).exclude(plant_type='utility').values(
+            'name', 'latin_name', 'plant_type', 'planting_season',
+            'spacing_inches', 'chicago_notes', 'pest_deterrent_for'
+        )
+
+        # Get companion relationships
+        companion_data = []
+        for plant_name in plants_in_garden:
+            plant = Plant.objects.filter(Q(name__iexact=plant_name) | Q(symbol__iexact=plant_name)).first()
+            if plant:
+                companions = list(plant.companion_plants.values_list('name', flat=True))
+                if companions:
+                    companion_data.append({
+                        'plant': plant.name,
+                        'companions': companions
+                    })
+
+        # Build prompt for Claude
+        prompt = f"""You are a Chicago garden planning assistant (USDA zones 5b/6a).
+
+I have a garden that is {garden.width}x{garden.height} grid cells.
+Current state:
+- Empty cells available: {len(empty_cells)} cells at positions: {empty_cells[:10]}{'...' if len(empty_cells) > 10 else ''}
+- Plants already in garden: {', '.join(plants_in_garden) if plants_in_garden else 'None'}
+- Companion relationships: {companion_data}
+
+Available plants to suggest:
+{list(available_plants)[:20]}
+
+Please suggest plants to fill some of the empty spaces, considering:
+1. Companion planting relationships with existing plants
+2. Chicago climate suitability (zones 5b/6a)
+3. Spacing requirements
+4. Pest management
+5. Seasonal planting appropriateness
+
+Respond with a JSON object in this exact format:
+{{
+    "reasoning": "Brief explanation of your strategy (2-3 sentences)",
+    "suggestions": [
+        {{"plant_name": "Tomato", "row": 0, "col": 1, "reason": "Companions with existing basil, heat-tolerant"}},
+        {{"plant_name": "Marigold", "row": 1, "col": 2, "reason": "Pest deterrent for nearby vegetables"}}
+    ]
+}}
+
+Only suggest 3-5 plants maximum. Only use plant names from the available plants list."""
+
+        # Call Claude API
+        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1024,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        # Parse Claude's response
+        response_text = message.content[0].text
+
+        # Try to extract JSON from response
+        import re
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            suggestions = json.loads(json_match.group())
+        else:
+            suggestions = json.loads(response_text)
+
+        return JsonResponse({
+            'success': True,
+            'suggestions': suggestions
+        })
+
+    except json.JSONDecodeError as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to parse AI response: {str(e)}'
+        }, status=500)
     except Exception as e:
         return JsonResponse({
             'success': False,

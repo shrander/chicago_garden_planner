@@ -13,6 +13,7 @@ urlpatterns = [
     path('<int:pk>/duplicate/', views.garden_duplicate, name='garden_duplicate'),
     path('<int:pk>/save-layout/', views.garden_save_layout, name='garden_save_layout'),
     path('<int:pk>/update-name/', views.garden_update_name, name='garden_update_name'),
+    path('<int:pk>/ai-suggest/', views.garden_ai_assistant, name='garden_ai_assistant'),
 
     # plant views
     path('plants/', views.plant_library, name='plant_library'),
