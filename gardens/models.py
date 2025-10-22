@@ -1,8 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.conf import settings
-import json
 
 User = get_user_model()
 
@@ -34,7 +32,10 @@ class Plant(models.Model):
     plant_type = models.CharField(max_length=20, choices=PLANT_TYPES)
 
     # Chicago specific growing info
-    planting_season = models.CharField(max_length=20, choices=SEASONS)
+    planting_seasons = models.JSONField(
+        default=list,
+        help_text='List of seasons when this plant can be planted (e.g., ["spring", "fall"])'
+    )
     days_to_harvest = models.IntegerField(null=True, blank=True)
     spacing_inches = models.FloatField(help_text='Spacing between plants in inches')
     chicago_notes = models.TextField(blank=True, help_text='Chicago Zone 5b/6a specific notes')

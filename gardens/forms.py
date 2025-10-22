@@ -93,11 +93,17 @@ class GardenForm(forms.ModelForm):
 class PlantForm(forms.ModelForm):
     """Form for creating and editing custom plants"""
 
+    planting_seasons = forms.MultipleChoiceField(
+        choices=Plant.SEASONS,
+        widget=forms.CheckboxSelectMultiple,
+        help_text='Select all seasons when this plant can be planted'
+    )
+
     class Meta:
         model = Plant
         fields = [
             'name', 'latin_name', 'symbol', 'color', 'plant_type',
-            'planting_season', 'days_to_harvest', 'spacing_inches',
+            'planting_seasons', 'days_to_harvest', 'spacing_inches',
             'chicago_notes', 'pest_deterrent_for', 'companion_plants'
         ]
         widgets = {
@@ -106,7 +112,6 @@ class PlantForm(forms.ModelForm):
             'symbol': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2}),
             'color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
             'plant_type': forms.Select(attrs={'class': 'form-select'}),
-            'planting_season': forms.Select(attrs={'class': 'form-select'}),
             'days_to_harvest': forms.NumberInput(attrs={'class': 'form-control'}),
             'spacing_inches': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
             'chicago_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),

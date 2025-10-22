@@ -7,9 +7,9 @@ from .models import Plant, Garden, PlantingNote
 class PlantAdmin(admin.ModelAdmin):
     """Admin interface for Plant model with companion planting support"""
 
-    list_display = ['symbol_preview', 'name', 'latin_name', 'plant_type', 'planting_season',
+    list_display = ['symbol_preview', 'name', 'latin_name', 'plant_type', 'planting_seasons_display',
                     'days_to_harvest', 'spacing_inches', 'is_default', 'companion_count']
-    list_filter = ['plant_type', 'planting_season', 'is_default', 'created_at']
+    list_filter = ['plant_type', 'is_default', 'created_at']
     search_fields = ['name', 'latin_name', 'chicago_notes', 'pest_deterrent_for']
     filter_horizontal = ['companion_plants']
     readonly_fields = ['created_at', 'color_preview']
@@ -22,7 +22,7 @@ class PlantAdmin(admin.ModelAdmin):
             'fields': ('symbol', 'color', 'color_preview')
         }),
         ('Growing Information', {
-            'fields': ('planting_season', 'days_to_harvest', 'spacing_inches')
+            'fields': ('planting_seasons', 'days_to_harvest', 'spacing_inches')
         }),
         ('Chicago-Specific Notes', {
             'fields': ('chicago_notes',),
@@ -58,6 +58,13 @@ class PlantAdmin(admin.ModelAdmin):
             obj.color
         )
     color_preview.short_description = 'Color Preview'
+
+    def planting_seasons_display(self, obj):
+        """Display planting seasons as comma-separated list"""
+        if obj.planting_seasons:
+            return ', '.join([season.capitalize() for season in obj.planting_seasons])
+        return '—'
+    planting_seasons_display.short_description = 'Planting Seasons'
 
     def companion_count(self, obj):
         """Count of companion plants"""
