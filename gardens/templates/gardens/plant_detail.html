@@ -136,8 +136,8 @@
             <div class="card-body">
                 <p>This plant helps deter:</p>
                 <ul>
-                    {% for pest in plant.pest_deterrent_for.split:',' %}
-                    <li>{{ pest|trim|title }}</li>
+                    {% for pest in pest_list %}
+                    <li>{{ pest|title }}</li>
                     {% endfor %}
                 </ul>
             </div>

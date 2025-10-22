@@ -269,11 +269,17 @@ def plant_detail(request, pk):
     # Get plants that list this as a companion
     companion_to = Plant.objects.filter(companion_plants=plant)
 
+    # Process pest deterrent list
+    pest_list = []
+    if plant.pest_deterrent_for:
+        pest_list = [pest.strip() for pest in plant.pest_deterrent_for.split(',') if pest.strip()]
+
     context = {
         'plant': plant,
         'can_edit': can_edit,
         'companions': companions,
         'companion_to': companion_to,
+        'pest_list': pest_list,
     }
 
     return render(request, 'gardens/plant_detail.html', context)
