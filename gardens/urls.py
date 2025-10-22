@@ -10,6 +10,7 @@ urlpatterns = [
     path('<int:pk>/', views.garden_detail, name='garden_detail'),
     path('<int:pk>/edit/', views.garden_edit, name='garden_edit'),
     path('<int:pk>/delete/', views.garden_delete, name='garden_delete'),
+    path('<int:pk>/duplicate/', views.garden_duplicate, name='garden_duplicate'),
     path('<int:pk>/save-layout/', views.garden_save_layout, name='garden_save_layout'),
     path('<int:pk>/update-name/', views.garden_update_name, name='garden_update_name'),
 

@@ -36,14 +36,41 @@
     <div class="col-md-4 text-end">
         {% if can_edit %}
         <div class="btn-group" role="group">
-            <a href="{% url 'gardens:garden_edit' garden.pk %}" class="btn btn-outline-primary">
-                <i class="bi bi-pencil"></i> Edit
-            </a>
-            <a href="{% url 'gardens:garden_delete' garden.pk %}" class="btn btn-outline-danger">
+            <button type="button" class="btn btn-outline-success" id="duplicateGardenBtn">
+                <i class="bi bi-copy"></i> Duplicate
+            </button>
+            <button type="button" class="btn btn-outline-danger" id="deleteGardenBtn">
                 <i class="bi bi-trash"></i> Delete
-            </a>
+            </button>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>"{{ garden.name }}"</strong>?</p>
+                <p class="text-danger">This action cannot be undone!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'gardens:garden_delete' garden.pk %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Garden
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -637,6 +664,52 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             saveStatus.textContent = 'Network error';
             saveStatus.className = 'badge bg-danger ms-2';
+        });
+    }
+
+    // Delete garden button handler
+    const deleteGardenBtn = document.getElementById('deleteGardenBtn');
+    if (deleteGardenBtn) {
+        deleteGardenBtn.addEventListener('click', function() {
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            deleteModal.show();
+        });
+    }
+
+    // Duplicate garden button handler
+    const duplicateGardenBtn = document.getElementById('duplicateGardenBtn');
+    if (duplicateGardenBtn) {
+        duplicateGardenBtn.addEventListener('click', function() {
+            const gardenId = {{ garden.pk }};
+
+            // Show loading state
+            duplicateGardenBtn.disabled = true;
+            duplicateGardenBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Duplicating...';
+
+            fetch(`/gardens/${gardenId}/duplicate/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirect to the new garden
+                    window.location.href = `/gardens/${data.garden_id}/`;
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to duplicate garden'));
+                    duplicateGardenBtn.disabled = false;
+                    duplicateGardenBtn.innerHTML = '<i class="bi bi-copy"></i> Duplicate';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error: Failed to duplicate garden');
+                duplicateGardenBtn.disabled = false;
+                duplicateGardenBtn.innerHTML = '<i class="bi bi-copy"></i> Duplicate';
+            });
         });
     }
 });

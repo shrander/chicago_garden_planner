@@ -180,6 +180,39 @@ def garden_delete(request, pk):
 
 
 @login_required
+def garden_duplicate(request, pk):
+    """Duplicate a garden"""
+    from django.http import JsonResponse
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    try:
+        original_garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Create a copy of the garden
+        new_garden = Garden.objects.create(
+            name=f"{original_garden.name} (Copy)",
+            description=original_garden.description,
+            owner=request.user,
+            size=original_garden.size,
+            width=original_garden.width,
+            height=original_garden.height,
+            layout_data=original_garden.layout_data,  # JSONField is copied by value
+            is_public=False  # New copy is private by default
+        )
+
+        return JsonResponse({
+            'success': True,
+            'garden_id': new_garden.pk,
+            'garden_name': new_garden.name
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
 def plant_library(request):
     """Display plant library"""
 
