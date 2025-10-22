@@ -489,7 +489,8 @@ def garden_ai_assistant(request, pk):
             for col_idx, cell in enumerate(row):
                 if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
                     plants_in_garden.add(cell.lower())
-                    visual_row.append(cell[:3].upper())  # Show first 3 chars
+                    # Pad to exactly 3 characters for uniform spacing
+                    visual_row.append(cell[:3].upper().ljust(3, ' '))
                 elif cell and cell.lower() in ['path']:
                     visual_row.append('===')
                 else:
