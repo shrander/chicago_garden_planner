@@ -81,6 +81,16 @@ class CustomUserChangeForm(UserChangeForm):
 class UserProfileForm(forms.ModelForm):
     """orm for updating user profile info"""
 
+    # Add API key as a separate form field (not from model)
+    anthropic_api_key = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={
+            'placeholder': 'sk-ant-api03-...',
+            'autocomplete': 'off'
+        }),
+        help_text='Your Anthropic API key for AI Garden Assistant features (starts with sk-ant-)'
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Generate year choices from 1950 to current year
@@ -88,6 +98,10 @@ class UserProfileForm(forms.ModelForm):
         current_year = timezone.now().year
         year_choices = [('', 'Select year')] + [(year, str(year)) for year in range(current_year, 1949, -1)]
         self.fields['year_started_gardening'].widget = forms.Select(choices=year_choices)
+
+        # Populate API key field with decrypted value if editing existing profile
+        if self.instance and self.instance.pk:
+            self.fields['anthropic_api_key'].initial = self.instance.anthropic_api_key
 
     class Meta:
         model = UserProfile
@@ -100,6 +114,29 @@ class UserProfileForm(forms.ModelForm):
             'bio': forms.Textarea(attrs={'rows': 4}),
             'interests': forms.Textarea(attrs={'rows': 3})
         }
+
+    def clean_anthropic_api_key(self):
+        """Validate Anthropic API key format if provided"""
+        api_key = self.cleaned_data.get('anthropic_api_key', '').strip()
+        if api_key and not api_key.startswith('sk-ant-'):
+            raise ValidationError(
+                _("Invalid Anthropic API key format. It should start with 'sk-ant-'"),
+                code='invalid_api_key',
+            )
+        return api_key
+
+    def save(self, commit=True):
+        """Override save to handle the API key encryption"""
+        instance = super().save(commit=False)
+
+        # Handle API key separately (encrypt and store)
+        api_key = self.cleaned_data.get('anthropic_api_key', '').strip()
+        if api_key:
+            instance.anthropic_api_key = api_key
+
+        if commit:
+            instance.save()
+        return instance
 
 class CaseInsensitiveAuthenticationForm(AuthenticationForm):
     """

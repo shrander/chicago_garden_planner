@@ -181,6 +181,24 @@
                     {{ profile_form.weekly_tips|as_crispy_field }}
                 </div>
             </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-robot"></i> AI Assistant</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        To use the AI Garden Assistant features, you need to provide your own Anthropic API key.
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">
+                            Get your API key here <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </p>
+                    {{ profile_form.anthropic_api_key|as_crispy_field }}
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle"></i> Your API key is securely stored and only used for AI Garden Assistant features in your account.
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

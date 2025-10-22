@@ -785,7 +785,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': getCSRFToken()
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
             .then(data => {
                 document.getElementById('aiLoadingState').classList.add('d-none');
 
@@ -836,7 +841,29 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 document.getElementById('aiLoadingState').classList.add('d-none');
-                document.getElementById('aiErrorMessage').textContent = 'Network error: ' + error.message;
+
+                // Check if this is a structured error response from our backend
+                if (error.error_type) {
+                    const errorContainer = document.getElementById('aiErrorMessage');
+                    const message = error.message || error.error;
+
+                    // Add a link to profile settings for API key errors
+                    if (error.error_type === 'no_api_key' || error.error_type === 'invalid_api_key') {
+                        errorContainer.innerHTML = `
+                            ${message}
+                            <br><br>
+                            <a href="{% url 'accounts:profile' %}" class="btn btn-warning btn-sm">
+                                <i class="bi bi-gear"></i> Go to Profile Settings
+                            </a>
+                        `;
+                    } else {
+                        errorContainer.textContent = message;
+                    }
+                } else {
+                    // Generic error
+                    document.getElementById('aiErrorMessage').textContent = error.message || 'Network error occurred';
+                }
+
                 document.getElementById('aiErrorState').classList.remove('d-none');
             });
         });

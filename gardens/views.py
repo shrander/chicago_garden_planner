@@ -4,7 +4,6 @@ from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.conf import settings
 import json
 import anthropic
 from .models import Garden, Plant, PlantingNote
@@ -462,6 +461,16 @@ def garden_ai_assistant(request, pk):
     try:
         garden = get_object_or_404(Garden, pk=pk, owner=request.user)
 
+        # Check if user has configured their API key
+        user_api_key = request.user.profile.anthropic_api_key
+        if not user_api_key:
+            return JsonResponse({
+                'success': False,
+                'error': 'API key not configured',
+                'error_type': 'no_api_key',
+                'message': 'Please add your Anthropic API key in your profile settings to use AI Garden Assistant features.'
+            }, status=400)
+
         # Get grid data
         grid_data = garden.layout_data.get('grid', []) if garden.layout_data else []
 
@@ -529,8 +538,8 @@ Respond with a JSON object in this exact format:
 
 Only suggest 3-5 plants maximum. Only use plant names from the available plants list."""
 
-        # Call Claude API
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        # Call Claude API using user's API key
+        client = anthropic.Anthropic(api_key=user_api_key)
 
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -556,6 +565,27 @@ Only suggest 3-5 plants maximum. Only use plant names from the available plants 
             'suggestions': suggestions
         })
 
+    except anthropic.AuthenticationError as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid API key',
+            'error_type': 'invalid_api_key',
+            'message': 'Your Anthropic API key is invalid or has expired. Please update it in your profile settings.'
+        }, status=401)
+    except anthropic.PermissionDeniedError as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Permission denied',
+            'error_type': 'permission_denied',
+            'message': 'Your API key does not have permission to access this resource.'
+        }, status=403)
+    except anthropic.RateLimitError as e:
+        return JsonResponse({
+            'success': False,
+            'error': 'Rate limit exceeded',
+            'error_type': 'rate_limit',
+            'message': 'You have exceeded the rate limit for your API key. Please try again later.'
+        }, status=429)
     except json.JSONDecodeError as e:
         return JsonResponse({
             'success': False,

@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from .managers import CustomUserManager
+from .encryption import encrypt_value, decrypt_value
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     """
@@ -158,6 +159,32 @@ class UserProfile(models.Model):
         blank=True,
         help_text='Profile Picture'
     )
+
+    # AI Assistant API Key (encrypted in database)
+    _anthropic_api_key_encrypted = models.TextField(
+        blank=True,
+        db_column='anthropic_api_key',
+        help_text='Encrypted Anthropic API key for AI Garden Assistant features'
+    )
+
+    @property
+    def anthropic_api_key(self):
+        """Decrypt and return the API key"""
+        if not self._anthropic_api_key_encrypted:
+            return ''
+        try:
+            return decrypt_value(self._anthropic_api_key_encrypted)
+        except Exception:
+            # If decryption fails, return empty string
+            return ''
+
+    @anthropic_api_key.setter
+    def anthropic_api_key(self, value):
+        """Encrypt and store the API key"""
+        if value:
+            self._anthropic_api_key_encrypted = encrypt_value(value)
+        else:
+            self._anthropic_api_key_encrypted = ''
 
     class Meta: 
         verbose_name = _('user profile')
