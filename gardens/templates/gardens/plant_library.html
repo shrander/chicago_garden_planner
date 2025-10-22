@@ -98,9 +98,14 @@
 
                 <div class="mb-2">
                     <span class="badge bg-primary">{{ plant.get_plant_type_display }}</span>
+                    {% if plant.life_cycle %}
+                    <span class="badge {% if plant.life_cycle == 'perennial' %}bg-success{% elif plant.life_cycle == 'biennial' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ plant.get_life_cycle_display }}
+                    </span>
+                    {% endif %}
                     {% if plant.planting_seasons %}
                         {% for season in plant.planting_seasons %}
-                        <span class="badge bg-success">{{ season|title }}</span>
+                        <span class="badge bg-info">{{ season|title }}</span>
                         {% endfor %}
                     {% endif %}
                 </div>

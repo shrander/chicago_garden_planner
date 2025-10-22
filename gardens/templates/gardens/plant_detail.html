@@ -64,6 +64,16 @@
                         <h6 class="text-muted">Plant Type</h6>
                         <p><span class="badge bg-primary">{{ plant.get_plant_type_display }}</span></p>
                     </div>
+                    {% if plant.life_cycle %}
+                    <div class="col-md-4 mb-3">
+                        <h6 class="text-muted">Life Cycle</h6>
+                        <p>
+                            <span class="badge {% if plant.life_cycle == 'perennial' %}bg-success{% elif plant.life_cycle == 'biennial' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                {{ plant.get_life_cycle_display }}
+                            </span>
+                        </p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

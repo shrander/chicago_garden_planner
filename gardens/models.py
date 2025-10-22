@@ -25,11 +25,23 @@ class Plant(models.Model):
         ('year_round', 'Year Round'),
     ]
 
+    LIFE_CYCLES = [
+        ('annual', 'Annual'),
+        ('biennial', 'Biennial'),
+        ('perennial', 'Perennial'),
+    ]
+
     name = models.CharField(max_length=100)
     latin_name = models.CharField(max_length=150)
     symbol = models.CharField(max_length=2, help_text='1-2 character symbol for grid')
     color = models.CharField(max_length=7, default='#90EE90', help_text='Hex color code')
     plant_type = models.CharField(max_length=20, choices=PLANT_TYPES)
+    life_cycle = models.CharField(
+        max_length=10,
+        choices=LIFE_CYCLES,
+        blank=True,
+        help_text='Annual, Biennial, or Perennial'
+    )
 
     # Chicago specific growing info
     planting_seasons = models.JSONField(

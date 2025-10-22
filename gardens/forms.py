@@ -102,7 +102,7 @@ class PlantForm(forms.ModelForm):
     class Meta:
         model = Plant
         fields = [
-            'name', 'latin_name', 'symbol', 'color', 'plant_type',
+            'name', 'latin_name', 'symbol', 'color', 'plant_type', 'life_cycle',
             'planting_seasons', 'days_to_harvest', 'spacing_inches',
             'chicago_notes', 'pest_deterrent_for', 'companion_plants'
         ]
@@ -112,6 +112,7 @@ class PlantForm(forms.ModelForm):
             'symbol': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2}),
             'color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
             'plant_type': forms.Select(attrs={'class': 'form-select'}),
+            'life_cycle': forms.Select(attrs={'class': 'form-select'}),
             'days_to_harvest': forms.NumberInput(attrs={'class': 'form-control'}),
             'spacing_inches': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
             'chicago_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
