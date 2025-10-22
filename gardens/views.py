@@ -492,7 +492,7 @@ def garden_ai_assistant(request, pk):
         available_plants = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
         ).exclude(plant_type='utility').values(
-            'name', 'latin_name', 'plant_type', 'planting_season',
+            'name', 'latin_name', 'plant_type', 'planting_seasons',
             'spacing_inches', 'chicago_notes', 'pest_deterrent_for'
         )
 
