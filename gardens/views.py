@@ -481,69 +481,93 @@ def garden_ai_assistant(request, pk):
                 if not cell or cell.lower() in ['empty space', '=', '•', '']:
                     empty_cells.append({'row': row_idx, 'col': col_idx})
 
-        # Get plants already in garden
+        # Get plants already in garden with their positions
         plants_in_garden = set()
-        for row in grid_data:
-            for cell in row:
+        garden_grid_visual = []
+        for row_idx, row in enumerate(grid_data):
+            visual_row = []
+            for col_idx, cell in enumerate(row):
                 if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
                     plants_in_garden.add(cell.lower())
+                    visual_row.append(cell[:3].upper())  # Show first 3 chars
+                elif cell and cell.lower() in ['path']:
+                    visual_row.append('===')
+                else:
+                    visual_row.append('___')
+            garden_grid_visual.append(' | '.join(visual_row))
 
-        # Get available plants with details
-        available_plants = Plant.objects.filter(
+        # Build comprehensive plant database for Claude
+        plant_database = []
+        all_plants = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
-        ).exclude(plant_type='utility').values(
-            'name', 'latin_name', 'plant_type', 'planting_seasons',
-            'spacing_inches', 'chicago_notes', 'pest_deterrent_for'
-        )
+        ).exclude(plant_type='utility').prefetch_related('companion_plants')
 
-        # Get companion relationships
-        companion_data = []
-        for plant_name in plants_in_garden:
-            plant = Plant.objects.filter(Q(name__iexact=plant_name) | Q(symbol__iexact=plant_name)).first()
-            if plant:
-                companions = list(plant.companion_plants.values_list('name', flat=True))
-                if companions:
-                    companion_data.append({
-                        'plant': plant.name,
-                        'companions': companions
-                    })
+        for plant in all_plants:
+            companions = [c.name for c in plant.companion_plants.all()]
+            plant_info = {
+                'name': plant.name,
+                'type': plant.plant_type,
+                'spacing': plant.spacing_inches,
+                'companions': companions,
+                'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
+                'chicago_notes': plant.chicago_notes[:100] if plant.chicago_notes else None
+            }
+            plant_database.append(plant_info)
 
         # Build prompt for Claude
-        prompt = f"""You are a Chicago garden planning assistant (USDA zones 5b/6a).
+        prompt = f"""You are a Chicago garden planning assistant (USDA zones 5b/6a). Your goal is to create a COMPREHENSIVE garden layout by filling ALL empty spaces with companion plants.
 
-I have a garden that is {garden.width}x{garden.height} grid cells.
-Current state:
-- Empty cells available: {len(empty_cells)} cells at positions: {empty_cells[:10]}{'...' if len(empty_cells) > 10 else ''}
-- Plants already in garden: {', '.join(plants_in_garden) if plants_in_garden else 'None'}
-- Companion relationships: {companion_data}
+GARDEN INFORMATION:
+- Size: {garden.width} columns × {garden.height} rows ({garden.width * garden.height} total cells)
+- Empty cells to fill: {len(empty_cells)} cells
+- Existing plants: {len(plants_in_garden)} plants
 
-Available plants to suggest:
-{list(available_plants)[:20]}
+CURRENT GARDEN LAYOUT:
+{chr(10).join(garden_grid_visual)}
 
-Please suggest plants to fill some of the empty spaces, considering:
-1. Companion planting relationships with existing plants
-2. Chicago climate suitability (zones 5b/6a)
-3. Spacing requirements
-4. Pest management
-5. Seasonal planting appropriateness
+(Legend: ___ = empty space, === = path, ABC = plant abbreviation)
 
-Respond with a JSON object in this exact format:
+EXISTING PLANTS AND THEIR COMPANIONS:
+{chr(10).join([f"- {p}" for p in plants_in_garden]) if plants_in_garden else "None (empty garden)"}
+
+AVAILABLE PLANTS DATABASE:
+{json.dumps(plant_database, indent=2)}
+
+YOUR TASK:
+Create a comprehensive garden layout by filling ALL {len(empty_cells)} empty spaces with appropriate companion plants. Consider:
+
+1. **Companion Planting**: Place companions near existing plants (check the 'companions' field)
+2. **Pest Management**: Use pest deterrent plants strategically (check 'pest_deterrent' field)
+3. **Plant Spacing**: Respect spacing requirements (check 'spacing' field)
+4. **Variety**: Include vegetables, herbs, and flowers for a balanced ecosystem
+5. **Chicago Climate**: All plants are pre-selected for zones 5b/6a
+6. **Maximize Yield**: Fill all spaces efficiently - don't waste any cells!
+
+RESPONSE FORMAT:
+Return a JSON object with ALL {len(empty_cells)} empty cells filled:
+
 {{
-    "reasoning": "Brief explanation of your strategy (2-3 sentences)",
+    "reasoning": "Brief explanation of your comprehensive planting strategy (3-4 sentences explaining companion groupings, pest management approach, and layout logic)",
     "suggestions": [
-        {{"plant_name": "Tomato", "row": 0, "col": 1, "reason": "Companions with existing basil, heat-tolerant"}},
-        {{"plant_name": "Marigold", "row": 1, "col": 2, "reason": "Pest deterrent for nearby vegetables"}}
+        {{"plant_name": "Tomato", "row": 0, "col": 1, "reason": "Central placement for companion grouping"}},
+        {{"plant_name": "Basil", "row": 0, "col": 2, "reason": "Companions with tomato, pest deterrent"}},
+        ... (continue for ALL {len(empty_cells)} empty cells)
     ]
 }}
 
-Only suggest 3-5 plants maximum. Only use plant names from the available plants list."""
+IMPORTANT:
+- Provide exactly {len(empty_cells)} suggestions to fill every empty space
+- Only use plant names from the available plants database
+- Ensure row/col coordinates match empty cell positions: {empty_cells[:20]}{'...' if len(empty_cells) > 20 else ''}
+- Create logical companion groupings across the garden
+- Be comprehensive - fill the entire garden!"""
 
         # Call Claude API using user's API key
         client = anthropic.Anthropic(api_key=user_api_key)
 
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
+            max_tokens=4096,  # Increased for comprehensive layouts
             messages=[
                 {"role": "user", "content": prompt}
             ]
