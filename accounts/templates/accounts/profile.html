@@ -184,18 +184,55 @@
 
             <div class="card shadow mb-4">
                 <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="bi bi-robot"></i> AI Assistant</h5>
+                    <h5 class="mb-0">
+                        <i class="bi bi-robot"></i> AI Assistant
+                        {% if user.profile.anthropic_api_key %}
+                            <span class="badge bg-success ms-2">
+                                <i class="bi bi-check-circle-fill"></i> Configured
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary ms-2">
+                                <i class="bi bi-x-circle"></i> Not Configured
+                            </span>
+                        {% endif %}
+                    </h5>
                 </div>
                 <div class="card-body">
+                    {% if user.profile.anthropic_api_key %}
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-shield-check"></i> <strong>API Key is configured</strong>
+                            <br>
+                            <small class="text-muted">
+                                Your key: <code>{{ user.profile.anthropic_api_key|slice:":12" }}...{{ user.profile.anthropic_api_key|slice:"-4:" }}</code>
+                                <br>
+                                Enter a new key below to update it, or leave blank to keep the current key.
+                            </small>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning mb-3">
+                            <i class="bi bi-exclamation-triangle"></i> <strong>No API key configured</strong>
+                            <br>
+                            <small>To use the AI Garden Assistant features, you need to provide your own Anthropic API key.</small>
+                        </div>
+                    {% endif %}
+
                     <p class="text-muted small mb-3">
-                        To use the AI Garden Assistant features, you need to provide your own Anthropic API key.
-                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">
-                            Get your API key here <i class="bi bi-box-arrow-up-right"></i>
-                        </a>
+                        {% if not user.profile.anthropic_api_key %}
+                            <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-box-arrow-up-right"></i> Get your API key from Anthropic
+                            </a>
+                        {% else %}
+                            Need a new key?
+                            <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">
+                                Visit Anthropic Console <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        {% endif %}
                     </p>
+
                     {{ profile_form.anthropic_api_key|as_crispy_field }}
+
                     <div class="alert alert-info small mb-0">
-                        <i class="bi bi-info-circle"></i> Your API key is securely stored and only used for AI Garden Assistant features in your account.
+                        <i class="bi bi-shield-lock-fill"></i> <strong>Security:</strong> Your API key is encrypted and securely stored. It's only used for AI Garden Assistant features in your account.
                     </div>
                 </div>
             </div>

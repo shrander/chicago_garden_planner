@@ -84,11 +84,12 @@ class UserProfileForm(forms.ModelForm):
     # Add API key as a separate form field (not from model)
     anthropic_api_key = forms.CharField(
         required=False,
+        label='Anthropic API Key',
         widget=forms.PasswordInput(attrs={
-            'placeholder': 'sk-ant-api03-...',
+            'placeholder': 'Enter new API key or leave blank to keep existing',
             'autocomplete': 'off'
         }),
-        help_text='Your Anthropic API key for AI Garden Assistant features (starts with sk-ant-)'
+        help_text='Your Anthropic API key for AI Garden Assistant features (starts with sk-ant-). Leave blank to keep your current key.'
     )
 
     def __init__(self, *args, **kwargs):
@@ -99,9 +100,7 @@ class UserProfileForm(forms.ModelForm):
         year_choices = [('', 'Select year')] + [(year, str(year)) for year in range(current_year, 1949, -1)]
         self.fields['year_started_gardening'].widget = forms.Select(choices=year_choices)
 
-        # Populate API key field with decrypted value if editing existing profile
-        if self.instance and self.instance.pk:
-            self.fields['anthropic_api_key'].initial = self.instance.anthropic_api_key
+        # Don't pre-populate API key field for security - let template show status instead
 
     class Meta:
         model = UserProfile
@@ -130,9 +129,13 @@ class UserProfileForm(forms.ModelForm):
         instance = super().save(commit=False)
 
         # Handle API key separately (encrypt and store)
+        # Only update if a new key is provided (allow blank to keep existing key)
         api_key = self.cleaned_data.get('anthropic_api_key', '').strip()
         if api_key:
+            # User entered a new key - update it
             instance.anthropic_api_key = api_key
+        # If blank and this is an update (not create), keep existing key
+        # If blank and this is a create, it will remain blank
 
         if commit:
             instance.save()
