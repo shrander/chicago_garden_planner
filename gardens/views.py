@@ -239,12 +239,15 @@ def plant_library(request):
     if plant_type:
         plants = plants.filter(plant_type=plant_type)
 
+    # Get all plants and convert to list for filtering
+    plants_list = list(plants.distinct())
+
+    # Filter by season in Python (SQLite doesn't support JSONField contains)
     if season:
-        # Filter by planting_seasons array containing the season
-        plants = plants.filter(planting_seasons__contains=[season])
+        plants_list = [p for p in plants_list if p.planting_seasons and season in p.planting_seasons]
 
     context = {
-        'plants': plants.distinct(),
+        'plants': plants_list,
         'search_query': search_query,
         'plant_type_filter': plant_type,
         'season_filter': season,

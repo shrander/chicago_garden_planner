@@ -59,7 +59,7 @@
 <!-- Results Count -->
 <div class="mb-3">
     <p class="text-muted">
-        <i class="bi bi-flower1"></i> Showing {{ plants.count }} plant{{ plants.count|pluralize }}
+        <i class="bi bi-flower1"></i> Showing {{ plants|length }} plant{{ plants|length|pluralize }}
         {% if search_query or plant_type_filter or season_filter %}
         <a href="{% url 'gardens:plant_library' %}" class="ms-2 btn btn-sm btn-outline-secondary">
             <i class="bi bi-x-circle"></i> Clear Filters
