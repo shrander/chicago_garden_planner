@@ -108,6 +108,19 @@
                         <strong><i class="bi bi-exclamation-triangle"></i> Error:</strong>
                         <p id="aiErrorMessage" class="mb-0 mt-2"></p>
                     </div>
+                    <details class="mt-3">
+                        <summary class="text-muted" style="cursor: pointer;">
+                            <small><i class="bi bi-info-circle"></i> View technical details</small>
+                        </summary>
+                        <div class="mt-2 p-3 bg-light rounded">
+                            <small>
+                                <strong>Status:</strong> <span id="errorStatus"></span><br>
+                                <strong>Error Type:</strong> <span id="errorType"></span><br>
+                                <strong>Full Response:</strong>
+                                <pre id="errorDetails" class="mt-2 mb-0" style="font-size: 0.8em; max-height: 200px; overflow-y: auto;"></pre>
+                            </small>
+                        </div>
+                    </details>
                 </div>
             </div>
             <div class="modal-footer">
@@ -786,8 +799,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
+                // Store response for debugging
+                const responseStatus = response.status;
+                const responseStatusText = response.statusText;
+
                 if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
+                    return response.json().then(err => {
+                        err._httpStatus = responseStatus;
+                        err._httpStatusText = responseStatusText;
+                        return Promise.reject(err);
+                    }).catch(jsonErr => {
+                        // If JSON parsing fails, return a generic error with status info
+                        if (jsonErr._httpStatus) throw jsonErr;
+                        throw {
+                            error: 'Invalid response from server',
+                            _httpStatus: responseStatus,
+                            _httpStatusText: responseStatusText,
+                            _rawError: jsonErr.message
+                        };
+                    });
                 }
                 return response.json();
             })
@@ -839,8 +869,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Full error object:', error);
                 document.getElementById('aiLoadingState').classList.add('d-none');
+
+                // Populate debug information
+                const statusEl = document.getElementById('errorStatus');
+                const typeEl = document.getElementById('errorType');
+                const detailsEl = document.getElementById('errorDetails');
+
+                statusEl.textContent = error._httpStatus ? `${error._httpStatus} ${error._httpStatusText}` : 'N/A';
+                typeEl.textContent = error.error_type || 'Unknown';
+                detailsEl.textContent = JSON.stringify(error, null, 2);
 
                 // Check if this is a structured error response from our backend
                 if (error.error_type) {
@@ -859,9 +898,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         errorContainer.textContent = message;
                     }
+                } else if (error._httpStatus) {
+                    // HTTP error without structured response
+                    document.getElementById('aiErrorMessage').innerHTML = `
+                        <strong>HTTP ${error._httpStatus}</strong>: ${error._httpStatusText || 'Server error'}
+                        <br>
+                        ${error.error || error._rawError || 'The server returned an error response'}
+                    `;
                 } else {
-                    // Generic error
-                    document.getElementById('aiErrorMessage').textContent = error.message || 'Network error occurred';
+                    // Generic network error (fetch failed)
+                    document.getElementById('aiErrorMessage').innerHTML = `
+                        <strong>Network Error:</strong> ${error.message || 'Could not connect to server'}
+                        <br><br>
+                        <small class="text-muted">
+                            This usually means:
+                            <ul class="mb-0 mt-2">
+                                <li>The server is not running</li>
+                                <li>There's a network connectivity issue</li>
+                                <li>The URL endpoint is incorrect</li>
+                            </ul>
+                        </small>
+                    `;
                 }
 
                 document.getElementById('aiErrorState').classList.remove('d-none');
