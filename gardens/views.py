@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
 import anthropic
-from .models import Garden, Plant, PlantingNote
+from .models import Garden, Plant, PlantInstance, PlantingNote
 from .forms import GardenForm, PlantForm, PlantingNoteForm
 
 
@@ -149,6 +149,25 @@ def garden_detail(request, pk):
         except Exception:
             has_api_key = False
 
+    # Get PlantInstance data for date tracking
+    plant_instances = garden.plant_instances.select_related('plant').all()
+
+    # Create mapping of grid position to instance data
+    instance_map = {}
+    for instance in plant_instances:
+        instance_map[f"{instance.row},{instance.col}"] = {
+            'id': instance.id,
+            'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+            'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+            'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
+            'harvest_status': instance.harvest_status(),
+            'days_until_harvest': instance.days_until_harvest(),
+            'plant_name': instance.plant.name,
+            'plant_id': instance.plant.id,
+        }
+
+    instance_map_json = json.dumps(instance_map)
+
     context = {
         'garden': garden,
         'grid_data': grid_data,
@@ -162,6 +181,8 @@ def garden_detail(request, pk):
         'plant_map': plant_map,  # Python dict for template lookup
         'plant_database_json': plant_database_json,
         'has_api_key': has_api_key,
+        'instance_map_json': instance_map_json,
+        'plant_instances': plant_instances,
     }
 
     return render(request, 'gardens/garden_detail.html', context)
@@ -421,7 +442,7 @@ def plant_delete(request, pk):
 @login_required
 @require_POST
 def garden_save_layout(request, pk):
-    """AJAX endpoint to save garden layout changes"""
+    """AJAX endpoint to save garden layout changes and sync PlantInstance records"""
     try:
         garden = get_object_or_404(Garden, pk=pk, owner=request.user)
 
@@ -446,6 +467,65 @@ def garden_save_layout(request, pk):
         # Update garden layout
         garden.layout_data = {'grid': grid}
         garden.save()
+
+        # Sync PlantInstance records with the new grid
+        # Get existing instances for this garden
+        existing_instances = {(inst.row, inst.col): inst for inst in garden.plant_instances.all()}
+
+        # Track which positions still have plants
+        current_positions = set()
+
+        # Process each cell in the grid
+        for row_idx, row in enumerate(grid):
+            for col_idx, cell_value in enumerate(row):
+                # Skip empty cells, paths, and utility plants
+                if not cell_value or cell_value.lower() in ['path', 'empty space', '=', '•', '']:
+                    continue
+
+                current_positions.add((row_idx, col_idx))
+
+                # Try to find the Plant object for this cell
+                plant = Plant.objects.filter(
+                    Q(name__iexact=cell_value) | Q(symbol__iexact=cell_value)
+                ).first()
+
+                if plant:
+                    # Check if instance already exists at this position
+                    if (row_idx, col_idx) in existing_instances:
+                        # Update existing instance if plant changed
+                        instance = existing_instances[(row_idx, col_idx)]
+                        if instance.plant != plant:
+                            # Plant changed - preserve dates if user moved the plant, clear if different plant
+                            instance.plant = plant
+                            instance.save()
+                    else:
+                        # Check if this plant was moved from another position (preserve dates)
+                        moved_instance = None
+                        for pos, inst in existing_instances.items():
+                            if inst.plant == plant and pos not in current_positions:
+                                # This plant was likely moved
+                                moved_instance = inst
+                                break
+
+                        if moved_instance:
+                            # Update position, preserve dates
+                            moved_instance.row = row_idx
+                            moved_instance.col = col_idx
+                            moved_instance.save()
+                            current_positions.add((moved_instance.row, moved_instance.col))
+                        else:
+                            # New plant placement - create instance without dates
+                            PlantInstance.objects.create(
+                                garden=garden,
+                                plant=plant,
+                                row=row_idx,
+                                col=col_idx
+                            )
+
+        # Remove instances that no longer have plants
+        for pos, instance in existing_instances.items():
+            if pos not in current_positions:
+                instance.delete()
 
         return JsonResponse({
             'success': True,
@@ -672,6 +752,136 @@ IMPORTANT:
             'success': False,
             'error': f'Failed to parse AI response: {str(e)}'
         }, status=500)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def set_planting_date(request, pk):
+    """API endpoint to set planting date for a plant instance"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+        data = json.loads(request.body)
+
+        row = data.get('row')
+        col = data.get('col')
+        planted_date_str = data.get('planted_date')
+
+        if row is None or col is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Row and column are required'
+            }, status=400)
+
+        # Get the plant instance at this position
+        try:
+            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)
+        except PlantInstance.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'No plant found at this position'
+            }, status=404)
+
+        # Parse and set the planted date
+        if planted_date_str:
+            from datetime import datetime
+            instance.planted_date = datetime.fromisoformat(planted_date_str).date()
+
+            # Auto-calculate expected harvest date
+            if instance.plant.days_to_harvest:
+                instance.calculate_expected_harvest_date()
+        else:
+            # Clear dates if empty string provided
+            instance.planted_date = None
+            instance.expected_harvest_date = None
+
+        instance.save()
+
+        # Return updated instance data
+        return JsonResponse({
+            'success': True,
+            'instance': {
+                'id': instance.id,
+                'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+                'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+                'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
+                'harvest_status': instance.harvest_status(),
+                'days_until_harvest': instance.days_until_harvest(),
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def mark_harvested(request, pk):
+    """API endpoint to mark a plant as harvested"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+        data = json.loads(request.body)
+
+        row = data.get('row')
+        col = data.get('col')
+        actual_harvest_date_str = data.get('actual_harvest_date')
+
+        if row is None or col is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Row and column are required'
+            }, status=400)
+
+        # Get the plant instance at this position
+        try:
+            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)
+        except PlantInstance.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'No plant found at this position'
+            }, status=404)
+
+        # Set actual harvest date
+        if actual_harvest_date_str:
+            from datetime import datetime
+            instance.actual_harvest_date = datetime.fromisoformat(actual_harvest_date_str).date()
+        else:
+            # If no date provided, use today
+            from datetime import date
+            instance.actual_harvest_date = date.today()
+
+        instance.save()
+
+        # Return updated instance data
+        return JsonResponse({
+            'success': True,
+            'instance': {
+                'id': instance.id,
+                'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+                'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+                'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
+                'harvest_status': instance.harvest_status(),
+                'days_until_harvest': instance.days_until_harvest(),
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
     except Exception as e:
         return JsonResponse({
             'success': False,

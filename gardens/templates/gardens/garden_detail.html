@@ -79,6 +79,7 @@
 {% include 'gardens/partials/_ai_assistant_modal.html' %}
 {% include 'gardens/partials/_export_modal.html' %}
 {% include 'gardens/partials/_import_modal.html' %}
+{% include 'gardens/partials/_plant_date_modal.html' %}
 {% endif %}
 
 <!-- Garden Grid and Plant Library Side by Side -->
@@ -294,6 +295,7 @@
 // Pass data from Django template to JavaScript
 window.GARDEN_ID = {{ garden.pk }};
 window.PLANT_MAP = {{ plant_map_json|safe }};
+window.INSTANCE_MAP = {{ instance_map_json|safe }};
 window.GARDEN_DATA = {
     width: {{ garden.width }},
     height: {{ garden.height }},
@@ -304,6 +306,7 @@ window.GARDEN_DATA = {
 <!-- Load external JavaScript modules -->
 <script src="{% static 'gardens/js/api.js' %}"></script>
 <script src="{% static 'gardens/js/garden-detail.js' %}"></script>
+<script src="{% static 'gardens/js/date-management.js' %}"></script>
 
 <script>
 // ========================================

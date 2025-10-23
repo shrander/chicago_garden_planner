@@ -1,0 +1,67 @@
+<!-- Plant Date Management Modal -->
+<div class="modal fade" id="plantDateModal" tabindex="-1" aria-labelledby="plantDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="plantDateModalLabel">
+                    <i class="bi bi-calendar-check"></i> Manage Planting Dates
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="plantDateInfo" class="mb-3">
+                    <h6 class="text-success" id="selectedPlantName"></h6>
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-geo-alt"></i> Position: <span id="selectedPlantPosition"></span>
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <label for="plantedDateInput" class="form-label">
+                        <i class="bi bi-seed"></i> Planting Date
+                    </label>
+                    <input type="date" class="form-control" id="plantedDateInput">
+                    <small class="form-text text-muted">When was this plant placed in the garden?</small>
+                </div>
+
+                <div class="mb-3" id="expectedHarvestInfo" style="display: none;">
+                    <div class="alert alert-info mb-0">
+                        <strong><i class="bi bi-calendar-event"></i> Expected Harvest:</strong>
+                        <span id="expectedHarvestDate"></span>
+                        <br>
+                        <small><span id="daysToHarvest"></span> days to maturity</small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="markHarvestedCheck">
+                        <label class="form-check-label" for="markHarvestedCheck">
+                            <i class="bi bi-check2-circle"></i> Mark as harvested
+                        </label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="actualHarvestGroup" style="display: none;">
+                    <label for="actualHarvestDateInput" class="form-label">
+                        <i class="bi bi-basket"></i> Actual Harvest Date
+                    </label>
+                    <input type="date" class="form-control" id="actualHarvestDateInput">
+                </div>
+
+                <div id="dateStatus" class="alert d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-danger" id="clearDatesBtn" style="display: none;">
+                    <i class="bi bi-trash"></i> Clear Dates
+                </button>
+                <button type="button" class="btn btn-success" id="saveDatesBtn">
+                    <i class="bi bi-check-circle"></i> Save Dates
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Plant, Garden, PlantingNote
+from .models import Plant, Garden, PlantInstance, PlantingNote
 
 
 @admin.register(Plant)
@@ -158,6 +158,80 @@ class GardenAdmin(admin.ModelAdmin):
 
         return format_html(preview)
     grid_preview.short_description = 'Grid Preview'
+
+
+@admin.register(PlantInstance)
+class PlantInstanceAdmin(admin.ModelAdmin):
+    """Admin interface for PlantInstance model"""
+
+    list_display = ['get_location', 'plant', 'garden', 'planted_date',
+                    'expected_harvest_date', 'harvest_status_display', 'days_remaining']
+    list_filter = ['planted_date', 'expected_harvest_date', 'actual_harvest_date', 'garden']
+    search_fields = ['plant__name', 'garden__name']
+    readonly_fields = ['created_at', 'updated_at', 'harvest_status_display', 'days_remaining']
+    autocomplete_fields = ['garden', 'plant']
+    date_hierarchy = 'planted_date'
+
+    fieldsets = (
+        ('Location', {
+            'fields': ('garden', 'plant', 'row', 'col')
+        }),
+        ('Date Tracking', {
+            'fields': ('planted_date', 'expected_harvest_date', 'actual_harvest_date')
+        }),
+        ('Status', {
+            'fields': ('harvest_status_display', 'days_remaining'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_location(self, obj):
+        """Display grid position"""
+        return f"({obj.row}, {obj.col})"
+    get_location.short_description = 'Position'
+
+    def harvest_status_display(self, obj):
+        """Display harvest status with color coding"""
+        status = obj.harvest_status()
+        colors = {
+            'harvested': '#28a745',  # green
+            'ready': '#28a745',      # green
+            'soon': '#ffc107',       # yellow
+            'growing': '#17a2b8',    # blue
+            'overdue': '#dc3545',    # red
+            'no_date': '#6c757d'     # gray
+        }
+        labels = {
+            'harvested': '✓ Harvested',
+            'ready': '🌟 Ready to Harvest',
+            'soon': '⏰ Soon',
+            'growing': '🌱 Growing',
+            'overdue': '⚠️ Overdue',
+            'no_date': '— No Date'
+        }
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            colors.get(status, '#000'),
+            labels.get(status, status)
+        )
+    harvest_status_display.short_description = 'Status'
+
+    def days_remaining(self, obj):
+        """Display days until harvest"""
+        days = obj.days_until_harvest()
+        if days is None:
+            return '—'
+        if days < 0:
+            return format_html('<span style="color: #dc3545;">{} days overdue</span>', abs(days))
+        elif days == 0:
+            return format_html('<span style="color: #28a745;">Today!</span>')
+        else:
+            return f"{days} days"
+    days_remaining.short_description = 'Days to Harvest'
 
 
 @admin.register(PlantingNote)

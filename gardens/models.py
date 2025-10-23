@@ -131,6 +131,89 @@ class Garden(models.Model):
         return count
 
 
+class PlantInstance(models.Model):
+    """Tracks individual plant placements in garden with planting/harvesting dates"""
+
+    garden = models.ForeignKey(Garden, on_delete=models.CASCADE, related_name='plant_instances')
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='instances')
+
+    # Grid position
+    row = models.IntegerField(help_text='Row position in garden grid (0-indexed)')
+    col = models.IntegerField(help_text='Column position in garden grid (0-indexed)')
+
+    # Date tracking
+    planted_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Date when this plant was planted'
+    )
+    expected_harvest_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Expected harvest date (auto-calculated from planted_date + days_to_harvest)'
+    )
+    actual_harvest_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Actual date when harvested'
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['garden', 'row', 'col']
+        unique_together = ['garden', 'row', 'col']
+        indexes = [
+            models.Index(fields=['garden', 'row', 'col']),
+            models.Index(fields=['planted_date']),
+            models.Index(fields=['expected_harvest_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.plant.name} at ({self.row}, {self.col}) in {self.garden.name}"
+
+    def calculate_expected_harvest_date(self):
+        """Calculate expected harvest date based on planted_date and plant's days_to_harvest"""
+        if self.planted_date and self.plant.days_to_harvest:
+            from datetime import timedelta
+            self.expected_harvest_date = self.planted_date + timedelta(days=self.plant.days_to_harvest)
+
+    def save(self, *args, **kwargs):
+        """Auto-calculate expected harvest date if planted_date is set"""
+        if self.planted_date and self.plant.days_to_harvest and not self.expected_harvest_date:
+            self.calculate_expected_harvest_date()
+        super().save(*args, **kwargs)
+
+    def days_until_harvest(self):
+        """Return number of days until expected harvest (negative if overdue)"""
+        if not self.expected_harvest_date:
+            return None
+        from datetime import date
+        delta = (self.expected_harvest_date - date.today()).days
+        return delta
+
+    def harvest_status(self):
+        """Return harvest status: 'harvested', 'ready', 'soon', 'growing', 'overdue'"""
+        if self.actual_harvest_date:
+            return 'harvested'
+        if not self.expected_harvest_date:
+            return 'no_date'
+
+        days = self.days_until_harvest()
+        if days is None:
+            return 'no_date'
+        elif days < 0:
+            return 'overdue'
+        elif days == 0:
+            return 'ready'
+        elif days <= 7:
+            return 'soon'
+        else:
+            return 'growing'
+
+
 class PlantingNote(models.Model):
     """Journal entries for specific plants in gardens"""
 
