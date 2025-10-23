@@ -121,6 +121,34 @@ def garden_detail(request, pk):
     import json
     plant_map_json = json.dumps(plant_map)
 
+    # Build plant database for export feature
+    plant_database = []
+    export_plants = Plant.objects.filter(
+        Q(is_default=True) | Q(created_by=request.user)
+    ).exclude(plant_type='utility').prefetch_related('companion_plants')
+
+    for plant in export_plants:
+        companions = [c.name for c in plant.companion_plants.all()]
+        plant_info = {
+            'name': plant.name,
+            'type': plant.plant_type,
+            'spacing': plant.spacing_inches,
+            'companions': companions,
+            'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
+            'chicago_notes': plant.chicago_notes[:100] if plant.chicago_notes else None
+        }
+        plant_database.append(plant_info)
+
+    plant_database_json = json.dumps(plant_database)
+
+    # Check if user has API key configured
+    has_api_key = False
+    if request.user.is_authenticated:
+        try:
+            has_api_key = bool(request.user.profile.anthropic_api_key)
+        except Exception:
+            has_api_key = False
+
     context = {
         'garden': garden,
         'grid_data': grid_data,
@@ -132,6 +160,8 @@ def garden_detail(request, pk):
         'fill_rate': fill_rate,
         'plant_map_json': plant_map_json,
         'plant_map': plant_map,  # Python dict for template lookup
+        'plant_database_json': plant_database_json,
+        'has_api_key': has_api_key,
     }
 
     return render(request, 'gardens/garden_detail.html', context)

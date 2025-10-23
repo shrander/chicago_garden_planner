@@ -17,3 +17,12 @@ def get_item(dictionary, key):
     if not dictionary or not key:
         return None
     return dictionary.get(key, None)
+
+
+@register.filter
+def multiply(value, arg):
+    """Multiply the value by the argument."""
+    try:
+        return int(value) * int(arg)
+    except (ValueError, TypeError):
+        return 0

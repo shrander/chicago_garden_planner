@@ -35,10 +35,26 @@
     </div>
     <div class="col-md-4 text-end">
         {% if can_edit %}
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-success" id="aiAssistantBtn">
+        <div class="btn-group mb-2" role="group">
+            <button type="button"
+                    class="btn btn-success"
+                    id="aiAssistantBtn"
+                    {% if not has_api_key %}disabled{% endif %}
+                    {% if not has_api_key %}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    title="Configure your Anthropic API key in profile settings to enable AI suggestions"
+                    {% endif %}>
                 <i class="bi bi-robot"></i> AI Suggestions
             </button>
+            <button type="button" class="btn btn-outline-primary" id="exportGardenBtn">
+                <i class="bi bi-clipboard"></i> Export for LLM
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="importLayoutBtn">
+                <i class="bi bi-download"></i> Import Layout
+            </button>
+        </div>
+        <div class="btn-group" role="group">
             <button type="button" class="btn btn-outline-success" id="duplicateGardenBtn">
                 <i class="bi bi-copy"></i> Duplicate
             </button>
@@ -127,6 +143,71 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-success" id="applyAllSuggestionsBtn" disabled>
                     <i class="bi bi-check-circle"></i> Apply All Suggestions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Garden Modal -->
+<div class="modal fade" id="exportGardenModal" tabindex="-1" aria-labelledby="exportGardenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="exportGardenModalLabel">
+                    <i class="bi bi-clipboard"></i> Export Garden for LLM Chat
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Copy the text below and paste it into your favorite LLM chat (ChatGPT, Claude, etc.) to get planting suggestions:</p>
+                <div class="mb-3">
+                    <textarea id="exportedGardenData" class="form-control font-monospace" rows="15" readonly style="font-size: 0.85rem;"></textarea>
+                </div>
+                <button type="button" class="btn btn-primary" id="copyExportBtn">
+                    <i class="bi bi-clipboard-check"></i> Copy to Clipboard
+                </button>
+                <span id="copyStatus" class="ms-2"></span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Layout Modal -->
+<div class="modal fade" id="importLayoutModal" tabindex="-1" aria-labelledby="importLayoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="importLayoutModalLabel">
+                    <i class="bi bi-download"></i> Import Layout from LLM
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Paste the JSON response from your LLM here:</p>
+                <div class="mb-3">
+                    <textarea id="importLayoutData" class="form-control font-monospace" rows="12" placeholder='{"reasoning": "...", "suggestions": [...]}'></textarea>
+                </div>
+                <div id="importPreview" class="d-none">
+                    <h6><i class="bi bi-eye"></i> Preview:</h6>
+                    <div class="alert alert-info">
+                        <strong>Strategy:</strong>
+                        <p id="importReasoning" class="mb-0 mt-2"></p>
+                    </div>
+                    <div id="importSuggestionsList"></div>
+                </div>
+                <div id="importError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="parseImportBtn">
+                    <i class="bi bi-search"></i> Parse & Preview
+                </button>
+                <button type="button" class="btn btn-success" id="applyImportBtn" disabled>
+                    <i class="bi bi-check-circle"></i> Apply to Garden
                 </button>
             </div>
         </div>
@@ -975,6 +1056,247 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show success message
             const saveStatus = document.getElementById('saveStatus');
             saveStatus.textContent = 'AI suggestions applied!';
+            saveStatus.className = 'badge bg-success ms-2';
+            setTimeout(() => {
+                saveStatus.textContent = '';
+            }, 3000);
+        });
+    }
+
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Export Garden for LLM button handler
+    const exportGardenBtn = document.getElementById('exportGardenBtn');
+    const exportGardenModal = new bootstrap.Modal(document.getElementById('exportGardenModal'));
+
+    if (exportGardenBtn) {
+        exportGardenBtn.addEventListener('click', function() {
+            // Get garden grid data
+            const grid = [];
+            const rows = document.querySelectorAll('#gardenGrid tr');
+            rows.forEach(row => {
+                const rowData = [];
+                const cells = row.querySelectorAll('.garden-cell');
+                cells.forEach(cell => {
+                    rowData.push(cell.dataset.plant || 'empty space');
+                });
+                grid.push(rowData);
+            });
+
+            // Find empty cells
+            const emptyCells = [];
+            grid.forEach((row, rowIdx) => {
+                row.forEach((cell, colIdx) => {
+                    if (!cell || cell.toLowerCase() === 'empty space' || cell === '•') {
+                        emptyCells.push({row: rowIdx, col: colIdx});
+                    }
+                });
+            });
+
+            // Create visual grid representation
+            const gridVisual = grid.map(row =>
+                row.map(cell => {
+                    if (!cell || cell.toLowerCase() === 'empty space' || cell === '•') return '___';
+                    if (cell.toLowerCase() === 'path' || cell === '=') return '===';
+                    return cell.substring(0, 3).toUpperCase().padEnd(3, ' ');
+                }).join(' | ')
+            ).join('\n');
+
+            // Get unique plants in garden
+            const plantsInGarden = new Set();
+            grid.forEach(row => {
+                row.forEach(cell => {
+                    if (cell && cell.toLowerCase() !== 'empty space' && cell.toLowerCase() !== 'path' && cell !== '•' && cell !== '=') {
+                        plantsInGarden.add(cell);
+                    }
+                });
+            });
+
+            // Build export text
+            const exportText = `I'm planning a garden in Chicago (USDA zones 5b/6a) and need help filling empty spaces with companion plants.
+
+GARDEN INFORMATION:
+- Size: {{ garden.width }} columns × {{ garden.height }} rows ({{ garden.width|multiply:garden.height }} total cells)
+- Empty cells to fill: ${emptyCells.length} cells
+- Current plants: ${plantsInGarden.size} plants
+
+CURRENT GARDEN LAYOUT:
+${gridVisual}
+
+(Legend: ___ = empty space, === = path, ABC = plant abbreviation)
+
+EXISTING PLANTS:
+${plantsInGarden.size > 0 ? Array.from(plantsInGarden).join(', ') : 'None (empty garden)'}
+
+AVAILABLE PLANTS (with companion relationships):
+${JSON.stringify(${plant_database_json|safe}, null, 2)}
+
+TASK:
+Create a comprehensive garden layout by filling ALL ${emptyCells.length} empty spaces with appropriate companion plants. Consider:
+
+1. Companion Planting: Place companions near existing plants
+2. Pest Management: Use pest deterrent plants strategically
+3. Plant Spacing: Respect spacing requirements
+4. Variety: Include vegetables, herbs, and flowers
+5. Chicago Climate: All plants are pre-selected for zones 5b/6a
+
+RESPONSE FORMAT (JSON):
+{
+    "reasoning": "Brief explanation of your planting strategy (3-4 sentences)",
+    "suggestions": [
+        {"plant_name": "Plant Name", "row": 0, "col": 1, "reason": "Why this plant here"},
+        ... (provide ${emptyCells.length} suggestions to fill all empty spaces)
+    ]
+}
+
+Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
+
+            document.getElementById('exportedGardenData').value = exportText;
+            exportGardenModal.show();
+        });
+    }
+
+    // Copy export to clipboard
+    const copyExportBtn = document.getElementById('copyExportBtn');
+    if (copyExportBtn) {
+        copyExportBtn.addEventListener('click', function() {
+            const textarea = document.getElementById('exportedGardenData');
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const status = document.getElementById('copyStatus');
+                status.innerHTML = '<span class="badge bg-success"><i class="bi bi-check"></i> Copied!</span>';
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 2000);
+            });
+        });
+    }
+
+    // Import Layout button handler
+    const importLayoutBtn = document.getElementById('importLayoutBtn');
+    const importLayoutModal = new bootstrap.Modal(document.getElementById('importLayoutModal'));
+    let parsedImportData = null;
+
+    if (importLayoutBtn) {
+        importLayoutBtn.addEventListener('click', function() {
+            // Reset modal state
+            document.getElementById('importLayoutData').value = '';
+            document.getElementById('importPreview').classList.add('d-none');
+            document.getElementById('importError').classList.add('d-none');
+            document.getElementById('applyImportBtn').disabled = true;
+            parsedImportData = null;
+
+            importLayoutModal.show();
+        });
+    }
+
+    // Parse and preview import
+    const parseImportBtn = document.getElementById('parseImportBtn');
+    if (parseImportBtn) {
+        parseImportBtn.addEventListener('click', function() {
+            const importTextarea = document.getElementById('importLayoutData');
+            const errorDiv = document.getElementById('importError');
+            const previewDiv = document.getElementById('importPreview');
+
+            errorDiv.classList.add('d-none');
+            previewDiv.classList.add('d-none');
+
+            try {
+                const jsonText = importTextarea.value.trim();
+
+                // Try to extract JSON if wrapped in markdown code blocks
+                let cleanJson = jsonText;
+                const codeBlockMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+                if (codeBlockMatch) {
+                    cleanJson = codeBlockMatch[1];
+                }
+
+                parsedImportData = JSON.parse(cleanJson);
+
+                // Validate structure
+                if (!parsedImportData.suggestions || !Array.isArray(parsedImportData.suggestions)) {
+                    throw new Error('Invalid format: "suggestions" array is required');
+                }
+
+                // Display preview
+                document.getElementById('importReasoning').textContent = parsedImportData.reasoning || 'No strategy provided';
+
+                const suggestionsList = document.getElementById('importSuggestionsList');
+                suggestionsList.innerHTML = '';
+
+                parsedImportData.suggestions.forEach(suggestion => {
+                    const plantInfo = plantMap[suggestion.plant_name.toLowerCase()];
+                    const symbol = plantInfo ? plantInfo.symbol : suggestion.plant_name[0].toUpperCase();
+                    const color = plantInfo ? plantInfo.color : '#90EE90';
+
+                    const item = document.createElement('div');
+                    item.className = 'mb-2 p-2 border rounded d-flex align-items-center';
+                    item.innerHTML = `
+                        <div class="d-flex align-items-center justify-content-center me-3"
+                             style="min-width: 40px; min-height: 40px; background-color: ${color}; color: white; font-size: 1.2rem; font-weight: bold; border-radius: 4px;">
+                            ${symbol}
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>${suggestion.plant_name}</strong> at Row ${suggestion.row}, Col ${suggestion.col}
+                            <br>
+                            <small class="text-muted">${suggestion.reason || 'No reason provided'}</small>
+                        </div>
+                    `;
+                    suggestionsList.appendChild(item);
+                });
+
+                previewDiv.classList.remove('d-none');
+                document.getElementById('applyImportBtn').disabled = false;
+
+            } catch (e) {
+                errorDiv.textContent = 'Error parsing JSON: ' + e.message;
+                errorDiv.classList.remove('d-none');
+                parsedImportData = null;
+                document.getElementById('applyImportBtn').disabled = true;
+            }
+        });
+    }
+
+    // Apply imported layout
+    const applyImportBtn = document.getElementById('applyImportBtn');
+    if (applyImportBtn) {
+        applyImportBtn.addEventListener('click', function() {
+            if (!parsedImportData || !parsedImportData.suggestions) return;
+
+            // Apply each suggestion to the grid
+            parsedImportData.suggestions.forEach(suggestion => {
+                const plantName = suggestion.plant_name.toLowerCase();
+                const row = suggestion.row;
+                const col = suggestion.col;
+
+                // Find the cell
+                const cell = document.querySelector(`.garden-cell[data-row="${row}"][data-col="${col}"]`);
+                if (cell) {
+                    const plantInfo = plantMap[plantName];
+                    if (plantInfo) {
+                        updateCellContent(cell, {
+                            name: plantName,
+                            symbol: plantInfo.symbol,
+                            color: plantInfo.color
+                        });
+                        cell.dataset.plant = plantName;
+                    }
+                }
+            });
+
+            // Auto-save the layout
+            autoSaveLayout();
+
+            // Close modal
+            importLayoutModal.hide();
+
+            // Show success message
+            const saveStatus = document.getElementById('saveStatus');
+            saveStatus.textContent = 'Imported layout applied!';
             saveStatus.className = 'badge bg-success ms-2';
             setTimeout(() => {
                 saveStatus.textContent = '';
