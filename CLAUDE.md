@@ -147,17 +147,146 @@ Core garden planning functionality.
   - LOGIN_REDIRECT_URL = `'accounts:dashboard'`
   - LOGOUT_REDIRECT_URL = `'gardens:garden_list'`
 
-## Development Workflow
+## Code Organization & Maintainability Guidelines
 
-### Adding New Features to gardens App
+### DRY Principle & File Size Limits
 
-The gardens app currently has minimal implementation. When adding features:
+**IMPORTANT**: To maintain code quality and prevent technical debt:
 
-1. Define models in `gardens/models.py` (Plant, Garden, etc.)
-2. Create and run migrations
-3. Update views in `gardens/views.py` (currently just placeholders)
-4. Create templates in `gardens/templates/gardens/`
-5. Add static files (CSS/JS) to `gardens/static/gardens/`
+#### Template File Limits
+- **Maximum template size**: 500 lines
+- **If exceeding 500 lines**: Extract partials to `templates/{app}/partials/`
+- **No embedded JavaScript >50 lines**: Extract to static JS files
+- **No embedded CSS >50 lines**: Extract to static CSS files
+
+#### JavaScript Organization
+All JavaScript must be in external files:
+
+```
+gardens/static/gardens/js/
+├── utils.js           # Reusable utilities (CSRF, fetch, ButtonStateManager)
+├── api.js             # API client classes (future)
+├── {feature}.js       # Feature-specific code
+└── garden-detail.js   # Page-specific logic
+```
+
+**Required utilities** (already created in `utils.js`):
+- `getCSRFToken()` - Get CSRF token for AJAX
+- `gardenFetch(url, options)` - Wrapper for fetch with Django defaults
+- `ButtonStateManager` class - Manage button loading/success/error states
+- `showModal(modalId)` / `hideModal(modalId)` - Modal helpers
+
+**Usage example**:
+```javascript
+// GOOD: Use utilities
+const api = gardenFetch('/gardens/1/clear/', { method: 'POST' });
+
+// BAD: Duplicate fetch code
+fetch('/gardens/1/clear/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken()}
+})
+```
+
+#### CSS Organization
+All CSS must be in external files:
+
+```
+gardens/static/gardens/css/
+├── base.css           # Global styles
+├── garden-detail.css  # Page-specific styles
+└── {feature}.css      # Feature-specific styles
+```
+
+#### Template Partials
+Extract repeated UI patterns:
+
+```
+gardens/templates/gardens/partials/
+├── _modals/
+│   ├── _ai_assistant.html
+│   ├── _clear_confirm.html
+│   └── _delete_confirm.html
+├── _garden_grid.html
+└── _plant_library.html
+```
+
+**Usage**:
+```django
+{% include 'gardens/partials/_modals/_ai_assistant.html' %}
+{% include 'gardens/partials/_garden_grid.html' with grid=grid_data %}
+```
+
+#### Django View Guidelines
+
+**Use mixins for repeated patterns**:
+```python
+# gardens/mixins.py (create this file)
+class JSONResponseMixin:
+    def json_success(self, data=None, message=None):
+        return JsonResponse({'success': True, 'message': message, **data})
+
+    def json_error(self, error, status=400):
+        return JsonResponse({'success': False, 'error': str(error)}, status=status)
+
+# Usage in views
+class GardenClearView(JSONResponseMixin, View):
+    def post(self, request, pk):
+        try:
+            # ... logic ...
+            return self.json_success(message='Cleared')
+        except Exception as e:
+            return self.json_error(e, status=500)
+```
+
+**Avoid duplicating**:
+- Error handling logic
+- JSON response formatting
+- Permission checking
+- Get object or 404 patterns
+
+### Code Review Checklist
+
+Before committing, check:
+
+- [ ] No template file >500 lines
+- [ ] No embedded JS >50 lines (extract to static file)
+- [ ] No embedded CSS >50 lines (extract to static file)
+- [ ] No duplicate fetch() patterns (use `gardenFetch()`)
+- [ ] No duplicate button state management (use `ButtonStateManager`)
+- [ ] No duplicate JSON responses (use mixins)
+- [ ] Modal logic uses `showModal()`/`hideModal()`
+- [ ] CSRF always via `getCSRFToken()`, never duplicated
+
+### Development Workflow
+
+#### Adding New Features to gardens App
+
+When adding features:
+
+1. **Models**: Define in `gardens/models.py`
+2. **Migrations**: Create and run migrations
+3. **Views**: Add to `gardens/views.py` (use mixins for common patterns)
+4. **Templates**: Create in `gardens/templates/gardens/`
+   - Keep main template <500 lines
+   - Extract partials if needed
+5. **Static Files**:
+   - JavaScript → `gardens/static/gardens/js/{feature}.js`
+   - CSS → `gardens/static/gardens/css/{feature}.css`
+   - Use existing utilities from `utils.js`
+
+#### Adding JavaScript Features
+
+1. **Check if utility exists**: Look in `utils.js` first
+2. **Reusable code**: Add to `utils.js`
+3. **Feature-specific**: Create new `{feature}.js` file
+4. **Load order**: Load `utils.js` before feature files
+
+```django
+<!-- In template -->
+<script src="{% static 'gardens/js/utils.js' %}"></script>
+<script src="{% static 'gardens/js/my-feature.js' %}"></script>
+```
 
 ### Working with Custom User Model
 

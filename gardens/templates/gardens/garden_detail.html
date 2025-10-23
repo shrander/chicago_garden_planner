@@ -1,5 +1,6 @@
 {% extends "gardens/base.html" %}
 {% load garden_filters %}
+{% load static %}
 
 {% block title %}{{ garden.name }} - Chicago Garden Planner{% endblock %}
 
@@ -446,70 +447,13 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-.garden-grid td {
-    font-size: 0.7rem;
-    vertical-align: middle;
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
-    max-width: 60px;
-    min-height: 60px;
-    max-height: 60px;
-    padding: 4px !important;
-    box-sizing: border-box;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.garden-cell {
-    position: relative;
-    transition: transform 0.2s, box-shadow 0.2s;
-    width: 100%;
-    height: 100%;
-}
-.garden-cell:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 10;
-}
-.droppable {
-    transition: background-color 0.2s;
-}
-.droppable.drag-over {
-    background-color: #d4edda !important;
-    border: 2px dashed #28a745 !important;
-}
-.plant-item.dragging {
-    opacity: 0.5;
-}
-.plant-item {
-    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
-}
-.plant-item:hover {
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    background-color: #e9ecef !important;
-}
-/* Remove any Bootstrap tooltip/popover effects */
-.garden-cell [title]:hover::after,
-.plant-item [title]:hover::after {
-    display: none !important;
-}
-/* Make card shadows permanent and stronger, prevent movement */
-.card {
-    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
-    transition: none !important;
-    transform: none !important;
-}
-.card:hover {
-    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
-    transform: none !important;
-}
-</style>
+<link rel="stylesheet" href="{% static 'gardens/css/garden-detail.css' %}">
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load utility functions -->
+<script src="{% static 'gardens/js/utils.js' %}"></script>
+
 {% if can_edit %}
 <script>
 // Plant map for symbol and color lookup
@@ -520,12 +464,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedPlant = null;
     let draggedCell = null;
     let hasUnsavedChanges = false;
-
-    // Get CSRF token
-    function getCSRFToken() {
-        return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
-               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
-    }
 
     // Extract plant data from cell
     function getPlantDataFromCell(cell) {

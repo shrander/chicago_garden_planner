@@ -1,0 +1,76 @@
+/**
+ * Garden Detail Page Styles
+ * Chicago Garden Planner
+ */
+
+/* Garden Grid Cells */
+.garden-grid td {
+    font-size: 0.7rem;
+    vertical-align: middle;
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    min-height: 60px;
+    max-height: 60px;
+    padding: 4px !important;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.garden-cell {
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+    height: 100%;
+}
+
+.garden-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+/* Drag and Drop Styles */
+.droppable {
+    transition: background-color 0.2s;
+}
+
+.droppable.drag-over {
+    background-color: #d4edda !important;
+    border: 2px dashed #28a745 !important;
+}
+
+.plant-item.dragging {
+    opacity: 0.5;
+}
+
+.plant-item {
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.plant-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background-color: #e9ecef !important;
+}
+
+/* Remove Bootstrap tooltip/popover effects */
+.garden-cell [title]:hover::after,
+.plant-item [title]:hover::after {
+    display: none !important;
+}
+
+/* Card styling - prevent movement on hover */
+.card {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transition: none !important;
+    transform: none !important;
+}
+
+.card:hover {
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15) !important;
+    transform: none !important;
+}
