@@ -56,6 +56,9 @@
             </button>
         </div>
         <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-warning" id="clearGardenBtn">
+                <i class="bi bi-eraser"></i> Clear Layout
+            </button>
             <button type="button" class="btn btn-outline-success" id="duplicateGardenBtn">
                 <i class="bi bi-copy"></i> Duplicate
             </button>
@@ -865,6 +868,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Network error: Failed to duplicate garden');
                 duplicateGardenBtn.disabled = false;
                 duplicateGardenBtn.innerHTML = '<i class="bi bi-copy"></i> Duplicate';
+            });
+        });
+    }
+
+    // Clear garden button handler
+    const clearGardenBtn = document.getElementById('clearGardenBtn');
+    if (clearGardenBtn) {
+        clearGardenBtn.addEventListener('click', function() {
+            // Confirm before clearing
+            if (!confirm('Are you sure you want to clear all plants from this garden? This action cannot be undone.')) {
+                return;
+            }
+
+            const gardenId = {{ garden.pk }};
+
+            // Show loading state
+            clearGardenBtn.disabled = true;
+            clearGardenBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Clearing...';
+
+            fetch(`/gardens/${gardenId}/clear/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to show empty garden
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to clear garden'));
+                    clearGardenBtn.disabled = false;
+                    clearGardenBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error: Failed to clear garden');
+                clearGardenBtn.disabled = false;
+                clearGardenBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
             });
         });
     }

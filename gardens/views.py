@@ -211,6 +211,32 @@ def garden_delete(request, pk):
 
 
 @login_required
+@require_POST
+def garden_clear(request, pk):
+    """Clear all plants from a garden layout"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Create empty grid based on garden dimensions
+        empty_grid = [[''] * garden.width for _ in range(garden.height)]
+
+        # Update garden layout with empty grid
+        garden.layout_data = {'grid': empty_grid}
+        garden.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Garden layout has been cleared successfully'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
 def garden_duplicate(request, pk):
     """Duplicate a garden"""
     from django.http import JsonResponse
