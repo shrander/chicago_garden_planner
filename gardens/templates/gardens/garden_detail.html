@@ -487,6 +487,7 @@
 const plantMap = {{ plant_map_json|safe }};
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Garden detail JavaScript loaded');
     let draggedPlant = null;
     let draggedCell = null;
     let hasUnsavedChanges = false;
@@ -1073,11 +1074,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Export Garden for LLM button handler
     const exportGardenBtn = document.getElementById('exportGardenBtn');
     const exportGardenModalEl = document.getElementById('exportGardenModal');
+    console.log('Export button:', exportGardenBtn, 'Modal element:', exportGardenModalEl);
 
     if (exportGardenBtn && exportGardenModalEl) {
         const exportGardenModal = new bootstrap.Modal(exportGardenModalEl);
 
         exportGardenBtn.addEventListener('click', function() {
+            console.log('Export button clicked');
             // Get garden grid data
             const grid = [];
             const rows = document.querySelectorAll('#gardenGrid tr');
@@ -1120,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Build export text
+            const plantDatabase = {{ plant_database_json|safe }};
             const exportText = `I'm planning a garden in Chicago (USDA zones 5b/6a) and need help filling empty spaces with companion plants.
 
 GARDEN INFORMATION:
@@ -1136,7 +1140,7 @@ EXISTING PLANTS:
 ${plantsInGarden.size > 0 ? Array.from(plantsInGarden).join(', ') : 'None (empty garden)'}
 
 AVAILABLE PLANTS (with companion relationships):
-${JSON.stringify(${plant_database_json|safe}, null, 2)}
+${JSON.stringify(plantDatabase, null, 2)}
 
 TASK:
 Create a comprehensive garden layout by filling ALL ${emptyCells.length} empty spaces with appropriate companion plants. Consider:
