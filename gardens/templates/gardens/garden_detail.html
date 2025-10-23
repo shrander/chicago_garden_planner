@@ -97,6 +97,32 @@
     </div>
 </div>
 
+<!-- Clear Layout Confirmation Modal -->
+<div class="modal fade" id="clearConfirmModal" tabindex="-1" aria-labelledby="clearConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="clearConfirmModalLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirm Clear Layout
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to clear all plants from <strong>"{{ garden.name }}"</strong>?</p>
+                <p class="text-warning mb-0">
+                    <i class="bi bi-info-circle"></i> This will remove all plants from the garden layout, but the garden itself will remain. This action cannot be undone!
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmClearBtn">
+                    <i class="bi bi-eraser"></i> Clear Layout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- AI Assistant Modal -->
 {% if can_edit %}
 <div class="modal fade" id="aiAssistantModal" tabindex="-1" aria-labelledby="aiAssistantModalLabel" aria-hidden="true">
@@ -874,18 +900,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Clear garden button handler
     const clearGardenBtn = document.getElementById('clearGardenBtn');
+    const confirmClearBtn = document.getElementById('confirmClearBtn');
+    const clearConfirmModal = new bootstrap.Modal(document.getElementById('clearConfirmModal'));
+
     if (clearGardenBtn) {
         clearGardenBtn.addEventListener('click', function() {
-            // Confirm before clearing
-            if (!confirm('Are you sure you want to clear all plants from this garden? This action cannot be undone.')) {
-                return;
-            }
+            // Show confirmation modal
+            clearConfirmModal.show();
+        });
+    }
 
+    if (confirmClearBtn) {
+        confirmClearBtn.addEventListener('click', function() {
             const gardenId = {{ garden.pk }};
 
-            // Show loading state
-            clearGardenBtn.disabled = true;
-            clearGardenBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Clearing...';
+            // Show loading state on confirm button
+            confirmClearBtn.disabled = true;
+            confirmClearBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Clearing...';
 
             fetch(`/gardens/${gardenId}/clear/`, {
                 method: 'POST',
@@ -900,16 +931,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Reload the page to show empty garden
                     window.location.reload();
                 } else {
+                    // Hide modal and show error
+                    clearConfirmModal.hide();
                     alert('Error: ' + (data.error || 'Failed to clear garden'));
-                    clearGardenBtn.disabled = false;
-                    clearGardenBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
+                    confirmClearBtn.disabled = false;
+                    confirmClearBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                clearConfirmModal.hide();
                 alert('Network error: Failed to clear garden');
-                clearGardenBtn.disabled = false;
-                clearGardenBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
+                confirmClearBtn.disabled = false;
+                confirmClearBtn.innerHTML = '<i class="bi bi-eraser"></i> Clear Layout';
             });
         });
     }
