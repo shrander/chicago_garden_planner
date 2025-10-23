@@ -1,0 +1,37 @@
+<!-- Import Layout Modal -->
+<div class="modal fade" id="importLayoutModal" tabindex="-1" aria-labelledby="importLayoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="importLayoutModalLabel">
+                    <i class="bi bi-download"></i> Import Layout from LLM
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Paste the JSON response from your LLM here:</p>
+                <div class="mb-3">
+                    <textarea id="importLayoutData" class="form-control font-monospace" rows="12" placeholder='{"reasoning": "...", "suggestions": [...]}'></textarea>
+                </div>
+                <div id="importPreview" class="d-none">
+                    <h6><i class="bi bi-eye"></i> Preview:</h6>
+                    <div class="alert alert-info">
+                        <strong>Strategy:</strong>
+                        <p id="importReasoning" class="mb-0 mt-2"></p>
+                    </div>
+                    <div id="importSuggestionsList"></div>
+                </div>
+                <div id="importError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="parseImportBtn">
+                    <i class="bi bi-search"></i> Parse & Preview
+                </button>
+                <button type="button" class="btn btn-success" id="applyImportBtn" disabled>
+                    <i class="bi bi-check-circle"></i> Apply to Garden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

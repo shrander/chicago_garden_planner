@@ -1,0 +1,26 @@
+<!-- Export Garden Modal -->
+<div class="modal fade" id="exportGardenModal" tabindex="-1" aria-labelledby="exportGardenModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="exportGardenModalLabel">
+                    <i class="bi bi-clipboard"></i> Export Garden for LLM Chat
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Copy the text below and paste it into your favorite LLM chat (ChatGPT, Claude, etc.) to get planting suggestions:</p>
+                <div class="mb-3">
+                    <textarea id="exportedGardenData" class="form-control font-monospace" rows="15" readonly style="font-size: 0.85rem;"></textarea>
+                </div>
+                <button type="button" class="btn btn-primary" id="copyExportBtn">
+                    <i class="bi bi-clipboard-check"></i> Copy to Clipboard
+                </button>
+                <span id="copyStatus" class="ms-2"></span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
