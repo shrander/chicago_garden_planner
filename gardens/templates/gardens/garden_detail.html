@@ -36,17 +36,18 @@
     <div class="col-md-4 text-end">
         {% if can_edit %}
         <div class="btn-group mb-2" role="group">
-            <button type="button"
-                    class="btn btn-success"
-                    id="aiAssistantBtn"
-                    {% if not has_api_key %}disabled{% endif %}
-                    {% if not has_api_key %}
-                    data-bs-toggle="tooltip"
-                    data-bs-placement="bottom"
-                    title="Configure your Anthropic API key in profile settings to enable AI suggestions"
-                    {% endif %}>
+            {% if not has_api_key %}
+            <div class="d-inline-block" data-bs-toggle="tooltip" data-bs-html="true" data-bs-placement="bottom"
+                 title="API key not configured. <a href='{% url 'accounts:profile' %}' class='text-white text-decoration-underline'>Go to Profile Settings</a> to add your Anthropic API key.">
+                <button type="button" class="btn btn-success" id="aiAssistantBtn" disabled style="pointer-events: none;">
+                    <i class="bi bi-robot"></i> AI Suggestions
+                </button>
+            </div>
+            {% else %}
+            <button type="button" class="btn btn-success" id="aiAssistantBtn">
                 <i class="bi bi-robot"></i> AI Suggestions
             </button>
+            {% endif %}
             <button type="button" class="btn btn-outline-primary" id="exportGardenBtn">
                 <i class="bi bi-clipboard"></i> Export for LLM
             </button>
@@ -1071,9 +1072,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Export Garden for LLM button handler
     const exportGardenBtn = document.getElementById('exportGardenBtn');
-    const exportGardenModal = new bootstrap.Modal(document.getElementById('exportGardenModal'));
+    const exportGardenModalEl = document.getElementById('exportGardenModal');
 
-    if (exportGardenBtn) {
+    if (exportGardenBtn && exportGardenModalEl) {
+        const exportGardenModal = new bootstrap.Modal(exportGardenModalEl);
+
         exportGardenBtn.addEventListener('click', function() {
             // Get garden grid data
             const grid = [];
@@ -1158,30 +1161,32 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
             document.getElementById('exportedGardenData').value = exportText;
             exportGardenModal.show();
         });
-    }
 
-    // Copy export to clipboard
-    const copyExportBtn = document.getElementById('copyExportBtn');
-    if (copyExportBtn) {
-        copyExportBtn.addEventListener('click', function() {
-            const textarea = document.getElementById('exportedGardenData');
-            textarea.select();
-            navigator.clipboard.writeText(textarea.value).then(() => {
-                const status = document.getElementById('copyStatus');
-                status.innerHTML = '<span class="badge bg-success"><i class="bi bi-check"></i> Copied!</span>';
-                setTimeout(() => {
-                    status.innerHTML = '';
-                }, 2000);
+        // Copy export to clipboard
+        const copyExportBtn = document.getElementById('copyExportBtn');
+        if (copyExportBtn) {
+            copyExportBtn.addEventListener('click', function() {
+                const textarea = document.getElementById('exportedGardenData');
+                textarea.select();
+                navigator.clipboard.writeText(textarea.value).then(() => {
+                    const status = document.getElementById('copyStatus');
+                    status.innerHTML = '<span class="badge bg-success"><i class="bi bi-check"></i> Copied!</span>';
+                    setTimeout(() => {
+                        status.innerHTML = '';
+                    }, 2000);
+                });
             });
-        });
+        }
     }
 
     // Import Layout button handler
     const importLayoutBtn = document.getElementById('importLayoutBtn');
-    const importLayoutModal = new bootstrap.Modal(document.getElementById('importLayoutModal'));
+    const importLayoutModalEl = document.getElementById('importLayoutModal');
     let parsedImportData = null;
 
-    if (importLayoutBtn) {
+    if (importLayoutBtn && importLayoutModalEl) {
+        const importLayoutModal = new bootstrap.Modal(importLayoutModalEl);
+
         importLayoutBtn.addEventListener('click', function() {
             // Reset modal state
             document.getElementById('importLayoutData').value = '';
@@ -1192,12 +1197,11 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
 
             importLayoutModal.show();
         });
-    }
 
-    // Parse and preview import
-    const parseImportBtn = document.getElementById('parseImportBtn');
-    if (parseImportBtn) {
-        parseImportBtn.addEventListener('click', function() {
+        // Parse and preview import
+        const parseImportBtn = document.getElementById('parseImportBtn');
+        if (parseImportBtn) {
+            parseImportBtn.addEventListener('click', function() {
             const importTextarea = document.getElementById('importLayoutData');
             const errorDiv = document.getElementById('importError');
             const previewDiv = document.getElementById('importPreview');
@@ -1258,13 +1262,13 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                 parsedImportData = null;
                 document.getElementById('applyImportBtn').disabled = true;
             }
-        });
-    }
+            });
+        }
 
-    // Apply imported layout
-    const applyImportBtn = document.getElementById('applyImportBtn');
-    if (applyImportBtn) {
-        applyImportBtn.addEventListener('click', function() {
+        // Apply imported layout
+        const applyImportBtn = document.getElementById('applyImportBtn');
+        if (applyImportBtn) {
+            applyImportBtn.addEventListener('click', function() {
             if (!parsedImportData || !parsedImportData.suggestions) return;
 
             // Apply each suggestion to the grid
@@ -1301,7 +1305,8 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
             setTimeout(() => {
                 saveStatus.textContent = '';
             }, 3000);
-        });
+            });
+        }
     }
 });
 </script>
