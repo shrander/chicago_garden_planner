@@ -249,6 +249,109 @@
             </div>
         </div>
 
+        <!-- Garden Statistics -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> Garden Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Plant Diversity</h6>
+                        <p class="h4 text-success"><i class="bi bi-stars"></i> {{ diversity }}</p>
+                        <small class="text-muted">unique species</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Total Planted</h6>
+                        <p class="h4 text-primary">{{ plant_count }}</p>
+                        <small class="text-muted">of {{ total_spaces }} cells</small>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Fill Rate</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 style="width: {{ fill_rate|floatformat:0 }}%"
+                                 aria-valuenow="{{ fill_rate|floatformat:0 }}"
+                                 aria-valuemin="0" aria-valuemax="100">
+                                {{ fill_rate|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Available Space</h6>
+                        <p class="h4 text-warning">{{ empty_cells_count }}</p>
+                        <small class="text-muted">empty cells</small>
+                    </div>
+                </div>
+
+                {% if plant_type_stats_detail %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6 class="text-muted mb-3"><i class="bi bi-diagram-3"></i> Breakdown by Type</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for plant_type, count in plant_type_stats_detail.items %}
+                            <span class="badge bg-secondary fs-6">
+                                {{ count }} {{ plant_type|title }}{{ count|pluralize }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if plant_counts_detail %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6 class="text-muted mb-3"><i class="bi bi-list-ol"></i> Plant Distribution</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Plant</th>
+                                        <th class="text-end">Quantity</th>
+                                        <th style="width: 50%;">Distribution</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for plant, count in plant_counts_detail.items %}
+                                    <tr>
+                                        <td class="text-capitalize">{{ plant }}</td>
+                                        <td class="text-end"><strong>{{ count }}</strong></td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar" role="progressbar"
+                                                     style="width: {{ count|divide:plant_count|multiply:100 }}%"
+                                                     aria-valuenow="{{ count }}"
+                                                     aria-valuemin="0" aria-valuemax="{{ plant_count }}">
+                                                    {% widthratio count plant_count 100 %}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if path_cells_count > 0 %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-md-12">
+                        <p class="mb-0 text-muted">
+                            <i class="bi bi-signpost-split"></i>
+                            <strong>{{ path_cells_count }}</strong> cell{{ path_cells_count|pluralize }} designated as path{{ path_cells_count|pluralize }}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- Recent Notes -->
         {% if notes %}
         <div class="card shadow-sm">

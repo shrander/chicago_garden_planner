@@ -103,10 +103,40 @@ def garden_detail(request, pk):
             Q(is_default=True) | Q(created_by=request.user)
         ).exclude(plant_type='utility').order_by('name')  # Sort alphabetically by common name
 
-    # Calculate fill rate
+    # Calculate fill rate and statistics
     total_spaces = garden.width * garden.height
     plant_count = garden.get_plant_count()
     fill_rate = (plant_count / total_spaces * 100) if total_spaces > 0 else 0
+
+    # Calculate detailed statistics
+    plant_counts_detail = {}
+    plant_type_stats_detail = {}
+    path_cells_count = 0
+    empty_cells_count = 0
+
+    # Get all plants for type lookup
+    all_plants_for_stats = Plant.objects.filter(
+        Q(is_default=True) | Q(created_by=request.user)
+    ).exclude(plant_type='utility')
+    plant_type_lookup = {p.name.lower(): p.plant_type for p in all_plants_for_stats}
+
+    for row in grid_data:
+        for cell in row:
+            if cell and cell.lower() not in ['empty space', '•', '']:
+                if cell.lower() == 'path' or cell == '=':
+                    path_cells_count += 1
+                else:
+                    # Count each plant
+                    plant_lower = cell.lower()
+                    plant_counts_detail[plant_lower] = plant_counts_detail.get(plant_lower, 0) + 1
+
+                    # Count by type
+                    plant_type = plant_type_lookup.get(plant_lower, 'unknown')
+                    plant_type_stats_detail[plant_type] = plant_type_stats_detail.get(plant_type, 0) + 1
+            else:
+                empty_cells_count += 1
+
+    diversity = len(plant_counts_detail)
 
     # Create a mapping of plant names to their symbols and colors for the grid display
     plant_map = {}
@@ -186,6 +216,14 @@ def garden_detail(request, pk):
         'has_api_key': has_api_key,
         'instance_map_json': instance_map_json,
         'plant_instances': plant_instances,
+        # Statistics
+        'diversity': diversity,
+        'plant_counts_detail': plant_counts_detail,
+        'plant_type_stats_detail': plant_type_stats_detail,
+        'path_cells_count': path_cells_count,
+        'empty_cells_count': empty_cells_count,
+        'total_spaces': total_spaces,
+        'plant_count': plant_count,
     }
 
     return render(request, 'gardens/garden_detail.html', context)
