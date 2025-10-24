@@ -807,8 +807,8 @@ Return a JSON object with ALL {len(empty_cells)} empty cells filled:
 {{
     "reasoning": "Brief explanation of your comprehensive planting strategy (3-4 sentences explaining companion groupings, pest management approach, and layout logic)",
     "suggestions": [
-        {{"plant_name": "Tomato", "row": 0, "col": 1, "reason": "Central placement for companion grouping"}},
-        {{"plant_name": "Basil", "row": 0, "col": 2, "reason": "Companions with tomato, pest deterrent"}},
+        {{"plant_name": "Tomato", "row": 0, "col": 1, "reason": "Central placement for companion grouping", "planted_date": "2025-04-15"}},
+        {{"plant_name": "Basil", "row": 0, "col": 2, "reason": "Companions with tomato, pest deterrent", "planted_date": "2025-04-15"}},
         ... (continue for ALL {len(empty_cells)} empty cells)
     ]
 }}
@@ -818,6 +818,10 @@ IMPORTANT:
 - Only use plant names from the available plants database
 - Ensure row/col coordinates match empty cell positions: {empty_cells[:20]}{'...' if len(empty_cells) > 20 else ''}
 - Create logical companion groupings across the garden
+- Include "planted_date" field (YYYY-MM-DD format) for each suggestion if planting date is relevant
+- The system will auto-calculate expected_harvest_date based on the plant's days_to_harvest
+- planted_date is OPTIONAL - omit it if you're just suggesting plant placement without dates
+- If suggesting succession planting, include planted_date to indicate when to plant
 - Be comprehensive - fill the entire garden!"""
 
         # Call Claude API using user's API key

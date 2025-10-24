@@ -761,12 +761,19 @@ RESPONSE FORMAT (JSON):
 {
     "reasoning": "Brief explanation of your planting strategy (3-4 sentences)",
     "suggestions": [
-        {"plant_name": "Plant Name", "row": 0, "col": 1, "reason": "Why this plant here"},
+        {"plant_name": "Plant Name", "row": 0, "col": 1, "reason": "Why this plant here", "planted_date": "2025-04-15"},
         ... (provide ${emptyCells.length} suggestions to fill all empty spaces)
     ]
 }
 
+IMPORTANT NOTES:
+- Include "planted_date" field (YYYY-MM-DD format) for each suggestion if planting date is relevant
+- The system will auto-calculate expected_harvest_date based on the plant's days_to_harvest
+- planted_date is OPTIONAL - omit it if you're just suggesting plant placement without dates
+- If suggesting succession planting, include planted_date to indicate when to plant (e.g., future date for crops to follow current harvest)
+
 Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
+
 
             document.getElementById('exportedGardenData').value = exportText;
             exportGardenModal.show();
@@ -852,6 +859,12 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                         const symbol = plantInfo ? plantInfo.symbol : suggestion.plant_name[0].toUpperCase();
                         const color = plantInfo ? plantInfo.color : '#90EE90';
 
+                        // Build date info string if planted_date is present
+                        let dateInfo = '';
+                        if (suggestion.planted_date) {
+                            dateInfo = `<br><small class="text-success"><i class="bi bi-calendar-check"></i> Planting date: ${suggestion.planted_date}</small>`;
+                        }
+
                         const item = document.createElement('div');
                         item.className = 'mb-2 p-2 border rounded d-flex align-items-center';
                         item.innerHTML = `
@@ -863,6 +876,7 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                                 <strong>${suggestion.plant_name}</strong> at Row ${suggestion.row}, Col ${suggestion.col}
                                 <br>
                                 <small class="text-muted">${suggestion.reason || 'No reason provided'}</small>
+                                ${dateInfo}
                             </div>
                         `;
                         suggestionsList.appendChild(item);
