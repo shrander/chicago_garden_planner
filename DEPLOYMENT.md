@@ -183,22 +183,49 @@ cat ~/.ssh/github_actions.pub >> ~/.ssh/authorized_keys
 cat ~/.ssh/github_actions
 ```
 
-### 3. Test Deployment
+### 3. Deploy with Version Tags
+
+Deployments are triggered by creating and pushing version tags:
 
 ```bash
-# Push to main branch
-git add .
-git commit -m "Setup deployment"
-git push origin main
+# Create a version tag (semantic versioning: v<major>.<minor>.<patch>)
+git tag -a v1.0.0 -m "Initial production release"
+git push origin v1.0.0
 ```
 
 The GitHub Action will automatically:
-1. Build Docker image
-2. Push to GitHub Container Registry
+1. Build Docker image tagged with the version
+2. Push to GitHub Container Registry with multiple tags (latest, version, commit sha)
 3. SSH to your server
 4. Pull latest image
 5. Run migrations
-6. Restart containers
+6. Collect static files
+7. Restart containers
+
+**Subsequent Deployments:**
+
+```bash
+# Bug fixes (patch version)
+git tag -a v1.0.1 -m "Fix garden sharing bug"
+git push origin v1.0.1
+
+# New features (minor version)
+git tag -a v1.1.0 -m "Add plant companion suggestions"
+git push origin v1.1.0
+
+# Breaking changes (major version)
+git tag -a v2.0.0 -m "Major redesign and new features"
+git push origin v2.0.0
+```
+
+**Manual Deployment:**
+
+You can also trigger deployment manually from GitHub:
+- Go to Actions → Deploy to Production → Run workflow
+
+**View Deployment History:**
+
+All deployments are tracked in GitHub Actions with version information.
 
 ## 📊 Monitoring and Maintenance
 

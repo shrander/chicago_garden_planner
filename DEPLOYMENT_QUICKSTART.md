@@ -89,15 +89,32 @@ Click "New repository secret" and add:
 
 ### C. Test Automatic Deployment
 
+Deployments are triggered by creating version tags:
+
 ```bash
-# Make a small change
-echo "# Test deployment" >> README.md
-git add .
-git commit -m "Test automatic deployment"
-git push origin main
+# Create a version tag
+git tag v1.0.0
+git push origin v1.0.0
+
+# Or use this helper command
+git tag -a v1.0.0 -m "Initial production release"
+git push origin v1.0.0
 ```
 
 Go to GitHub → Actions tab and watch your deployment! 🎉
+
+**Future deployments:**
+```bash
+# When you're ready to deploy new changes:
+git tag v1.0.1
+git push origin v1.0.1
+
+# Or for a major release:
+git tag v2.0.0
+git push origin v2.0.0
+```
+
+**Note:** The workflow also supports manual deployment via the Actions tab.
 
 ## ✅ Verify Deployment
 
