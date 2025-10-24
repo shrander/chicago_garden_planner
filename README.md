@@ -74,7 +74,11 @@ The application will be available at:
 
 ## Development Workflow
 
-### Starting the Development Server
+### Two Development Options
+
+#### Option 1: Simple Local Development (Recommended for most development)
+
+Use Django's built-in development server with SQLite database:
 
 ```bash
 # Navigate to project directory
@@ -94,7 +98,42 @@ python manage.py runserver 8080
 python manage.py runserver 0.0.0.0:8000
 ```
 
+**Pros:**
+- ✅ Fast setup, no Docker required
+- ✅ Quick restarts during development
+- ✅ Easy debugging
+- ✅ Uses SQLite (simpler for development)
+
+**When to use:** Daily development, testing features, UI work
+
+#### Option 2: Docker Development Environment (Production-like)
+
+Test the production Docker setup locally with PostgreSQL:
+
+```bash
+# Start development containers
+docker-compose -f docker-compose.dev.yml up
+
+# Access at http://localhost:8000
+```
+
+**Pros:**
+- ✅ Tests production Docker configuration
+- ✅ Uses PostgreSQL (same as production)
+- ✅ Tests Dockerfile and container setup
+- ✅ Isolates dependencies
+
+**When to use:**
+- Testing Docker/PostgreSQL-specific issues
+- Validating production configuration changes
+- Testing migrations on PostgreSQL
+- Pre-deployment testing
+
+**Note:** The dev Docker setup uses `settings_production.py` with DEBUG=True and exposes PostgreSQL on port 5432 for local access.
+
 ### Common Development Commands
+
+#### For Local Development (SQLite)
 
 ```bash
 # Run tests
@@ -126,17 +165,51 @@ python manage.py dumpdata accounts > accounts_backup.json
 python manage.py loaddata garden_backup.json
 ```
 
+#### For Docker Development Environment
+
+```bash
+# Start containers (with logs)
+docker-compose -f docker-compose.dev.yml up
+
+# Start containers in background
+docker-compose -f docker-compose.dev.yml up -d
+
+# View logs
+docker-compose -f docker-compose.dev.yml logs -f
+
+# Stop containers
+docker-compose -f docker-compose.dev.yml down
+
+# Rebuild after Dockerfile changes
+docker-compose -f docker-compose.dev.yml up --build
+
+# Run Django commands in container
+docker-compose -f docker-compose.dev.yml exec web python manage.py shell
+docker-compose -f docker-compose.dev.yml exec web python manage.py test
+docker-compose -f docker-compose.dev.yml exec web python manage.py createsuperuser
+
+# Access PostgreSQL
+docker-compose -f docker-compose.dev.yml exec db psql -U garden_dev garden_planner_dev
+
+# Reset everything (removes volumes)
+docker-compose -f docker-compose.dev.yml down -v
+```
+
 ## Project Structure
 
 ```
 chicago_garden_planner/
 ├── garden_env/                 # Virtual environment
-├── db.sqlite3                  # SQLite database (development)
+├── db.sqlite3                  # SQLite database (local dev)
 ├── manage.py                   # Django management script
 ├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Docker image definition
+├── docker-compose.yml          # Production deployment config
+├── docker-compose.dev.yml      # Local Docker dev environment
+├── .env.example                # Environment variables template
 ├── garden_planner/             # Main Django project
-│   ├── settings.py            # Django settings
-│   ├── settings_production.py # Production settings
+│   ├── settings.py            # Django settings (development)
+│   ├── settings_production.py # Production settings (Docker)
 │   ├── urls.py                # Main URL configuration
 │   └── wsgi.py                # WSGI configuration
 ├── accounts/                   # User management app
@@ -153,12 +226,15 @@ chicago_garden_planner/
 │   ├── templates/gardens/     # HTML templates
 │   └── static/gardens/        # CSS, JavaScript
 ├── scripts/                    # Deployment scripts
+│   ├── deploy.sh              # Server deployment script
+│   └── release.sh             # Version tagging helper
 ├── .github/workflows/         # GitHub Actions CI/CD
-└── docs/                      # Documentation
-    ├── DEPLOYMENT.md
-    ├── DEPLOYMENT_TRAEFIK.md
-    ├── DEPLOYMENT_QUICKSTART.md
-    └── RELEASE_PROCESS.md
+│   └── deploy.yml             # Automated deployment
+├── DEPLOYMENT.md               # General deployment docs
+├── DEPLOYMENT_TRAEFIK.md      # Traefik-specific guide
+├── DEPLOYMENT_QUICKSTART.md   # Quick deployment guide
+├── RELEASE_PROCESS.md         # Version management
+└── CLAUDE.md                  # AI development guidance
 ```
 
 ## Architecture
