@@ -1,204 +1,408 @@
+# 🌱 Chicago Garden Planner
 
- ========== Complete File Copying Instructions ==========
+A Django web application designed to help gardeners in the Chicago area (USDA zones 5b/6a) plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design.
 
- After running the setup script, copy these files to their respective locations:
+## Features
 
- 1. DJANGO CONFIGURATION FILES:
- Copy to garden_planner/settings.py:
-   - The settings.py content from the Django application artifact
- Copy to garden_planner/urls.py:
-   - The urls.py content from the Django application artifact
+- ✅ **Interactive Garden Designer**: Drag-and-drop interface for planning garden layouts
+- ✅ **Chicago-Specific Plant Library**: 20+ plants optimized for zones 5b/6a with local growing tips
+- ✅ **Companion Planting**: Smart recommendations for plant combinations
+- ✅ **AI Garden Assistant**: Get AI-powered layout suggestions based on your preferences
+- ✅ **Yield Calculations**: Automatic calculation of expected harvest yields
+- ✅ **Garden Sharing**: Share your garden designs with friends via email invitations
+- ✅ **Access Control**: Manage who can view and edit your gardens
+- ✅ **Responsive Design**: Works on desktop, tablet, and mobile devices
 
- 2. GARDENS APP FILES:
- Copy to gardens/models.py:
-   - The models.py content with Plant, Garden, PlantingNote models
- Copy to gardens/views.py:
-   - The views.py content with all view classes and API endpoints
- Copy to gardens/forms.py:
-   - The forms.py content with Django forms
- Copy to gardens/admin.py:
-   - The admin.py content for Django admin interface
- Copy to gardens/urls.py:
-   - The urls.py content for app URL routing
+## Quick Start - Development
 
- 3. TEMPLATE FILES (copy to gardens/templates/gardens/):
-   - base.html
-   - garden_list.html
-   - garden_detail.html
-   - garden_form.html
-   - plant_library.html
-   - garden_confirm_delete.html
-   - plant_form.html
-   - plant_confirm_delete.html
+### Prerequisites
 
- 4. STATIC FILES:
- Copy to gardens/static/gardens/css/style.css:
-   - The CSS content from the templates artifact
- Copy to gardens/static/gardens/js/garden.js:
-   - The JavaScript content from the templates artifact
+- Python 3.8 or higher
+- Git
 
- 5. MANAGEMENT COMMANDS:
- Copy to gardens/management/commands/populate_default_plants.py:
-   - The populate_default_plants.py content
- Copy to gardens/management/commands/create_companion_relationships.py:
-   - The create_companion_relationships.py content
+### 1. Clone the Repository
 
- ========== Quick Start Commands (after copying files) ==========
-
- 1. Navigate to project directory and activate virtual environment:
+```bash
+git clone https://github.com/YOUR-USERNAME/chicago_garden_planner.git
 cd chicago_garden_planner
- Linux/macOS:
-source garden_env/bin/activate
- Windows:
-garden_env\Scripts\activate
+```
 
- 2. Run database migrations:
-python manage.py makemigrations
+### 2. Set Up Virtual Environment
+
+```bash
+# Create virtual environment
+python3 -m venv garden_env
+
+# Activate virtual environment
+source garden_env/bin/activate  # On macOS/Linux
+garden_env\Scripts\activate     # On Windows
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Set Up Database
+
+```bash
+# Run migrations
 python manage.py migrate
 
- 3. Populate database with Chicago plants and demo data:
+# Populate with Chicago-specific plants and create demo user
 python manage.py populate_default_plants --create-sample-user
 
- 4. Create companion plant relationships:
-python manage.py create_companion_relationships
+# (Optional) Create your own admin account
+python manage.py createsuperuser
+```
 
- 5. Create admin superuser:
+### 5. Run Development Server
+
+```bash
+python manage.py runserver
+```
+
+The application will be available at:
+- **Main app**: http://127.0.0.1:8000/
+- **Admin panel**: http://127.0.0.1:8000/admin/
+
+### 6. Login with Demo Account
+
+- **Username**: `demo_gardener`
+- **Password**: `chicago2025`
+
+## Development Workflow
+
+### Starting the Development Server
+
+```bash
+# Navigate to project directory
+cd chicago_garden_planner
+
+# Activate virtual environment
+source garden_env/bin/activate  # macOS/Linux
+garden_env\Scripts\activate     # Windows
+
+# Start server
+python manage.py runserver
+
+# Or run on different port
+python manage.py runserver 8080
+
+# Or make accessible from other devices on your network
+python manage.py runserver 0.0.0.0:8000
+```
+
+### Common Development Commands
+
+```bash
+# Run tests
+python manage.py test
+
+# Create database migrations after model changes
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Access Django shell
+python manage.py shell
+
+# Collect static files (for production)
+python manage.py collectstatic
+
+# Create superuser
 python manage.py createsuperuser
 
- 6. Start development server:
-python manage.py runserver
+# Load default plants
+python manage.py populate_default_plants
 
- 7. Access the application:
- Open browser to: http://127.0.0.1:8000/
- Admin interface: http://127.0.0.1:8000/admin/
-
- ========== Demo Login Credentials ==========
- Username: demo_gardener
- Password: chicago2025
-
- ========== Project Structure After Setup ==========
-chicago_garden_planner/
-├── garden_env/                     Virtual environment
-├── db.sqlite3                      SQLite database (created after migrations)
-├── manage.py                       Django management script
-├── requirements.txt                Python dependencies
-├── garden_planner/                 Main Django project
-│   ├── __init__.py
-│   ├── settings.py                Django settings (copy from artifact)
-│   ├── urls.py                    Main URL configuration (copy from artifact)
-│   ├── wsgi.py                    WSGI configuration
-│   └── asgi.py                    ASGI configuration
-├── gardens/                        Django app
-│   ├── __init__.py
-│   ├── admin.py                   Admin configuration (copy from artifact)
-│   ├── apps.py                    App configuration
-│   ├── models.py                  Database models (copy from artifact)
-│   ├── views.py                   View functions (copy from artifact)
-│   ├── forms.py                   Django forms (copy from artifact)
-│   ├── urls.py                    App URL configuration (copy from artifact)
-│   ├── tests.py                   Test cases
-│   ├── migrations/                Database migrations
-│   ├── management/                Custom management commands
-│   │   ├── __init__.py
-│   │   └── commands/
-│   │       ├── __init__.py
-│   │       ├── populate_default_plants.py     Plant data loader
-│   │       └── create_companion_relationships.py
-│   ├── templates/gardens/         HTML templates
-│   │   ├── base.html
-│   │   ├── garden_list.html
-│   │   ├── garden_detail.html
-│   │   ├── garden_form.html
-│   │   ├── garden_confirm_delete.html
-│   │   ├── plant_library.html
-│   │   ├── plant_form.html
-│   │   └── plant_confirm_delete.html
-│   └── static/gardens/            Static files (CSS, JS)
-│       ├── css/
-│       │   └── style.css
-│       └── js/
-│           └── garden.js
-└── static/                        Collected static files (for production)
-
- ========== Features Included ==========
-
-✅ USER MANAGEMENT:
-   - User registration and authentication
-   - Personal garden collections
-   - Demo account with sample data
-
-✅ GARDEN PLANNING:
-   - Interactive drag-and-drop garden designer
-   - Multiple garden sizes (4x4, 8x8, 10x10, custom)
-   - Real-time layout saving
-   - Garden sharing (public/private)
-
-✅ PLANT LIBRARY:
-   - 16+ Chicago-optimized default plants
-   - Custom plant creation and editing
-   - Companion planting relationships
-   - Pest deterrent information
-   - Chicago Zone 5b/6a specific growing notes
-
-✅ CHICAGO-SPECIFIC FEATURES:
-   - Seasonal planting calendars
-   - Frost date awareness
-   - Heat-tolerant variety recommendations
-   - Humidity and pest management tips
-
-✅ RESPONSIVE DESIGN:
-   - Mobile-friendly interface
-   - Touch-optimized garden grid
-   - Bootstrap 5 styling
-   - Progressive enhancement
-
-✅ ADMIN INTERFACE:
-   - Full Django admin for plant/garden management
-   - User management
-   - Data export capabilities
-
- ========== Troubleshooting ==========
-
- If you encounter import errors:
- 1. Ensure virtual environment is activated
- 2. Check that all files are copied to correct locations
- 3. Verify __init__.py files exist in management/commands/
-
- If database errors occur:
- 1. Delete db.sqlite3 and migrations files (except __init__.py)
- 2. Run: python manage.py makemigrations gardens
- 3. Run: python manage.py migrate
-
- If static files don't load:
- 1. Run: python manage.py collectstatic
- 2. Check STATIC_URL and STATICFILES_DIRS in settings.py
-
- For production deployment:
- 1. Change DEBUG = False in settings.py
- 2. Set proper ALLOWED_HOSTS
- 3. Use environment variables for SECRET_KEY
- 4. Configure proper database (PostgreSQL recommended)
- 5. Set up proper static file serving (whitenoise or CDN)
-
- ========== Development Workflow ==========
-
- Daily development commands:
-cd chicago_garden_planner
-source garden_env/bin/activate   or garden_env\Scripts\activate on Windows
-python manage.py runserver
-
- Adding new plants:
-python manage.py shell
->>> from gardens.models import Plant
->>> Plant.objects.create(name="New Plant", latin_name="Plantus newicus", ...)
-
- Backup/restore data:
+# Backup database
 python manage.py dumpdata gardens > garden_backup.json
-python manage.py loaddata garden_backup.json
+python manage.py dumpdata accounts > accounts_backup.json
 
- Reset database (development only):
+# Restore database
+python manage.py loaddata garden_backup.json
+```
+
+## Project Structure
+
+```
+chicago_garden_planner/
+├── garden_env/                 # Virtual environment
+├── db.sqlite3                  # SQLite database (development)
+├── manage.py                   # Django management script
+├── requirements.txt            # Python dependencies
+├── garden_planner/             # Main Django project
+│   ├── settings.py            # Django settings
+│   ├── settings_production.py # Production settings
+│   ├── urls.py                # Main URL configuration
+│   └── wsgi.py                # WSGI configuration
+├── accounts/                   # User management app
+│   ├── models.py              # CustomUser, UserProfile
+│   ├── views.py               # Auth views
+│   ├── forms.py               # User forms
+│   └── templates/             # User templates
+├── gardens/                    # Garden planning app
+│   ├── models.py              # Plant, Garden, PlantingNote
+│   ├── views.py               # Garden views and API endpoints
+│   ├── forms.py               # Garden forms
+│   ├── templatetags/          # Custom template filters
+│   ├── management/commands/   # Custom management commands
+│   ├── templates/gardens/     # HTML templates
+│   └── static/gardens/        # CSS, JavaScript
+├── scripts/                    # Deployment scripts
+├── .github/workflows/         # GitHub Actions CI/CD
+└── docs/                      # Documentation
+    ├── DEPLOYMENT.md
+    ├── DEPLOYMENT_TRAEFIK.md
+    ├── DEPLOYMENT_QUICKSTART.md
+    └── RELEASE_PROCESS.md
+```
+
+## Architecture
+
+### Custom User System
+
+This project uses a custom user model (`accounts.CustomUser`) with:
+- Case-insensitive usernames
+- Required email field
+- Auto-created user profiles
+- Avatar support
+
+### Apps
+
+**accounts**: User authentication, registration, and profile management
+- Custom user model with case-insensitive login
+- User dashboard with garden statistics
+- Profile editing and avatar uploads
+
+**gardens**: Core garden planning functionality
+- Interactive garden designer with drag-and-drop
+- Plant library with Chicago-specific data
+- AI-powered garden suggestions
+- Garden sharing and access control
+- Yield calculations and statistics
+
+## Environment Variables
+
+For local development, Django uses default settings. For production deployment, configure these environment variables:
+
+```bash
+# Django Configuration
+SECRET_KEY=your-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=garden.passwordspace.com
+
+# Domain Configuration (for Traefik)
+DOMAIN_NAME=garden.passwordspace.com
+
+# Database (PostgreSQL for production)
+POSTGRES_DB=garden_planner
+POSTGRES_USER=garden_user
+POSTGRES_PASSWORD=strong-password
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+
+# AI Assistant (Optional)
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Email Configuration (Optional)
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+EMAIL_USE_TLS=True
+```
+
+## Testing
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run tests for specific app
+python manage.py test accounts
+python manage.py test gardens
+
+# Run specific test class
+python manage.py test gardens.tests.GardenAccessControlTests
+
+# Run with verbosity
+python manage.py test --verbosity=2
+
+# Keep test database for inspection
+python manage.py test --keepdb
+```
+
+## Production Deployment
+
+This project is configured for production deployment with:
+- Docker + Docker Compose
+- Traefik reverse proxy with automatic SSL
+- PostgreSQL database
+- WhiteNoise for static file serving
+- GitHub Actions for automated deployment
+
+See documentation:
+- **[DEPLOYMENT_QUICKSTART.md](DEPLOYMENT_QUICKSTART.md)** - 10-minute deployment guide
+- **[DEPLOYMENT_TRAEFIK.md](DEPLOYMENT_TRAEFIK.md)** - Complete Traefik deployment guide
+- **[RELEASE_PROCESS.md](RELEASE_PROCESS.md)** - Version tagging and releases
+
+### Quick Production Deploy
+
+```bash
+# On your server
+cd /opt/chicago-garden-planner
+cp .env.example .env
+nano .env  # Configure environment variables
+./scripts/deploy.sh
+```
+
+### Automated Deployment
+
+The project uses GitHub Actions for automated deployment triggered by version tags:
+
+```bash
+./scripts/release.sh 1.0.0 "Initial release"
+```
+
+## Chicago-Specific Features
+
+This application is optimized for Chicago's climate (USDA zones 5b/6a):
+- **Frost date awareness**: Last frost ~May 15, First frost ~October 15
+- **Heat-tolerant varieties**: Plants selected for Midwest summers
+- **Seasonal planting calendars**: Zone-specific timing
+- **Local pest management**: Chicago-specific pest information
+- **Default plants**: 20+ vegetables, herbs, and fruits proven for Chicago
+
+### Default Plant Library
+
+- Tomatoes (6 varieties)
+- Peppers (3 varieties)
+- Leafy greens (Kale, Lettuce, Spinach, Arugula)
+- Root vegetables (Carrots, Beets, Radishes)
+- Alliums (Garlic, Onions)
+- Herbs (Basil, Cilantro, Parsley)
+- Legumes (Beans, Peas)
+- Cucurbits (Cucumbers, Zucchini)
+- Berries (Strawberries)
+
+Each plant includes:
+- Latin name and common names
+- Planting season (Spring/Fall/Summer)
+- Days to harvest
+- Spacing requirements
+- Chicago-specific growing notes
+- Companion planting relationships
+- Pest deterrent properties
+- Expected yield estimates
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run tests (`python manage.py test`)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+## Troubleshooting
+
+### Development Server Won't Start
+
+```bash
+# Make sure virtual environment is activated
+source garden_env/bin/activate
+
+# Check if another process is using port 8000
+lsof -i :8000  # macOS/Linux
+netstat -ano | findstr :8000  # Windows
+
+# Try different port
+python manage.py runserver 8080
+```
+
+### Database Issues
+
+```bash
+# Reset database (development only!)
 rm db.sqlite3
-rm gardens/migrations/0*.py
-python manage.py makemigrations gardens
+rm -rf gardens/migrations/0*.py
+rm -rf accounts/migrations/0*.py
+python manage.py makemigrations
 python manage.py migrate
 python manage.py populate_default_plants --create-sample-user
+```
+
+### Static Files Not Loading
+
+```bash
+# Collect static files
+python manage.py collectstatic --noinput
+
+# Check STATIC_URL in settings
+# Should be '/static/' for development
+```
+
+### Import Errors
+
+```bash
+# Reinstall dependencies
+pip install -r requirements.txt
+
+# Check Python version (3.8+ required)
+python --version
+
+# Verify virtual environment is activated
+which python  # Should point to garden_env/bin/python
+```
+
+### AI Assistant Not Working
+
+```bash
+# Make sure ANTHROPIC_API_KEY is set
+export ANTHROPIC_API_KEY=your-key-here
+
+# Or add to .env file for development
+echo "ANTHROPIC_API_KEY=your-key-here" >> .env
+```
+
+## License
+
+This project is open source and available for use and modification.
+
+## Support
+
+For issues and questions:
+- Review logs and error messages
+- Check [CLAUDE.md](CLAUDE.md) for development guidance
+- Check deployment documentation for production issues
+
+## Tech Stack
+
+- **Backend**: Django 4.2.7
+- **Database**: SQLite (development), PostgreSQL (production)
+- **Frontend**: HTML5, CSS3, JavaScript (vanilla)
+- **UI Framework**: Bootstrap 5
+- **Forms**: django-crispy-forms with Bootstrap 5
+- **AI Integration**: Anthropic Claude API
+- **Static Files**: WhiteNoise (production)
+- **Deployment**: Docker, Docker Compose, Traefik
+- **CI/CD**: GitHub Actions
+
+## Acknowledgments
+
+- Plant data optimized for Chicago growing conditions
+- Companion planting relationships based on gardening research
+- UI/UX designed for ease of use on mobile and desktop
+- AI features powered by Anthropic Claude
+
+---
+
+**Happy Gardening! 🌱**
+
+Live at: https://garden.passwordspace.com
