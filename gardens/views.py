@@ -133,6 +133,9 @@ def garden_detail(request, pk):
             'name': plant.name,
             'type': plant.plant_type,
             'spacing': plant.spacing_inches,
+            'days_to_harvest': plant.days_to_harvest,
+            'planting_seasons': plant.planting_seasons,
+            'life_cycle': plant.life_cycle,
             'companions': companions,
             'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
             'chicago_notes': plant.chicago_notes[:100] if plant.chicago_notes else None
@@ -617,9 +620,16 @@ def garden_ai_assistant(request, pk):
                 if not cell or cell.lower() in ['empty space', '=', '•', '']:
                     empty_cells.append({'row': row_idx, 'col': col_idx})
 
-        # Get plants already in garden with their positions
+        # Get plants already in garden with their positions and dates
         plants_in_garden = set()
         garden_grid_visual = []
+        planted_instances_info = []
+
+        # Get PlantInstance data for date tracking
+        from .models import PlantInstance
+        instances = PlantInstance.objects.filter(garden=garden).select_related('plant')
+        instance_map = {(inst.row, inst.col): inst for inst in instances}
+
         for row_idx, row in enumerate(grid_data):
             visual_row = []
             for col_idx, cell in enumerate(row):
@@ -627,6 +637,19 @@ def garden_ai_assistant(request, pk):
                     plants_in_garden.add(cell.lower())
                     # Pad to exactly 3 characters for uniform spacing
                     visual_row.append(cell[:3].upper().ljust(3, ' '))
+
+                    # Check for planted instance data
+                    instance = instance_map.get((row_idx, col_idx))
+                    if instance and instance.planted_date:
+                        planted_instances_info.append({
+                            'plant': cell,
+                            'row': row_idx,
+                            'col': col_idx,
+                            'planted_date': instance.planted_date.isoformat(),
+                            'expected_harvest': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+                            'status': instance.harvest_status(),
+                            'days_until_harvest': instance.days_until_harvest()
+                        })
                 elif cell and cell.lower() in ['path']:
                     visual_row.append('===')
                 else:
@@ -645,11 +668,26 @@ def garden_ai_assistant(request, pk):
                 'name': plant.name,
                 'type': plant.plant_type,
                 'spacing': plant.spacing_inches,
+                'days_to_harvest': plant.days_to_harvest,
+                'planting_seasons': plant.planting_seasons,
+                'life_cycle': plant.life_cycle,
                 'companions': companions,
                 'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
                 'chicago_notes': plant.chicago_notes[:100] if plant.chicago_notes else None
             }
             plant_database.append(plant_info)
+
+        # Format planted instances info
+        planted_info = ""
+        if planted_instances_info:
+            planted_info = "\n\nPLANTED CROPS WITH DATES:\n"
+            for inst in planted_instances_info:
+                planted_info += f"- {inst['plant']} at ({inst['row']},{inst['col']}): planted {inst['planted_date']}"
+                if inst['expected_harvest']:
+                    planted_info += f", expected harvest {inst['expected_harvest']}"
+                    if inst['days_until_harvest'] is not None:
+                        planted_info += f" ({inst['days_until_harvest']} days)"
+                planted_info += f" [{inst['status']}]\n"
 
         # Build prompt for Claude
         prompt = f"""You are a Chicago garden planning assistant (USDA zones 5b/6a). Your goal is to create a COMPREHENSIVE garden layout by filling ALL empty spaces with companion plants.
@@ -665,7 +703,7 @@ CURRENT GARDEN LAYOUT:
 (Legend: ___ = empty space, === = path, ABC = plant abbreviation)
 
 EXISTING PLANTS AND THEIR COMPANIONS:
-{chr(10).join([f"- {p}" for p in plants_in_garden]) if plants_in_garden else "None (empty garden)"}
+{chr(10).join([f"- {p}" for p in plants_in_garden]) if plants_in_garden else "None (empty garden)"}{planted_info}
 
 AVAILABLE PLANTS DATABASE:
 {json.dumps(plant_database, indent=2)}
@@ -678,7 +716,8 @@ Create a comprehensive garden layout by filling ALL {len(empty_cells)} empty spa
 3. **Plant Spacing**: Respect spacing requirements (check 'spacing' field)
 4. **Variety**: Include vegetables, herbs, and flowers for a balanced ecosystem
 5. **Chicago Climate**: All plants are pre-selected for zones 5b/6a
-6. **Maximize Yield**: Fill all spaces efficiently - don't waste any cells!
+6. **Succession Planting**: Consider planting dates and harvest times (days_to_harvest field) - suggest plants to replace crops nearing harvest{'(see PLANTED CROPS section above)' if planted_instances_info else ''}
+7. **Maximize Yield**: Fill all spaces efficiently - don't waste any cells!
 
 RESPONSE FORMAT:
 Return a JSON object with ALL {len(empty_cells)} empty cells filled:

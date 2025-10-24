@@ -632,12 +632,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).join(' | ')
             ).join('\n');
 
-            // Get unique plants in garden
+            // Get unique plants in garden with date info
             const plantsInGarden = new Set();
-            grid.forEach(row => {
-                row.forEach(cell => {
+            const plantedInstances = [];
+            grid.forEach((row, rowIdx) => {
+                row.forEach((cell, colIdx) => {
                     if (cell && cell.toLowerCase() !== 'empty space' && cell.toLowerCase() !== 'path' && cell !== '•' && cell !== '=') {
                         plantsInGarden.add(cell);
+
+                        // Check if there's instance data for this position
+                        const instanceKey = `${rowIdx},${colIdx}`;
+                        const instance = window.INSTANCE_MAP[instanceKey];
+                        if (instance && instance.planted_date) {
+                            plantedInstances.push({
+                                plant: cell,
+                                row: rowIdx,
+                                col: colIdx,
+                                planted_date: instance.planted_date,
+                                expected_harvest: instance.expected_harvest_date,
+                                status: instance.harvest_status,
+                                days_until_harvest: instance.days_until_harvest
+                            });
+                        }
                     }
                 });
             });
@@ -645,6 +661,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // Build export text
             const gardenData = window.GARDEN_DATA;
             const totalCells = gardenData.width * gardenData.height;
+
+            // Format planted instances for the prompt
+            let plantedInfo = '';
+            if (plantedInstances.length > 0) {
+                plantedInfo = '\n\nPLANTED CROPS WITH DATES:\n';
+                plantedInstances.forEach(inst => {
+                    plantedInfo += `- ${inst.plant} at (${inst.row},${inst.col}): planted ${inst.planted_date}`;
+                    if (inst.expected_harvest) {
+                        plantedInfo += `, expected harvest ${inst.expected_harvest}`;
+                        if (inst.days_until_harvest !== null) {
+                            plantedInfo += ` (${inst.days_until_harvest} days)`;
+                        }
+                    }
+                    plantedInfo += ` [${inst.status}]\n`;
+                });
+            }
+
             const exportText = `I'm planning a garden in Chicago (USDA zones 5b/6a) and need help filling empty spaces with companion plants.
 
 GARDEN INFORMATION:
@@ -658,7 +691,7 @@ ${gridVisual}
 (Legend: ___ = empty space, === = path, ABC = plant abbreviation)
 
 EXISTING PLANTS:
-${plantsInGarden.size > 0 ? Array.from(plantsInGarden).join(', ') : 'None (empty garden)'}
+${plantsInGarden.size > 0 ? Array.from(plantsInGarden).join(', ') : 'None (empty garden)'}${plantedInfo}
 
 AVAILABLE PLANTS (with companion relationships):
 ${JSON.stringify(gardenData.plantDatabase, null, 2)}
@@ -671,6 +704,7 @@ Create a comprehensive garden layout by filling ALL ${emptyCells.length} empty s
 3. Plant Spacing: Respect spacing requirements
 4. Variety: Include vegetables, herbs, and flowers
 5. Chicago Climate: All plants are pre-selected for zones 5b/6a
+6. Succession Planting: Consider planting dates and harvest times - suggest plants to replace crops nearing harvest${plantedInstances.length > 0 ? ' (see PLANTED CROPS section above)' : ''}
 
 RESPONSE FORMAT (JSON):
 {
