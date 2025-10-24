@@ -632,27 +632,48 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).join(' | ')
             ).join('\n');
 
-            // Get unique plants in garden with date info
+            // Get unique plants in garden with date info and calculate statistics
             const plantsInGarden = new Set();
             const plantedInstances = [];
+            const plantCounts = {};
+            const plantTypeStats = {};
+            let totalPlantedCells = 0;
+            let pathCells = 0;
+
             grid.forEach((row, rowIdx) => {
                 row.forEach((cell, colIdx) => {
-                    if (cell && cell.toLowerCase() !== 'empty space' && cell.toLowerCase() !== 'path' && cell !== '•' && cell !== '=') {
-                        plantsInGarden.add(cell);
+                    if (cell && cell.toLowerCase() !== 'empty space' && cell !== '•' && cell !== '') {
+                        if (cell.toLowerCase() === 'path' || cell === '=') {
+                            pathCells++;
+                        } else {
+                            plantsInGarden.add(cell);
+                            totalPlantedCells++;
 
-                        // Check if there's instance data for this position
-                        const instanceKey = `${rowIdx},${colIdx}`;
-                        const instance = window.INSTANCE_MAP[instanceKey];
-                        if (instance && instance.planted_date) {
-                            plantedInstances.push({
-                                plant: cell,
-                                row: rowIdx,
-                                col: colIdx,
-                                planted_date: instance.planted_date,
-                                expected_harvest: instance.expected_harvest_date,
-                                status: instance.harvest_status,
-                                days_until_harvest: instance.days_until_harvest
-                            });
+                            // Count occurrences of each plant
+                            const plantLower = cell.toLowerCase();
+                            plantCounts[plantLower] = (plantCounts[plantLower] || 0) + 1;
+
+                            // Count by plant type
+                            const plantInfo = gardenData.plantDatabase.find(p => p.name.toLowerCase() === plantLower);
+                            if (plantInfo) {
+                                const type = plantInfo.type || 'unknown';
+                                plantTypeStats[type] = (plantTypeStats[type] || 0) + 1;
+                            }
+
+                            // Check if there's instance data for this position
+                            const instanceKey = `${rowIdx},${colIdx}`;
+                            const instance = window.INSTANCE_MAP[instanceKey];
+                            if (instance && instance.planted_date) {
+                                plantedInstances.push({
+                                    plant: cell,
+                                    row: rowIdx,
+                                    col: colIdx,
+                                    planted_date: instance.planted_date,
+                                    expected_harvest: instance.expected_harvest_date,
+                                    status: instance.harvest_status,
+                                    days_until_harvest: instance.days_until_harvest
+                                });
+                            }
                         }
                     }
                 });
@@ -661,6 +682,34 @@ document.addEventListener('DOMContentLoaded', function() {
             // Build export text
             const gardenData = window.GARDEN_DATA;
             const totalCells = gardenData.width * gardenData.height;
+
+            // Calculate garden statistics
+            const fillRate = ((totalPlantedCells / totalCells) * 100).toFixed(1);
+            const diversity = plantsInGarden.size;
+
+            // Format statistics section
+            let statsInfo = '\n\nGARDEN STATISTICS:\n';
+            statsInfo += `- Total planted cells: ${totalPlantedCells}/${totalCells} (${fillRate}% full)\n`;
+            statsInfo += `- Plant diversity: ${diversity} unique species\n`;
+            statsInfo += `- Empty spaces: ${emptyCells.length}\n`;
+            statsInfo += `- Paths: ${pathCells}\n`;
+
+            if (Object.keys(plantTypeStats).length > 0) {
+                statsInfo += '- By type: ';
+                const typeList = Object.entries(plantTypeStats)
+                    .map(([type, count]) => `${count} ${type}`)
+                    .join(', ');
+                statsInfo += typeList + '\n';
+            }
+
+            if (Object.keys(plantCounts).length > 0) {
+                statsInfo += '- Plant counts: ';
+                const countList = Object.entries(plantCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([plant, count]) => `${count}x ${plant}`)
+                    .join(', ');
+                statsInfo += countList + '\n';
+            }
 
             // Format planted instances for the prompt
             let plantedInfo = '';
@@ -683,7 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
 GARDEN INFORMATION:
 - Size: ${gardenData.width} columns × ${gardenData.height} rows (${totalCells} total cells)
 - Empty cells to fill: ${emptyCells.length} cells
-- Current plants: ${plantsInGarden.size} plants
+- Current plants: ${plantsInGarden.size} unique species${statsInfo}
 
 CURRENT GARDEN LAYOUT:
 ${gridVisual}

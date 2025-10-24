@@ -624,17 +624,39 @@ def garden_ai_assistant(request, pk):
         plants_in_garden = set()
         garden_grid_visual = []
         planted_instances_info = []
+        plant_counts = {}
+        plant_type_stats = {}
+        total_planted_cells = 0
+        path_cells = 0
 
         # Get PlantInstance data for date tracking
         from .models import PlantInstance
         instances = PlantInstance.objects.filter(garden=garden).select_related('plant')
         instance_map = {(inst.row, inst.col): inst for inst in instances}
 
+        # Get all plants for lookup
+        all_plants_lookup = Plant.objects.filter(
+            Q(is_default=True) | Q(created_by=request.user)
+        ).exclude(plant_type='utility')
+        plant_lookup = {p.name.lower(): p for p in all_plants_lookup}
+
         for row_idx, row in enumerate(grid_data):
             visual_row = []
             for col_idx, cell in enumerate(row):
                 if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
                     plants_in_garden.add(cell.lower())
+                    total_planted_cells += 1
+
+                    # Count occurrences of each plant
+                    plant_lower = cell.lower()
+                    plant_counts[plant_lower] = plant_counts.get(plant_lower, 0) + 1
+
+                    # Count by plant type
+                    plant_obj = plant_lookup.get(plant_lower)
+                    if plant_obj:
+                        plant_type = plant_obj.plant_type
+                        plant_type_stats[plant_type] = plant_type_stats.get(plant_type, 0) + 1
+
                     # Pad to exactly 3 characters for uniform spacing
                     visual_row.append(cell[:3].upper().ljust(3, ' '))
 
@@ -651,6 +673,7 @@ def garden_ai_assistant(request, pk):
                             'days_until_harvest': instance.days_until_harvest()
                         })
                 elif cell and cell.lower() in ['path']:
+                    path_cells += 1
                     visual_row.append('===')
                 else:
                     visual_row.append('___')
@@ -677,6 +700,27 @@ def garden_ai_assistant(request, pk):
             }
             plant_database.append(plant_info)
 
+        # Calculate garden statistics
+        total_cells = garden.width * garden.height
+        fill_rate = round((total_planted_cells / total_cells) * 100, 1) if total_cells > 0 else 0
+        diversity = len(plants_in_garden)
+
+        # Format statistics section
+        stats_info = "\n\nGARDEN STATISTICS:\n"
+        stats_info += f"- Total planted cells: {total_planted_cells}/{total_cells} ({fill_rate}% full)\n"
+        stats_info += f"- Plant diversity: {diversity} unique species\n"
+        stats_info += f"- Empty spaces: {len(empty_cells)}\n"
+        stats_info += f"- Paths: {path_cells}\n"
+
+        if plant_type_stats:
+            type_list = ', '.join([f"{count} {ptype}" for ptype, count in plant_type_stats.items()])
+            stats_info += f"- By type: {type_list}\n"
+
+        if plant_counts:
+            sorted_counts = sorted(plant_counts.items(), key=lambda x: x[1], reverse=True)
+            count_list = ', '.join([f"{count}x {plant}" for plant, count in sorted_counts])
+            stats_info += f"- Plant counts: {count_list}\n"
+
         # Format planted instances info
         planted_info = ""
         if planted_instances_info:
@@ -695,7 +739,7 @@ def garden_ai_assistant(request, pk):
 GARDEN INFORMATION:
 - Size: {garden.width} columns × {garden.height} rows ({garden.width * garden.height} total cells)
 - Empty cells to fill: {len(empty_cells)} cells
-- Existing plants: {len(plants_in_garden)} plants
+- Current plants: {len(plants_in_garden)} unique species{stats_info}
 
 CURRENT GARDEN LAYOUT:
 {chr(10).join(garden_grid_visual)}
