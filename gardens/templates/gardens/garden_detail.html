@@ -336,7 +336,7 @@
                                         <td class="text-end text-success">
                                             {% with plant_obj=plant_yields|get_item:plant %}
                                                 {% if plant_obj.yield_per_plant %}
-                                                    <strong>{{ count }} × {{ plant_obj.yield_per_plant }}</strong>
+                                                    <strong>{{ plant_obj.yield_per_plant|calculate_total_yield:count }}</strong>
                                                 {% else %}
                                                     <span class="text-muted">No estimate</span>
                                                 {% endif %}

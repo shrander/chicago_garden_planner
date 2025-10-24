@@ -81,8 +81,8 @@ def garden_detail(request, pk):
 
     # Allow access if: public OR owner OR shared
     if not garden.is_public and not is_owner and not is_shared:
-        messages.error(request, 'You do not have permission to view this garden.')
-        return redirect('gardens:garden_list')
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('You do not have permission to view this garden.')
 
     # Owner has full edit rights
     if is_owner:
@@ -518,7 +518,29 @@ def plant_delete(request, pk):
 def garden_save_layout(request, pk):
     """AJAX endpoint to save garden layout changes and sync PlantInstance records"""
     try:
-        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+        garden = get_object_or_404(Garden, pk=pk)
+
+        # Check permissions: must be owner OR have edit share permission
+        is_owner = garden.owner == request.user
+        can_edit = is_owner
+
+        if not is_owner:
+            # Check if user has edit permission via share
+            share = GardenShare.objects.filter(
+                garden=garden,
+                shared_with_user=request.user,
+                permission='edit',
+                accepted_at__isnull=False
+            ).first()
+
+            if share:
+                can_edit = True
+
+        if not can_edit:
+            return JsonResponse({
+                'success': False,
+                'error': 'You do not have permission to edit this garden'
+            }, status=403)
 
         # Parse JSON data from request body
         data = json.loads(request.body)
@@ -1068,8 +1090,11 @@ def mark_harvested(request, pk):
 @require_POST
 def garden_share(request, pk):
     """Share a garden with another user by email"""
+    # get_object_or_404 will raise Http404 if garden not found or not owned by user
+    # Let this exception propagate (don't catch it in try/except)
+    garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
     try:
-        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
         data = json.loads(request.body)
         email = data.get('email', '').strip().lower()
         permission = data.get('permission', 'view')

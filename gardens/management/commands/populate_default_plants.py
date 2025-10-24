@@ -43,6 +43,7 @@ class Command(BaseCommand):
                 'planting_seasons': ['spring'],
                 'days_to_harvest': 60,
                 'spacing_inches': 6.0,
+                'yield_per_plant': '1-2 quarts per plant per season',
                 'chicago_notes': 'Plant in early spring after last frost danger. June-bearing varieties work best in Chicago. Protect from late frosts with row covers. Harvest peak season: June-July.',
                 'pest_deterrent_for': '',
                 'is_default': True,
