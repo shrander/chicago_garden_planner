@@ -632,6 +632,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).join(' | ')
             ).join('\n');
 
+            // Get garden data first
+            const gardenData = window.GARDEN_DATA;
+
             // Get unique plants in garden with date info and calculate statistics
             const plantsInGarden = new Set();
             const plantedInstances = [];
@@ -680,7 +683,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             // Build export text
-            const gardenData = window.GARDEN_DATA;
             const totalCells = gardenData.width * gardenData.height;
 
             // Calculate garden statistics
