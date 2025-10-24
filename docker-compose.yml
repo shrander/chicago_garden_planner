@@ -1,5 +1,12 @@
 version: '3.8'
 
+# Production deployment configuration with Traefik
+# Prerequisites:
+#   1. Traefik reverse proxy running with external 'proxy' network
+#   2. Copy .env.example to .env and configure all variables
+#   3. Set DOMAIN_NAME in .env to your domain (e.g., garden.yourdomain.com)
+#   4. Run initial setup: ./scripts/deploy.sh
+
 services:
   db:
     image: postgres:16-alpine
@@ -17,7 +24,7 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - garden_network
+      - backend
 
   web:
     build:
@@ -27,7 +34,7 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 60 --access-logfile - --error-logfile - garden_planner.wsgi:application"
+             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile - garden_planner.wsgi:application"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -42,48 +49,41 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-True}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-True}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-True}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/admin/login/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
     networks:
-      - garden_network
+      - backend
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.garden_planner.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.garden_planner.entrypoints=websecure"
+      - "traefik.http.routers.garden_planner.tls=true"
+      - "traefik.http.routers.garden_planner.tls.certresolver=myresolver"
+      - "traefik.http.services.garden_planner.loadbalancer.server.port=8000"
+      - "traefik.http.services.garden_planner.loadbalancer.server.scheme=http"
+      - "traefik.docker.network=proxy"
 
-  nginx:
-    image: nginx:alpine
-    container_name: garden_planner_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - static_volume:/app/staticfiles:ro
-      - media_volume:/app/media:ro
-      - certbot_conf:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
-    depends_on:
-      - web
-    restart: unless-stopped
-    networks:
-      - garden_network
-
-  certbot:
-    image: certbot/certbot
-    container_name: garden_planner_certbot
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-    restart: unless-stopped
+networks:
+  backend:
+    driver: bridge
+  proxy:
+    external: true
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
-  certbot_conf:
-  certbot_www:
-
-networks:
-  garden_network:
-    driver: bridge

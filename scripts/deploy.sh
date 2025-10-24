@@ -1,17 +1,23 @@
 #!/bin/bash
 
-# Deployment script for Chicago Garden Planner
+# Deployment script for Chicago Garden Planner with Traefik
 # Run this on your server to deploy the application
 
 set -e  # Exit on error
 
-echo "🌱 Deploying Chicago Garden Planner..."
+echo "🌱 Deploying Chicago Garden Planner with Traefik..."
 
 # Check if .env file exists
 if [ ! -f .env ]; then
     echo "❌ Error: .env file not found!"
     echo "Please create .env file from .env.example and configure it."
     exit 1
+fi
+
+# Check if proxy network exists
+if ! docker network ls | grep -q "proxy"; then
+    echo "📡 Creating proxy network for Traefik..."
+    docker network create proxy
 fi
 
 # Pull latest changes (if using git on server)
@@ -52,10 +58,17 @@ docker-compose logs --tail=30
 
 echo ""
 echo "🎉 Deployment complete!"
-echo "Your application should be running at http://your-domain.com"
+echo ""
+echo "Your application should be accessible via Traefik at:"
+echo "  https://\${DOMAIN_NAME} (configured in .env)"
 echo ""
 echo "Useful commands:"
 echo "  View logs: docker-compose logs -f"
 echo "  Restart: docker-compose restart"
 echo "  Stop: docker-compose down"
 echo "  Shell: docker-compose exec web python manage.py shell"
+echo ""
+echo "Note: Ensure Traefik is running and configured with:"
+echo "  - External 'proxy' network"
+echo "  - 'websecure' entrypoint (port 443)"
+echo "  - Certificate resolver 'myresolver'"
