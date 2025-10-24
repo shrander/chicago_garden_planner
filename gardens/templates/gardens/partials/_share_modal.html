@@ -1,0 +1,58 @@
+<!-- Share Garden Modal -->
+<div class="modal fade" id="shareGardenModal" tabindex="-1" aria-labelledby="shareGardenModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="shareGardenModalLabel">
+                    <i class="bi bi-share"></i> Share Garden
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="shareGardenForm">
+                    <div class="mb-3">
+                        <label for="shareEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="shareEmail" name="email"
+                               placeholder="friend@example.com" required>
+                        <div class="form-text">Enter the email of the person you want to share with.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="sharePermission" class="form-label">Permission Level</label>
+                        <select class="form-select" id="sharePermission" name="permission" required>
+                            <option value="view">Can View - Read-only access</option>
+                            <option value="edit">Can Edit - Can modify plants and layout</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>How it works:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>If they have an account, they'll get access immediately</li>
+                            <li>If they don't have an account, they'll receive an email invitation to register</li>
+                            <li>You can manage or revoke access anytime</li>
+                        </ul>
+                    </div>
+
+                    <div id="shareError" class="alert alert-danger d-none"></div>
+                    <div id="shareSuccess" class="alert alert-success d-none"></div>
+                </form>
+
+                <!-- List of current shares -->
+                <div id="currentShares" class="mt-4">
+                    <h6 class="text-muted">Currently Shared With:</h6>
+                    <div id="sharesList" class="list-group">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info" id="sendShareBtn">
+                    <i class="bi bi-send"></i> Send Invitation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

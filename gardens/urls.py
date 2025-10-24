@@ -17,6 +17,9 @@ urlpatterns = [
     path('<int:pk>/ai-suggest/', views.garden_ai_assistant, name='garden_ai_assistant'),
     path('<int:pk>/set-planting-date/', views.set_planting_date, name='set_planting_date'),
     path('<int:pk>/mark-harvested/', views.mark_harvested, name='mark_harvested'),
+    path('<int:pk>/share/', views.garden_share, name='garden_share'),
+    path('<int:pk>/shares/', views.garden_shares_list, name='garden_shares_list'),
+    path('<int:pk>/share/<int:share_id>/revoke/', views.garden_share_revoke, name='garden_share_revoke'),
 
     # plant views
     path('plants/', views.plant_library, name='plant_library'),

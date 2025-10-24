@@ -1070,6 +1070,138 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
         });
     }
 
+    /**
+     * Initialize share garden button handler
+     * Shows modal to share garden via email
+     */
+    function setupShareHandler() {
+        const shareGardenBtn = document.getElementById('shareGardenBtn');
+        const shareGardenModalEl = document.getElementById('shareGardenModal');
+        const sendShareBtn = document.getElementById('sendShareBtn');
+        const shareForm = document.getElementById('shareGardenForm');
+
+        if (!shareGardenBtn || !shareGardenModalEl) return;
+
+        const shareModal = new bootstrap.Modal(shareGardenModalEl);
+
+        // Open modal
+        shareGardenBtn.addEventListener('click', function() {
+            loadCurrentShares();
+            shareModal.show();
+        });
+
+        // Send share invitation
+        if (sendShareBtn && shareForm) {
+            sendShareBtn.addEventListener('click', async function() {
+                const email = document.getElementById('shareEmail').value;
+                const permission = document.getElementById('sharePermission').value;
+                const errorDiv = document.getElementById('shareError');
+                const successDiv = document.getElementById('shareSuccess');
+
+                errorDiv.classList.add('d-none');
+                successDiv.classList.add('d-none');
+
+                if (!email) {
+                    errorDiv.textContent = 'Please enter an email address';
+                    errorDiv.classList.remove('d-none');
+                    return;
+                }
+
+                const btnManager = new ButtonStateManager(sendShareBtn);
+                btnManager.setLoading('Sending...');
+
+                try {
+                    const response = await fetch(`/gardens/${gardenAPI.gardenId}/share/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ email, permission })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        successDiv.textContent = data.message || 'Garden shared successfully!';
+                        successDiv.classList.remove('d-none');
+                        shareForm.reset();
+                        loadCurrentShares();
+                    } else {
+                        errorDiv.textContent = data.error || 'Failed to share garden';
+                        errorDiv.classList.remove('d-none');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorDiv.textContent = 'Network error: Failed to share garden';
+                    errorDiv.classList.remove('d-none');
+                } finally {
+                    btnManager.reset();
+                }
+            });
+        }
+
+        // Load current shares
+        async function loadCurrentShares() {
+            const sharesList = document.getElementById('sharesList');
+            if (!sharesList) return;
+
+            sharesList.innerHTML = '<div class="text-center"><span class="spinner-border spinner-border-sm"></span> Loading...</div>';
+
+            try {
+                const response = await fetch(`/gardens/${gardenAPI.gardenId}/shares/`);
+                const data = await response.json();
+
+                if (data.shares && data.shares.length > 0) {
+                    sharesList.innerHTML = data.shares.map(share => `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${share.email}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    ${share.permission === 'edit' ? '<i class="bi bi-pencil"></i> Can Edit' : '<i class="bi bi-eye"></i> Can View'}
+                                    ${share.accepted ? '<span class="badge bg-success ms-2">Accepted</span>' : '<span class="badge bg-warning ms-2">Pending</span>'}
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="revokeShare(${share.id})">
+                                <i class="bi bi-x"></i> Revoke
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    sharesList.innerHTML = '<div class="text-muted text-center py-3">Not yet shared with anyone</div>';
+                }
+            } catch (error) {
+                console.error('Error loading shares:', error);
+                sharesList.innerHTML = '<div class="text-danger text-center">Failed to load shares</div>';
+            }
+        }
+
+        // Make revoke function global
+        window.revokeShare = async function(shareId) {
+            if (!confirm('Are you sure you want to revoke this share?')) return;
+
+            try {
+                const response = await fetch(`/gardens/${gardenAPI.gardenId}/share/${shareId}/revoke/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    loadCurrentShares();
+                } else {
+                    alert('Failed to revoke share: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Network error: Failed to revoke share');
+            }
+        };
+    }
+
     // Initialize all handlers
     setupGardenNameEditing();
     setupAIAssistant();
@@ -1078,6 +1210,7 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
     setupDeleteHandler();
     setupDuplicateHandler();
     setupClearHandler();
+    setupShareHandler();
 
     // Initialize Bootstrap tooltips
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

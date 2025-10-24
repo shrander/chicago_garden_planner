@@ -1,13 +1,17 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
 import anthropic
-from .models import Garden, Plant, PlantInstance, PlantingNote
+from .models import Garden, Plant, PlantInstance, PlantingNote, GardenShare
 from .forms import GardenForm, PlantForm, PlantingNoteForm
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
 
 
 @login_required
@@ -55,13 +59,34 @@ def garden_list(request):
 def garden_detail(request, pk):
     """Display garden detail with grid layout"""
 
-    # Get garden (must be public OR owned by current user)
+    # Get garden (must be public OR owned by current user OR shared with user)
     garden = get_object_or_404(Garden, pk=pk)
 
-    # Check permissions
-    if not garden.is_public and garden.owner != request.user:
+    # Check permissions (public OR owner OR shared with user)
+    is_owner = garden.owner == request.user
+    is_shared = False
+    can_edit = False
+
+    if request.user.is_authenticated:
+        # Check if garden is shared with this user
+        share = GardenShare.objects.filter(
+            garden=garden,
+            shared_with_user=request.user,
+            accepted_at__isnull=False
+        ).first()
+
+        if share:
+            is_shared = True
+            can_edit = share.permission == 'edit'
+
+    # Allow access if: public OR owner OR shared
+    if not garden.is_public and not is_owner and not is_shared:
         messages.error(request, 'You do not have permission to view this garden.')
         return redirect('gardens:garden_list')
+
+    # Owner has full edit rights
+    if is_owner:
+        can_edit = True
 
     # Get grid data
     grid_data = garden.layout_data.get('grid', []) if garden.layout_data else []
@@ -213,7 +238,9 @@ def garden_detail(request, pk):
         'plants_in_garden': plants_in_garden,
         'all_plants': all_plants,
         'utility_plants': utility_plants,
-        'can_edit': request.user.is_authenticated and garden.owner == request.user,
+        'can_edit': can_edit,
+        'is_owner': is_owner,
+        'is_shared': is_shared,
         'fill_rate': fill_rate,
         'plant_map_json': plant_map_json,
         'plant_map': plant_map,  # Python dict for template lookup
@@ -1036,3 +1063,111 @@ def mark_harvested(request, pk):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@login_required
+@require_POST
+def garden_share(request, pk):
+    """Share a garden with another user by email"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        permission = data.get('permission', 'view')
+
+        if not email:
+            return JsonResponse({'success': False, 'error': 'Email is required'}, status=400)
+
+        # Check if already shared with this email
+        if GardenShare.objects.filter(garden=garden, shared_with_email=email).exists():
+            return JsonResponse({'success': False, 'error': 'Garden already shared with this email'}, status=400)
+
+        # Check if user exists
+        User = get_user_model()
+        try:
+            shared_user = User.objects.get(email__iexact=email)
+            # User exists - create share and mark as accepted
+            share = GardenShare.objects.create(
+                garden=garden,
+                shared_with_email=email,
+                shared_with_user=shared_user,
+                permission=permission,
+                shared_by=request.user,
+                accepted_at=timezone.now()
+            )
+            message = f'Garden shared with {email}. They already have an account!'
+        except User.DoesNotExist:
+            # User doesn't exist - create pending share and send invitation
+            share = GardenShare.objects.create(
+                garden=garden,
+                shared_with_email=email,
+                permission=permission,
+                shared_by=request.user
+            )
+
+            # Send invitation email
+            share_url = request.build_absolute_uri(f'/accounts/register/?email={email}&garden_share={share.id}')
+            send_mail(
+                subject=f'{request.user.username} shared a garden with you on Chicago Garden Planner',
+                message=f"""Hello!
+
+{request.user.username} has invited you to {permission} their garden "{garden.name}" on Chicago Garden Planner.
+
+To accept this invitation, please create an account using this email address:
+{share_url}
+
+If you already have an account, please log in at:
+{request.build_absolute_uri('/accounts/login/')}
+
+Happy gardening!
+""",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            message = f'Invitation sent to {email}. They will need to register or log in to access the garden.'
+
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'share': {
+                'id': share.id,
+                'email': share.shared_with_email,
+                'permission': share.permission,
+                'accepted': share.accepted_at is not None
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def garden_shares_list(request, pk):
+    """Get list of shares for a garden"""
+    garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+    shares = GardenShare.objects.filter(garden=garden).select_related('shared_with_user')
+    shares_data = [{
+        'id': share.id,
+        'email': share.shared_with_email,
+        'permission': share.permission,
+        'accepted': share.accepted_at is not None,
+        'shared_by': share.shared_by.username,
+        'created_at': share.created_at.isoformat()
+    } for share in shares]
+
+    return JsonResponse({'success': True, 'shares': shares_data})
+
+
+@login_required
+@require_POST
+def garden_share_revoke(request, pk, share_id):
+    """Revoke a garden share"""
+    garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+    share = get_object_or_404(GardenShare, pk=share_id, garden=garden)
+
+    share.delete()
+
+    return JsonResponse({'success': True, 'message': 'Share revoked successfully'})
