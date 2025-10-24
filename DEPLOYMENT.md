@@ -13,13 +13,13 @@ This guide covers deploying the Chicago Garden Planner to a production server us
 ## 🏗️ Architecture
 
 ```
-Internet → Nginx (80/443) → Django/Gunicorn (8000) → PostgreSQL (5432)
+Internet → Traefik (80/443) → Django/Gunicorn (8000) → PostgreSQL (5432)
                     ↓
               Static Files & Media
 ```
 
 **Components:**
-- **Nginx**: Reverse proxy, serves static/media files, handles SSL
+- **Traefik**: Reverse proxy, serves static/media files, handles SSL
 - **Django + Gunicorn**: Application server
 - **PostgreSQL**: Production database
 - **Certbot**: Automatic SSL certificate renewal
