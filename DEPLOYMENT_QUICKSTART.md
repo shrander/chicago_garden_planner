@@ -1,32 +1,20 @@
-# 🚀 Quick Start - Deploy in 15 Minutes
+# 🚀 Quick Start - Deploy to garden.passwordspace.com
 
-This is a condensed deployment guide. For full details, see [DEPLOYMENT.md](DEPLOYMENT.md).
+Deploy Chicago Garden Planner with Traefik in 10 minutes.
 
 ## Prerequisites
 
-- Ubuntu/Debian server with root/sudo access
-- Domain name (optional, can use IP for testing)
-- SSH access configured
+✅ Server with Traefik already running
+✅ DNS: `garden.passwordspace.com` pointing to your server
+✅ SSH access to your server
 
-## Step 1: Install Docker (2 minutes)
-
-```bash
-# One-line install
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Log out and back in for group changes
-exit
-```
-
-## Step 2: Set Up Application (3 minutes)
+## Step 1: Clone and Configure (3 minutes)
 
 ```bash
-# Create directory
+# SSH to your server
+ssh user@your-server
+
+# Create application directory
 sudo mkdir -p /opt/chicago-garden-planner
 sudo chown $USER:$USER /opt/chicago-garden-planner
 cd /opt/chicago-garden-planner
@@ -34,201 +22,354 @@ cd /opt/chicago-garden-planner
 # Clone repository
 git clone https://github.com/YOUR-USERNAME/chicago_garden_planner.git .
 
-# Create .env file
+# Create environment file
 cp .env.example .env
 nano .env
 ```
 
-**Minimum required in `.env`:**
+**Edit `.env` with your values:**
 
 ```bash
-SECRET_KEY=your-long-random-secret-key-here-at-least-50-chars
-ALLOWED_HOSTS=your-domain.com,your-ip-address
-POSTGRES_PASSWORD=strong-database-password-here
-DEBUG=False
+# Domain Configuration
+DOMAIN_NAME=garden.passwordspace.com
+
+# Django Configuration
+SECRET_KEY=<generate-with-command-below>
+ALLOWED_HOSTS=garden.passwordspace.com
+
+# Database Configuration
+POSTGRES_PASSWORD=<strong-random-password>
+
+# AI Assistant (Optional)
+ANTHROPIC_API_KEY=<your-key-if-needed>
+```
+
+**Generate SECRET_KEY:**
+```bash
+python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+```
+
+## Step 2: Ensure Traefik Network (1 minute)
+
+```bash
+# Create proxy network if it doesn't exist
+docker network create proxy || echo "Network already exists"
 ```
 
 ## Step 3: Deploy (5 minutes)
 
 ```bash
-# Deploy
+# Make deploy script executable
 chmod +x scripts/deploy.sh
-./scripts/deploy.sh
 
-# Wait for containers to start (about 2-3 minutes)
+# Deploy application
+./scripts/deploy.sh
 
 # Create admin user
 docker-compose exec web python manage.py createsuperuser
 
-# Load default plants
+# Load Chicago-specific plants
 docker-compose exec web python manage.py populate_default_plants
 ```
 
-## Step 4: Configure GitHub Actions (5 minutes)
+## Step 4: Verify (1 minute)
 
-### A. Generate SSH Key on Server
+```bash
+# Check containers are running
+docker-compose ps
 
+# Should show:
+# ✔ garden_planner_web  - Up (healthy)
+# ✔ garden_planner_db   - Up (healthy)
+
+# View logs
+docker-compose logs -f web
+```
+
+## ✅ Access Your Application
+
+🌐 **Main Site:** https://garden.passwordspace.com
+🔐 **Admin Panel:** https://garden.passwordspace.com/admin/
+
+## GitHub Actions Auto-Deployment (Optional)
+
+### Configure Repository Secrets
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret Name | Value | Description |
+|-------------|-------|-------------|
+| `SERVER_HOST` | Your server IP/hostname | SSH connection target |
+| `SERVER_USER` | `ubuntu` or your SSH user | SSH username |
+| `SERVER_SSH_KEY` | SSH private key | See below |
+| `DEPLOY_PATH` | `/opt/chicago-garden-planner` | App directory |
+
+### Generate SSH Key
+
+On your server:
 ```bash
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions
 cat ~/.ssh/github_actions.pub >> ~/.ssh/authorized_keys
-cat ~/.ssh/github_actions  # Copy this entire output
+cat ~/.ssh/github_actions  # Copy entire output → SERVER_SSH_KEY secret
 ```
 
-### B. Add GitHub Secrets
-
-Go to: `https://github.com/YOUR-USERNAME/chicago_garden_planner/settings/secrets/actions`
-
-Click "New repository secret" and add:
-
-| Name | Value |
-|------|-------|
-| `SERVER_HOST` | Your server IP or domain |
-| `SERVER_USER` | Your SSH username (e.g., `ubuntu`) |
-| `SERVER_SSH_KEY` | Paste the private key from step A |
-| `DEPLOY_PATH` | `/opt/chicago-garden-planner` |
-
-### C. Test Automatic Deployment
-
-Deployments are triggered by creating version tags:
+### Deploy with Version Tags
 
 ```bash
-# Create a version tag
-git tag v1.0.0
-git push origin v1.0.0
+# Use the release script
+./scripts/release.sh 1.0.0 "Initial production release"
 
-# Or use this helper command
+# Or manually
 git tag -a v1.0.0 -m "Initial production release"
 git push origin v1.0.0
 ```
 
-Go to GitHub → Actions tab and watch your deployment! 🎉
-
-**Future deployments:**
-```bash
-# When you're ready to deploy new changes:
-git tag v1.0.1
-git push origin v1.0.1
-
-# Or for a major release:
-git tag v2.0.0
-git push origin v2.0.0
-```
-
-**Note:** The workflow also supports manual deployment via the Actions tab.
-
-## ✅ Verify Deployment
-
-```bash
-# Check all containers are running
-docker-compose ps
-
-# Should see:
-# ✔ garden_planner_web
-# ✔ garden_planner_db
-# ✔ garden_planner_nginx
-
-# Visit your site
-curl http://your-domain.com
-# or
-curl http://your-ip-address
-```
-
-## 🔒 Optional: Enable HTTPS (5 minutes)
-
-```bash
-# Install SSL certificate
-chmod +x scripts/setup-ssl.sh
-./scripts/setup-ssl.sh your-domain.com your-email@example.com
-
-# Edit nginx config
-nano nginx/conf.d/app.conf
-# Uncomment the HTTPS server block
-# Update "your-domain.com" to your actual domain
-
-# Update .env
-nano .env
-# Add:
-# SECURE_SSL_REDIRECT=True
-# SESSION_COOKIE_SECURE=True
-# CSRF_COOKIE_SECURE=True
-
-# Restart
-docker-compose restart
-```
+GitHub Actions will automatically:
+1. Build Docker image
+2. Push to GitHub Container Registry
+3. Deploy to your server
+4. Run migrations
+5. Collect static files
 
 ## 📊 Common Commands
 
+### View Logs
 ```bash
-# View logs
-docker-compose logs -f
+docker-compose logs -f web     # Application logs
+docker-compose logs -f db      # Database logs
+docker-compose logs -f         # All logs
+```
 
-# Restart application
-docker-compose restart
+### Restart Application
+```bash
+docker-compose restart web     # Restart app only
+docker-compose restart         # Restart all services
+```
 
-# Run Django management command
-docker-compose exec web python manage.py <command>
-
-# Access Django shell
+### Django Management
+```bash
+# Django shell
 docker-compose exec web python manage.py shell
 
-# Database backup
-docker-compose exec db pg_dump -U garden_user garden_planner > backup.sql
+# Create migrations
+docker-compose exec web python manage.py makemigrations
+
+# Run migrations
+docker-compose exec web python manage.py migrate
+
+# Collect static files
+docker-compose exec web python manage.py collectstatic --noinput
 ```
 
-## 🆘 Troubleshooting
-
-### Can't access the site?
-
+### Database Operations
 ```bash
-# Check firewall
-sudo ufw status
-sudo ufw allow 80
-sudo ufw allow 443
+# Backup database
+docker-compose exec db pg_dump -U garden_user garden_planner > backup_$(date +%Y%m%d).sql
 
-# Check containers
-docker-compose ps
-docker-compose logs nginx
+# Restore database
+cat backup_20250123.sql | docker-compose exec -T db psql -U garden_user garden_planner
+
+# Access database shell
+docker-compose exec db psql -U garden_user garden_planner
 ```
 
-### Database errors?
+### Update Application
+```bash
+cd /opt/chicago-garden-planner
+git pull origin main
+docker-compose up -d --build
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py collectstatic --noinput
+```
+
+## 🔧 Troubleshooting
+
+### Site Not Accessible
+
+1. **Check containers:**
+   ```bash
+   docker-compose ps
+   # Both should show "Up (healthy)"
+   ```
+
+2. **Check Traefik routing:**
+   ```bash
+   docker logs traefik | grep garden
+   # Should see routing rules for garden.passwordspace.com
+   ```
+
+3. **Verify DNS:**
+   ```bash
+   nslookup garden.passwordspace.com
+   # Should point to your server IP
+   ```
+
+4. **Check web logs:**
+   ```bash
+   docker-compose logs web
+   ```
+
+5. **Verify proxy network:**
+   ```bash
+   docker network ls | grep proxy
+   docker inspect garden_planner_web | grep -A 20 Networks
+   ```
+
+### Database Connection Issues
 
 ```bash
-# Check database is running
+# Check database health
 docker-compose ps db
 
 # View database logs
 docker-compose logs db
 
-# Restart database
-docker-compose restart db
+# Test connection from web container
+docker-compose exec web python manage.py dbshell
 ```
 
-### Need to reset everything?
+### Static Files Not Loading
 
 ```bash
-# Stop and remove everything
-docker-compose down -v
+# Recollect static files
+docker-compose exec web python manage.py collectstatic --noinput --clear
 
-# Start fresh
-./scripts/deploy.sh
+# Verify WhiteNoise is installed
+docker-compose exec web pip show whitenoise
+
+# Check static files exist
+docker-compose exec web ls -la /app/staticfiles/
 ```
 
-## 🎉 You're Done!
+### Traefik Configuration Issues
 
-Your Chicago Garden Planner is now:
-- ✅ Running in production
-- ✅ Backed by PostgreSQL
-- ✅ Serving via Nginx
-- ✅ Auto-deploying from GitHub
+**Verify your Traefik has:**
+- External `proxy` network: `docker network ls | grep proxy`
+- `websecure` entrypoint on port 443
+- Certificate resolver named `myresolver`
 
-**Access your site:**
-- Frontend: `http://your-domain.com`
-- Admin: `http://your-domain.com/admin`
+**Check Traefik labels are set:**
+```bash
+docker inspect garden_planner_web | grep -A 30 Labels
+```
 
-**Next steps:**
-- Set up SSL/HTTPS (see above)
-- Configure email for password resets
-- Set up regular database backups
-- Monitor logs and performance
+### SSL Certificate Issues
 
-For detailed information, see [DEPLOYMENT.md](DEPLOYMENT.md).
+```bash
+# Check Traefik certificate resolver
+docker logs traefik | grep -i acme
+docker logs traefik | grep -i certificate
+
+# Verify DNS is correct
+nslookup garden.passwordspace.com
+
+# Check Let's Encrypt rate limits
+# https://letsencrypt.org/docs/rate-limits/
+```
+
+## 📐 Architecture
+
+```
+Internet
+   ↓ HTTPS
+Traefik (external, manages SSL)
+   ↓ proxy network
+Django/Gunicorn + WhiteNoise
+   ↓ backend network
+PostgreSQL
+```
+
+**Components:**
+- **Traefik**: SSL termination, routing, load balancing
+- **Django/Gunicorn**: Application server (port 8000, internal)
+- **WhiteNoise**: Serves static files with compression
+- **PostgreSQL 16**: Database with persistent volume
+
+**No Nginx needed!** Traefik handles all routing and SSL.
+
+## 🔒 Security Checklist
+
+- ✅ Strong SECRET_KEY (50+ characters)
+- ✅ Strong POSTGRES_PASSWORD
+- ✅ HTTPS enabled via Traefik
+- ✅ Secure cookies (SESSION_COOKIE_SECURE=True)
+- ✅ CSRF protection (CSRF_COOKIE_SECURE=True)
+- ✅ HSTS headers (31536000 seconds)
+- ✅ Database on internal network only
+- ✅ No exposed database ports
+
+## 📦 What Gets Deployed
+
+**Docker Images:**
+- `garden_planner_web`: Django application
+- `postgres:16-alpine`: Database
+
+**Volumes (Persistent Data):**
+- `postgres_data`: Database files
+- `static_volume`: Static files (CSS, JS, images)
+- `media_volume`: User uploads (avatars, etc.)
+
+**Networks:**
+- `proxy`: External network shared with Traefik
+- `backend`: Internal network for web ↔ database
+
+## 🎯 Next Steps
+
+After deployment:
+
+1. **Test thoroughly:**
+   - Create user accounts
+   - Design a garden
+   - Test plant library
+   - Try AI assistant features
+
+2. **Configure email:**
+   - Update `.env` with SMTP settings
+   - Test password reset emails
+
+3. **Set up backups:**
+   ```bash
+   # Add to crontab
+   0 2 * * * cd /opt/chicago-garden-planner && docker-compose exec -T db pg_dump -U garden_user garden_planner > /backup/garden_$(date +\%Y\%m\%d).sql
+   ```
+
+4. **Monitor logs:**
+   ```bash
+   docker-compose logs -f --tail=100
+   ```
+
+5. **Consider adding:**
+   - Redis for caching
+   - Monitoring/alerting
+   - Regular security updates
+
+## 📚 Additional Documentation
+
+- **[DEPLOYMENT_TRAEFIK.md](DEPLOYMENT_TRAEFIK.md)**: Complete Traefik deployment guide
+- **[RELEASE_PROCESS.md](RELEASE_PROCESS.md)**: Version tagging and releases
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: General deployment information
+- **[CLAUDE.md](CLAUDE.md)**: Development guide
+
+## 🆘 Need Help?
+
+1. Check logs: `docker-compose logs -f`
+2. Verify configuration: `docker-compose config`
+3. Check Traefik: `docker logs traefik`
+4. Review documentation in links above
+
+## 🎉 Success!
+
+Your Chicago Garden Planner is now live at:
+
+**https://garden.passwordspace.com**
+
+Features:
+- ✅ Chicago-specific plant library (zones 5b/6a)
+- ✅ Drag-and-drop garden designer
+- ✅ Companion planting recommendations
+- ✅ AI-powered garden layout suggestions
+- ✅ Yield calculations and statistics
+- ✅ Garden sharing with access control
+- ✅ Responsive design for mobile/tablet
+
+Happy gardening! 🌱
