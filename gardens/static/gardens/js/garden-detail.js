@@ -249,6 +249,42 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function autoSaveLayoutWithDates(plantedDates) {
+        const grid = [];
+        const rows = document.querySelectorAll('#gardenGrid tr');
+
+        rows.forEach(row => {
+            const rowData = [];
+            const cells = row.querySelectorAll('.garden-cell');
+            cells.forEach(cell => {
+                rowData.push(cell.dataset.plant || 'empty space');
+            });
+            grid.push(rowData);
+        });
+
+        const saveStatus = document.getElementById('saveStatus');
+
+        saveStatus.textContent = 'Saving with dates...';
+        saveStatus.className = 'badge bg-info ms-2';
+
+        gardenAPI.saveLayout(grid, plantedDates)
+            .then(data => {
+                hasUnsavedChanges = false;
+                saveStatus.textContent = 'Saved with planting dates!';
+                saveStatus.className = 'badge bg-success ms-2';
+                setTimeout(() => {
+                    saveStatus.textContent = '';
+                    // Reload page to show updated dates
+                    window.location.reload();
+                }, 1500);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                saveStatus.textContent = 'Error: ' + (error.error || 'Failed to save');
+                saveStatus.className = 'badge bg-danger ms-2';
+            });
+    }
+
     // ========================================
     // AI ASSISTANT
     // ========================================
@@ -900,11 +936,20 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
             applyImportBtn.addEventListener('click', function() {
                 if (!parsedImportData || !parsedImportData.suggestions) return;
 
+                // Collect planted_date information
+                const plantedDates = {};
+
                 // Apply each suggestion to the grid
                 parsedImportData.suggestions.forEach(suggestion => {
                     const plantName = suggestion.plant_name.toLowerCase();
                     const row = suggestion.row;
                     const col = suggestion.col;
+
+                    // Store planted_date if present
+                    if (suggestion.planted_date) {
+                        const key = `${row},${col}`;
+                        plantedDates[key] = suggestion.planted_date;
+                    }
 
                     // Find the cell
                     const cell = document.querySelector(`.garden-cell[data-row="${row}"][data-col="${col}"]`);
@@ -921,8 +966,8 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                     }
                 });
 
-                // Auto-save the layout
-                autoSaveLayout();
+                // Auto-save the layout with planted_date information
+                autoSaveLayoutWithDates(plantedDates);
 
                 // Close modal
                 importLayoutModal.hide();

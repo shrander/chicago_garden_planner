@@ -15,12 +15,17 @@ class GardenAPI {
     /**
      * Save the garden layout grid
      * @param {Array} grid - 2D array representing the garden grid
+     * @param {Object} plantedDates - Optional object mapping "row,col" to planted_date strings
      * @returns {Promise<Object>} Response data
      */
-    async saveLayout(grid) {
+    async saveLayout(grid, plantedDates = null) {
+        const payload = { grid };
+        if (plantedDates) {
+            payload.planted_dates = plantedDates;
+        }
         return gardenFetch(`${this.baseUrl}/save-layout/`, {
             method: 'POST',
-            body: JSON.stringify({ grid })
+            body: JSON.stringify(payload)
         });
     }
 

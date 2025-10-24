@@ -490,6 +490,7 @@ def garden_save_layout(request, pk):
         # Parse JSON data from request body
         data = json.loads(request.body)
         grid = data.get('grid', [])
+        planted_dates = data.get('planted_dates', {})
 
         # Validate grid dimensions
         if len(grid) != garden.height:
@@ -531,6 +532,10 @@ def garden_save_layout(request, pk):
                 ).first()
 
                 if plant:
+                    # Check if planted_date was provided for this position
+                    position_key = f"{row_idx},{col_idx}"
+                    provided_date = planted_dates.get(position_key)
+
                     # Check if instance already exists at this position
                     if (row_idx, col_idx) in existing_instances:
                         # Update existing instance if plant changed
@@ -538,6 +543,12 @@ def garden_save_layout(request, pk):
                         if instance.plant != plant:
                             # Plant changed - preserve dates if user moved the plant, clear if different plant
                             instance.plant = plant
+                            instance.save()
+
+                        # Update planted_date if provided
+                        if provided_date:
+                            from datetime import datetime
+                            instance.planted_date = datetime.fromisoformat(provided_date).date()
                             instance.save()
                     else:
                         # Check if this plant was moved from another position (preserve dates)
@@ -549,19 +560,26 @@ def garden_save_layout(request, pk):
                                 break
 
                         if moved_instance:
-                            # Update position, preserve dates
+                            # Update position, preserve dates (unless new date provided)
                             moved_instance.row = row_idx
                             moved_instance.col = col_idx
+                            if provided_date:
+                                from datetime import datetime
+                                moved_instance.planted_date = datetime.fromisoformat(provided_date).date()
                             moved_instance.save()
                             current_positions.add((moved_instance.row, moved_instance.col))
                         else:
-                            # New plant placement - create instance without dates
-                            PlantInstance.objects.create(
+                            # New plant placement - create instance with optional date
+                            new_instance = PlantInstance(
                                 garden=garden,
                                 plant=plant,
                                 row=row_idx,
                                 col=col_idx
                             )
+                            if provided_date:
+                                from datetime import datetime
+                                new_instance.planted_date = datetime.fromisoformat(provided_date).date()
+                            new_instance.save()
 
         # Remove instances that no longer have plants
         for pos, instance in existing_instances.items():
