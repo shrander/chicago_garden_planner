@@ -320,14 +320,18 @@
                                         <td class="text-capitalize">{{ plant }}</td>
                                         <td class="text-end"><strong>{{ count }}</strong></td>
                                         <td>
+                                            {% if plant_count > 0 %}
                                             <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar" role="progressbar"
-                                                     style="width: {{ count|divide:plant_count|multiply:100 }}%"
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: {% widthratio count plant_count 100 %}%"
                                                      aria-valuenow="{{ count }}"
                                                      aria-valuemin="0" aria-valuemax="{{ plant_count }}">
                                                     {% widthratio count plant_count 100 %}%
                                                 </div>
                                             </div>
+                                            {% else %}
+                                            <span class="text-muted">N/A</span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
