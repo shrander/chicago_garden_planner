@@ -221,6 +221,37 @@ class PlantInstance(models.Model):
             return 'growing'
 
 
+class GardenShare(models.Model):
+    """Track garden sharing permissions"""
+
+    PERMISSION_CHOICES = [
+        ('view', 'Can View'),
+        ('edit', 'Can Edit'),
+    ]
+
+    garden = models.ForeignKey(Garden, on_delete=models.CASCADE, related_name='shares')
+    shared_with_email = models.EmailField(help_text='Email of person to share with')
+    shared_with_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='shared_gardens',
+        help_text='User object once they register/login'
+    )
+    permission = models.CharField(max_length=10, choices=PERMISSION_CHOICES, default='view')
+    shared_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shares_created')
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ['garden', 'shared_with_email']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.garden.name} shared with {self.shared_with_email}"
+
+
 class PlantingNote(models.Model):
     """Journal entries for specific plants in gardens"""
 

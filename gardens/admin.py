@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Plant, Garden, PlantInstance, PlantingNote
+from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare
 
 
 @admin.register(Plant)
@@ -232,6 +232,24 @@ class PlantInstanceAdmin(admin.ModelAdmin):
         else:
             return f"{days} days"
     days_remaining.short_description = 'Days to Harvest'
+
+
+@admin.register(GardenShare)
+class GardenShareAdmin(admin.ModelAdmin):
+    """Admin interface for GardenShare model"""
+
+    list_display = ['garden', 'shared_with_email', 'permission', 'shared_by', 'status', 'created_at']
+    list_filter = ['permission', 'created_at', 'accepted_at']
+    search_fields = ['garden__name', 'shared_with_email', 'shared_by__username']
+    readonly_fields = ['created_at', 'accepted_at']
+    autocomplete_fields = ['garden', 'shared_by', 'shared_with_user']
+
+    def status(self, obj):
+        """Display acceptance status"""
+        if obj.accepted_at:
+            return format_html('<span style="color: green;">✓ Accepted</span>')
+        return format_html('<span style="color: orange;">⏳ Pending</span>')
+    status.short_description = 'Status'
 
 
 @admin.register(PlantingNote)
