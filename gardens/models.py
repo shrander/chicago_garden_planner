@@ -52,6 +52,13 @@ class Plant(models.Model):
     spacing_inches = models.FloatField(help_text='Spacing between plants in inches')
     chicago_notes = models.TextField(blank=True, help_text='Chicago Zone 5b/6a specific notes')
 
+    # Yield estimation
+    yield_per_plant = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Expected yield per plant (e.g., "2-3 lbs", "10-15 fruits", "continuous harvest")'
+    )
+
     # Companion planting
     companion_plants = models.ManyToManyField('self', blank=True, symmetrical=False)
     pest_deterrent_for = models.TextField(blank=True, help_text='Comma-separated list of pests deterred')

@@ -22,7 +22,7 @@ class PlantAdmin(admin.ModelAdmin):
             'fields': ('symbol', 'color', 'color_preview')
         }),
         ('Growing Information', {
-            'fields': ('life_cycle', 'planting_seasons', 'days_to_harvest', 'spacing_inches')
+            'fields': ('life_cycle', 'planting_seasons', 'days_to_harvest', 'spacing_inches', 'yield_per_plant')
         }),
         ('Chicago-Specific Notes', {
             'fields': ('chicago_notes',),

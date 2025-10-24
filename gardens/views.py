@@ -138,6 +138,11 @@ def garden_detail(request, pk):
 
     diversity = len(plant_counts_detail)
 
+    # Create a mapping of plant names to yield information
+    plant_yields = {}
+    for plant in all_plants_for_stats:
+        plant_yields[plant.name.lower()] = plant
+
     # Create a mapping of plant names to their symbols and colors for the grid display
     plant_map = {}
     for plant in Plant.objects.all():
@@ -224,6 +229,7 @@ def garden_detail(request, pk):
         'empty_cells_count': empty_cells_count,
         'total_spaces': total_spaces,
         'plant_count': plant_count,
+        'plant_yields': plant_yields,
     }
 
     return render(request, 'gardens/garden_detail.html', context)

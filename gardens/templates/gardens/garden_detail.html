@@ -304,34 +304,39 @@
                 <hr class="my-3">
                 <div class="row">
                     <div class="col-md-12">
-                        <h6 class="text-muted mb-3"><i class="bi bi-list-ol"></i> Plant Distribution</h6>
+                        <h6 class="text-muted mb-3"><i class="bi bi-basket"></i> Estimated Yield</h6>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
                                 <thead>
                                     <tr>
                                         <th>Plant</th>
-                                        <th class="text-end">Quantity</th>
-                                        <th style="width: 50%;">Distribution</th>
+                                        <th class="text-center">Quantity</th>
+                                        <th class="text-center">Yield/Plant</th>
+                                        <th class="text-end">Total Estimated Yield</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for plant, count in plant_counts_detail.items %}
                                     <tr>
                                         <td class="text-capitalize">{{ plant }}</td>
-                                        <td class="text-end"><strong>{{ count }}</strong></td>
-                                        <td>
-                                            {% if plant_count > 0 %}
-                                            <div class="progress" style="height: 20px;">
-                                                <div class="progress-bar bg-success" role="progressbar"
-                                                     style="width: {% widthratio count plant_count 100 %}%"
-                                                     aria-valuenow="{{ count }}"
-                                                     aria-valuemin="0" aria-valuemax="{{ plant_count }}">
-                                                    {% widthratio count plant_count 100 %}%
-                                                </div>
-                                            </div>
-                                            {% else %}
-                                            <span class="text-muted">N/A</span>
-                                            {% endif %}
+                                        <td class="text-center"><strong>{{ count }}</strong></td>
+                                        <td class="text-center">
+                                            {% with plant_obj=plant_yields|get_item:plant %}
+                                                {% if plant_obj.yield_per_plant %}
+                                                    <span class="badge bg-light text-dark">{{ plant_obj.yield_per_plant }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            {% endwith %}
+                                        </td>
+                                        <td class="text-end text-success">
+                                            {% with plant_obj=plant_yields|get_item:plant %}
+                                                {% if plant_obj.yield_per_plant %}
+                                                    <strong>{{ count }} × {{ plant_obj.yield_per_plant }}</strong>
+                                                {% else %}
+                                                    <span class="text-muted">No estimate</span>
+                                                {% endif %}
+                                            {% endwith %}
                                         </td>
                                     </tr>
                                     {% endfor %}
