@@ -1,0 +1,56 @@
+version: '3.8'
+
+# Development environment - simulates production locally
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: garden_dev_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=garden_planner_dev
+      - POSTGRES_USER=garden_dev
+      - POSTGRES_PASSWORD=devpassword123
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U garden_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: garden_dev_web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_dev_volume:/app/staticfiles
+      - media_dev_volume:/app/media
+    environment:
+      - DJANGO_SETTINGS_MODULE=garden_planner.settings_production
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - POSTGRES_DB=garden_planner_dev
+      - POSTGRES_USER=garden_dev
+      - POSTGRES_PASSWORD=devpassword123
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_dev_data:
+  static_dev_volume:
+  media_dev_volume:
