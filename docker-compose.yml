@@ -18,10 +18,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-garden_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garden_user} -d ${POSTGRES_DB:-garden_planner}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garden_user} -d ${POSTGRES_DB:-garden_planner} && psql -U ${POSTGRES_USER:-garden_user} -d ${POSTGRES_DB:-garden_planner} -c 'SELECT 1' > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     restart: unless-stopped
     networks:
       - backend
@@ -33,6 +34,7 @@ services:
     container_name: garden_planner_web
     env_file:
       - .env
+    entrypoint: ["/bin/sh", "/app/wait-for-db.sh", "db"]
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&

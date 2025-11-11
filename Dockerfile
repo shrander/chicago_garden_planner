@@ -1,5 +1,5 @@
 # Multi-stage build for Chicago Garden Planner
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
