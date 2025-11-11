@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Production deployment configuration with Traefik
 # Prerequisites:
 #   1. Traefik reverse proxy running with external 'proxy' network
@@ -11,6 +9,8 @@ services:
   db:
     image: postgres:16-alpine
     container_name: garden_planner_db
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -18,7 +18,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER:-garden_user}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garden_user}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garden_user} -d ${POSTGRES_DB:-garden_planner}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,6 +31,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: garden_planner_web
+    env_file:
+      - .env
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
@@ -69,7 +71,7 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.garden_planner.rule=Host(`${DOMAIN_NAME}`)"
+      - "traefik.http.routers.garden_planner.rule=Host(`${DOMAIN_NAME:-garden.passwordspace.com}`)"
       - "traefik.http.routers.garden_planner.entrypoints=websecure"
       - "traefik.http.routers.garden_planner.tls=true"
       - "traefik.http.routers.garden_planner.tls.certresolver=myresolver"
@@ -87,3 +89,5 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+
+
