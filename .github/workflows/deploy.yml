@@ -9,7 +9,7 @@ on:
 jobs:
   deploy:
     name: Deploy to Server
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Run on your nanopi server
 
     steps:
       - name: Checkout code
@@ -24,69 +24,57 @@ jobs:
             echo "version=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Pull latest changes
+        run: |
+          echo "🔄 Ensuring repository is up to date..."
+          git fetch --all --tags
+          git checkout ${GITHUB_REF#refs/tags/} || git checkout $GITHUB_SHA
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Stop existing containers
+        run: |
+          echo "🛑 Stopping existing containers..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose down || true
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:latest
-            ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:${{ steps.get_version.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:buildcache,mode=max
-          labels: |
-            org.opencontainers.image.title=Chicago Garden Planner
-            org.opencontainers.image.description=Garden planning app for Chicago USDA zones 5b/6a
-            org.opencontainers.image.version=${{ steps.get_version.outputs.version }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      - name: Build new Docker image
+        run: |
+          echo "🔨 Building Docker image..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose build --no-cache
 
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT || 22 }}
-          script: |
-            set -e
+      - name: Start containers
+        run: |
+          echo "🚀 Starting containers..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose up -d
 
-            # Navigate to app directory
-            cd ${{ secrets.DEPLOY_PATH || '/opt/chicago-garden-planner' }}
+      - name: Wait for containers to be healthy
+        run: |
+          echo "⏳ Waiting for containers to be healthy..."
+          cd ~/workspace/chicago-garden-planner
+          sleep 10
+          docker compose ps
 
-            # Login to GitHub Container Registry
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Run database migrations
+        run: |
+          echo "🗄️  Running migrations..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose exec -T web python manage.py migrate --noinput
 
-            # Pull latest image
-            docker pull ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:latest
+      - name: Collect static files
+        run: |
+          echo "📦 Collecting static files..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose exec -T web python manage.py collectstatic --noinput
 
-            # Stop and remove old containers
-            docker compose down
-
-            # Start new containers
-            docker compose up -d
-
-            # Run migrations
-            docker compose exec -T web python manage.py migrate --noinput
-
-            # Collect static files
-            docker compose exec -T web python manage.py collectstatic --noinput
-
-            # Check if containers are running
-            docker compose ps
-
-            # Show logs
-            docker compose logs --tail=50
+      - name: Check deployment status
+        run: |
+          echo "✅ Checking deployment status..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose ps
+          echo ""
+          echo "📋 Recent logs:"
+          docker compose logs --tail=20 web
 
       - name: Notify deployment status
         if: always()
@@ -94,7 +82,7 @@ jobs:
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Deployment successful!"
             echo "📦 Version: ${{ steps.get_version.outputs.version }}"
-            echo "🔗 Image: ghcr.io/${{ github.repository_owner }}/chicago-garden-planner:${{ steps.get_version.outputs.version }}"
+            echo "🌐 Application: https://garden.passwordspace.com"
           else
             echo "❌ Deployment failed!"
             echo "📦 Version: ${{ steps.get_version.outputs.version }}"
