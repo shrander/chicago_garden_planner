@@ -18,4 +18,4 @@ echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "Starting Gunicorn..."
-exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile - garden_planner.wsgi:application
+exec gunicorn --bind 0.0.0.0:6000 --workers 3 --timeout 120 --access-logfile - --error-logfile - garden_planner.wsgi:application

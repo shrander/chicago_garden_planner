@@ -59,7 +59,7 @@ USER django
 RUN python manage.py collectstatic --noinput --settings=garden_planner.settings_production || echo "Collectstatic will run on startup"
 
 # Expose port
-EXPOSE 8000
+EXPOSE 6000
 
 # Health check - disabled in Dockerfile, configured in docker-compose
 HEALTHCHECK NONE
