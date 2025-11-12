@@ -31,6 +31,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user
@@ -48,6 +49,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy project files
 COPY --chown=django:django . .
 
+# Make scripts executable
+RUN chmod +x /app/docker-entrypoint.sh /app/wait-for-db.sh
+
 # Switch to non-root user
 USER django
 
@@ -58,8 +62,8 @@ RUN python manage.py collectstatic --noinput --settings=garden_planner.settings_
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/').read()" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/admin/login/ || exit 1
 
-# Run gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-", "garden_planner.wsgi:application"]
+# Default command (overridden by docker-compose)
+CMD ["/app/docker-entrypoint.sh"]

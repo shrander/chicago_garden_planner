@@ -34,10 +34,7 @@ services:
     container_name: garden_planner_web
     env_file:
       - .env
-    command: >
-      sh -c "/app/wait-for-db.sh db sh -c 'python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile - garden_planner.wsgi:application'"
+    command: ["/app/docker-entrypoint.sh"]
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
