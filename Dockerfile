@@ -61,9 +61,8 @@ RUN python manage.py collectstatic --noinput --settings=garden_planner.settings_
 # Expose port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/admin/login/ || exit 1
+# Health check - disabled in Dockerfile, configured in docker-compose
+HEALTHCHECK NONE
 
 # Default command (overridden by docker-compose)
 CMD ["/app/docker-entrypoint.sh"]
