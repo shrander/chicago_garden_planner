@@ -27,8 +27,8 @@ jobs:
       - name: Pull latest changes
         run: |
           echo "🔄 Ensuring repository is up to date..."
-          git fetch --all --tags
-          git checkout ${GITHUB_REF#refs/tags/} || git checkout $GITHUB_SHA
+          git fetch --all --tags --force
+          git checkout $GITHUB_SHA
 
       - name: Stop existing containers
         run: |
