@@ -30,17 +30,19 @@ ALLOWED_HOSTS = []
 
 # Application definition
 INSTALLED_APPS = [
+    # local apps must come first to override default templates
+    "accounts.apps.AccountsConfig", # must come before admin for custom user and templates
+    "gardens",
+    # django apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # local apps
-    "accounts.apps.AccountsConfig", # must come before admin for custom user
+    # third party apps
     "crispy_forms",
     'crispy_bootstrap5',
-    "gardens",
 ]
 
 MIDDLEWARE = [
