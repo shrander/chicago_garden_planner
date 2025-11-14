@@ -57,11 +57,14 @@ def profile_view(request):
         profile_form = UserProfileForm(request.POST, request.FILES, instance=request.user.profile)
 
         if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
+            user = user_form.save()
             profile_form.save()
 
             # Check if password was changed
             if user_form.cleaned_data.get('password1'):
+                # Update the session hash to prevent logout after password change
+                from django.contrib.auth import update_session_auth_hash
+                update_session_auth_hash(request, user)
                 messages.success(request, 'Your profile and password have been updated successfully!')
             else:
                 messages.success(request, 'Your profile has been updated successfully!')
