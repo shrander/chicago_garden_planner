@@ -155,6 +155,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Change Password -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-lock"></i> Change Password
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        <small>Update your password to keep your account secure. Leave blank to keep your current password.</small>
+                    </p>
+
+                    <div id="passwordChangeForm">
+                        {{ user_form.password1|as_crispy_field }}
+                        {{ user_form.password2|as_crispy_field }}
+
+                        <div class="alert alert-info small">
+                            <i class="bi bi-info-circle"></i> <strong>Password Requirements:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>At least 8 characters long</li>
+                                <li>Can't be too similar to your other personal information</li>
+                                <li>Can't be a commonly used password</li>
+                                <li>Can't be entirely numeric</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Gardening Info Sidebar -->

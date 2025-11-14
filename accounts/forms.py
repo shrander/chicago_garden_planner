@@ -54,6 +54,28 @@ class CustomUserCreationForm(UserCreationForm):
 class CustomUserChangeForm(UserChangeForm):
     """Form for updating users with case-insensitive validation"""
 
+    # Add optional password fields
+    password1 = forms.CharField(
+        label=_("New Password"),
+        required=False,
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'new-password',
+            'placeholder': 'Leave blank to keep current password'
+        }),
+        help_text=_("Leave blank if you don't want to change your password.")
+    )
+    password2 = forms.CharField(
+        label=_("Confirm New Password"),
+        required=False,
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'autocomplete': 'new-password',
+            'placeholder': 'Re-enter new password'
+        }),
+        help_text=_("Enter the same password as before, for verification.")
+    )
+
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name', 'last_name')
@@ -67,7 +89,7 @@ class CustomUserChangeForm(UserChangeForm):
                 code='duplicate_username',
             )
         return username.lower() # type: ignore
-    
+
     def clean_email(self):
         """Ensure email is unique (case-insensitive) when updating"""
         email = self.cleaned_data.get('email')
@@ -77,6 +99,39 @@ class CustomUserChangeForm(UserChangeForm):
                 code='duplicate_email',
             )
         return email.lower() # type: ignore
+
+    def clean_password2(self):
+        """Check that the two password entries match"""
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+
+        # If either password is entered, both must be entered
+        if password1 or password2:
+            if password1 != password2:
+                raise ValidationError(
+                    _("The two password fields didn't match."),
+                    code='password_mismatch',
+                )
+        return password2
+
+    def clean_password1(self):
+        """Validate password strength if provided"""
+        password1 = self.cleaned_data.get("password1")
+        if password1:
+            # Use Django's password validators
+            from django.contrib.auth.password_validation import validate_password
+            validate_password(password1, self.instance)
+        return password1
+
+    def save(self, commit=True):
+        """Override save to handle password update"""
+        user = super().save(commit=False)
+        password = self.cleaned_data.get("password1")
+        if password:
+            user.set_password(password)
+        if commit:
+            user.save()
+        return user
 
 class UserProfileForm(forms.ModelForm):
     """orm for updating user profile info"""

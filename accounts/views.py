@@ -59,7 +59,12 @@ def profile_view(request):
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            messages.success(request, 'Your profile has been updated successfully!')
+
+            # Check if password was changed
+            if user_form.cleaned_data.get('password1'):
+                messages.success(request, 'Your profile and password have been updated successfully!')
+            else:
+                messages.success(request, 'Your profile has been updated successfully!')
             return redirect('accounts:profile')
     else:
         user_form = CustomUserChangeForm(instance=request.user)
