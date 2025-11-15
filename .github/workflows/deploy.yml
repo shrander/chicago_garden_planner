@@ -26,6 +26,8 @@ jobs:
           echo "🔄 Pulling latest changes..."
           cd ~/workspace/chicago-garden-planner
           git fetch --all --tags --force
+          # Stash any local changes (like .env.example modifications)
+          git stash --include-untracked || true
           git checkout $GITHUB_SHA
           git status
 
