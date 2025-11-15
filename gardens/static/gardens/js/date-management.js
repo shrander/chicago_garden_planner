@@ -19,11 +19,29 @@ function setupDateManagement() {
     const expectedHarvestInfo = document.getElementById('expectedHarvestInfo');
 
     let currentRow, currentCol, currentPlantName;
+    let isDragging = false;
 
     // Add click handlers to all plant cells
     const gardenCells = document.querySelectorAll('.garden-cell');
     gardenCells.forEach(cell => {
+        // Track drag state using the existing drag events
+        cell.addEventListener('dragstart', function(e) {
+            isDragging = true;
+        });
+
+        cell.addEventListener('dragend', function(e) {
+            // Reset drag state after a short delay to ensure click event sees it
+            setTimeout(() => {
+                isDragging = false;
+            }, 50);
+        });
+
         cell.addEventListener('click', function(e) {
+            // Ignore clicks that were actually drags
+            if (isDragging) {
+                return;
+            }
+
             const plantName = this.dataset.plant;
 
             // Skip empty cells and paths
