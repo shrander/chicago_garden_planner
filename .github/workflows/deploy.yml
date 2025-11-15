@@ -12,9 +12,6 @@ jobs:
     runs-on: self-hosted  # Run on your nanopi server
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Extract version from tag
         id: get_version
         run: |
@@ -24,11 +21,13 @@ jobs:
             echo "version=manual-$(date +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
           fi
 
-      - name: Pull latest changes
+      - name: Pull latest changes in deployment directory
         run: |
-          echo "🔄 Ensuring repository is up to date..."
+          echo "🔄 Pulling latest changes..."
+          cd ~/workspace/chicago-garden-planner
           git fetch --all --tags --force
           git checkout $GITHUB_SHA
+          git status
 
       - name: Stop existing containers
         run: |
@@ -54,18 +53,6 @@ jobs:
           cd ~/workspace/chicago-garden-planner
           sleep 10
           docker compose ps
-
-      - name: Run database migrations
-        run: |
-          echo "🗄️  Running migrations..."
-          cd ~/workspace/chicago-garden-planner
-          docker compose exec -T web python manage.py migrate --noinput
-
-      - name: Collect static files
-        run: |
-          echo "📦 Collecting static files..."
-          cd ~/workspace/chicago-garden-planner
-          docker compose exec -T web python manage.py collectstatic --noinput
 
       - name: Check deployment status
         run: |
