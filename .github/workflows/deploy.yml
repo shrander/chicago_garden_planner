@@ -31,6 +31,21 @@ jobs:
           git checkout $GITHUB_SHA
           git status
 
+      - name: Update VERSION file with tag
+        run: |
+          echo "📝 Updating VERSION file..."
+          cd ~/workspace/chicago-garden-planner
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            # Remove 'v' prefix if present (v0.9.4 -> 0.9.4)
+            VERSION="${VERSION#v}"
+            echo "$VERSION" > VERSION
+            echo "VERSION file updated to: $VERSION"
+          else
+            echo "Not a tag push, keeping existing VERSION file"
+          fi
+          cat VERSION
+
       - name: Stop existing containers
         run: |
           echo "🛑 Stopping existing containers..."
