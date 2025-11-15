@@ -8,6 +8,8 @@ function setupDateManagement() {
     if (!plantDateModal) return;
 
     const modal = new bootstrap.Modal(plantDateModal);
+    const seedStartedDateInput = document.getElementById('seedStartedDateInput');
+    const transplantedDateInput = document.getElementById('transplantedDateInput');
     const plantedDateInput = document.getElementById('plantedDateInput');
     const actualHarvestDateInput = document.getElementById('actualHarvestDateInput');
     const markHarvestedCheck = document.getElementById('markHarvestedCheck');
@@ -46,24 +48,43 @@ function setupDateManagement() {
             document.getElementById('selectedPlantName').textContent = plantName;
             document.getElementById('selectedPlantPosition').textContent = `Row ${rowIndex + 1}, Column ${colIndex + 1}`;
 
-            if (currentInstanceData && currentInstanceData.planted_date) {
-                plantedDateInput.value = currentInstanceData.planted_date;
-                clearDatesBtn.style.display = 'inline-block';
+            if (currentInstanceData) {
+                // Populate all date fields
+                seedStartedDateInput.value = currentInstanceData.seed_started_date || '';
+                transplantedDateInput.value = currentInstanceData.transplanted_date || '';
+                plantedDateInput.value = currentInstanceData.planted_date || '';
+                actualHarvestDateInput.value = currentInstanceData.actual_harvest_date || '';
 
+                // Show clear button if any date is set
+                if (currentInstanceData.seed_started_date || currentInstanceData.transplanted_date || currentInstanceData.planted_date) {
+                    clearDatesBtn.style.display = 'inline-block';
+                } else {
+                    clearDatesBtn.style.display = 'none';
+                }
+
+                // Show expected harvest info
                 if (currentInstanceData.expected_harvest_date) {
                     expectedHarvestInfo.style.display = 'block';
                     document.getElementById('expectedHarvestDate').textContent = new Date(currentInstanceData.expected_harvest_date).toLocaleDateString();
                     if (currentInstanceData.days_until_harvest !== null) {
                         document.getElementById('daysToHarvest').textContent = currentInstanceData.days_until_harvest;
                     }
+                } else {
+                    expectedHarvestInfo.style.display = 'none';
                 }
 
+                // Show harvest section if harvested
                 if (currentInstanceData.actual_harvest_date) {
                     markHarvestedCheck.checked = true;
                     actualHarvestGroup.style.display = 'block';
-                    actualHarvestDateInput.value = currentInstanceData.actual_harvest_date;
+                } else {
+                    markHarvestedCheck.checked = false;
+                    actualHarvestGroup.style.display = 'none';
                 }
             } else {
+                // Clear all fields for new plant
+                seedStartedDateInput.value = '';
+                transplantedDateInput.value = '';
                 plantedDateInput.value = '';
                 actualHarvestDateInput.value = '';
                 markHarvestedCheck.checked = false;
@@ -91,8 +112,8 @@ function setupDateManagement() {
         btnManager.setLoading('Saving...');
 
         try {
-            // First, save planting date if changed
-            if (plantedDateInput.value) {
+            // Save all planting dates if any are provided
+            if (seedStartedDateInput.value || transplantedDateInput.value || plantedDateInput.value) {
                 const response = await fetch(`/gardens/${window.GARDEN_ID}/set-planting-date/`, {
                     method: 'POST',
                     headers: {
@@ -102,13 +123,15 @@ function setupDateManagement() {
                     body: JSON.stringify({
                         row: currentRow,
                         col: currentCol,
-                        planted_date: plantedDateInput.value
+                        seed_started_date: seedStartedDateInput.value || null,
+                        transplanted_date: transplantedDateInput.value || null,
+                        planted_date: plantedDateInput.value || null
                     })
                 });
 
                 const data = await response.json();
                 if (!data.success) {
-                    throw new Error(data.error || 'Failed to save planting date');
+                    throw new Error(data.error || 'Failed to save planting dates');
                 }
 
                 // Update instance map

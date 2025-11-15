@@ -17,11 +17,27 @@
                 </div>
 
                 <div class="mb-3">
+                    <label for="seedStartedDateInput" class="form-label">
+                        <i class="bi bi-sunrise"></i> Seed Started Date (Optional)
+                    </label>
+                    <input type="date" class="form-control" id="seedStartedDateInput">
+                    <small class="form-text text-muted">When were seeds started indoors?</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="transplantedDateInput" class="form-label">
+                        <i class="bi bi-arrow-down-up"></i> Transplanted Date (Optional)
+                    </label>
+                    <input type="date" class="form-control" id="transplantedDateInput">
+                    <small class="form-text text-muted">When was this transplanted to the garden?</small>
+                </div>
+
+                <div class="mb-3">
                     <label for="plantedDateInput" class="form-label">
-                        <i class="bi bi-seed"></i> Planting Date
+                        <i class="bi bi-seed"></i> Planted/Direct Sow Date
                     </label>
                     <input type="date" class="form-control" id="plantedDateInput">
-                    <small class="form-text text-muted">When was this plant placed in the garden?</small>
+                    <small class="form-text text-muted">When was this directly sown or placed in the garden?</small>
                 </div>
 
                 <div class="mb-3" id="expectedHarvestInfo" style="display: none;">
@@ -29,7 +45,7 @@
                         <strong><i class="bi bi-calendar-event"></i> Expected Harvest:</strong>
                         <span id="expectedHarvestDate"></span>
                         <br>
-                        <small><span id="daysToHarvest"></span> days to maturity</small>
+                        <small><span id="daysToHarvest"></span> days remaining</small>
                     </div>
                 </div>
 

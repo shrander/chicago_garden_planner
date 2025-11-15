@@ -104,7 +104,9 @@ class PlantForm(forms.ModelForm):
         fields = [
             'name', 'latin_name', 'symbol', 'color', 'plant_type', 'life_cycle',
             'planting_seasons', 'days_to_harvest', 'spacing_inches',
-            'chicago_notes', 'pest_deterrent_for', 'companion_plants'
+            'weeks_before_last_frost_start', 'weeks_after_last_frost_transplant',
+            'direct_sow', 'days_to_germination', 'transplant_to_harvest_days',
+            'chicago_notes', 'yield_per_plant', 'pest_deterrent_for', 'companion_plants'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -115,6 +117,12 @@ class PlantForm(forms.ModelForm):
             'life_cycle': forms.Select(attrs={'class': 'form-select'}),
             'days_to_harvest': forms.NumberInput(attrs={'class': 'form-control'}),
             'spacing_inches': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
+            'weeks_before_last_frost_start': forms.NumberInput(attrs={'class': 'form-control'}),
+            'weeks_after_last_frost_transplant': forms.NumberInput(attrs={'class': 'form-control'}),
+            'direct_sow': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'days_to_germination': forms.NumberInput(attrs={'class': 'form-control'}),
+            'transplant_to_harvest_days': forms.NumberInput(attrs={'class': 'form-control'}),
+            'yield_per_plant': forms.TextInput(attrs={'class': 'form-control'}),
             'chicago_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'pest_deterrent_for': forms.TextInput(attrs={'class': 'form-control'}),
             'companion_plants': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),

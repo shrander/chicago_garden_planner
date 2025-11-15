@@ -112,14 +112,29 @@
 
                 <p class="card-text small">{{ plant.chicago_notes|truncatewords:15 }}</p>
 
-                <div class="row text-center small mt-3">
-                    <div class="col-6">
-                        <strong>{{ plant.days_to_harvest }}</strong>
+                {% if plant.weeks_before_last_frost_start or plant.direct_sow %}
+                <div class="alert alert-info small mb-2 py-1">
+                    {% if plant.direct_sow %}
+                    <i class="bi bi-check-circle-fill"></i> Can direct sow
+                    {% endif %}
+                    {% if plant.weeks_before_last_frost_start %}
+                    <br><i class="bi bi-calendar-event"></i> Start {{ plant.weeks_before_last_frost_start }} wks before last frost
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <div class="row text-center small mt-2">
+                    <div class="col-4">
+                        <strong>{{ plant.days_to_harvest|default:"-" }}</strong>
                         <br><small class="text-muted">Days to Harvest</small>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
                         <strong>{{ plant.spacing_inches }}"</strong>
                         <br><small class="text-muted">Spacing</small>
+                    </div>
+                    <div class="col-4">
+                        <strong>{{ plant.days_to_germination|default:"-" }}</strong>
+                        <br><small class="text-muted">Days to Sprout</small>
                     </div>
                 </div>
             </div>
