@@ -89,6 +89,13 @@ DATABASES = {
 # Custom User Model = Must be set before first migration
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+# Authentication Backends
+# Custom backend allows login with username OR email (case-insensitive)
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailOrUsernameModelBackend',  # Custom backend for email/username login
+    'django.contrib.auth.backends.ModelBackend',       # Fallback to default
+]
+
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [

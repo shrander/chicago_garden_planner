@@ -199,13 +199,13 @@ class UserProfileForm(forms.ModelForm):
 class CaseInsensitiveAuthenticationForm(AuthenticationForm):
     """
     Override the default authenticationForm to provide better error messages
-    and ensure case-insensitive login
+    and support login with username or email (case-insensitive)
     """
     username = forms.CharField(
-        label=_("Username"),
+        label=_("Username or Email"),
         widget=forms.TextInput(attrs={
             'autofocus': True,
-            'placeholder': 'Enter your username'
+            'placeholder': 'Enter your username or email'
         })
     )
     password = forms.CharField(
@@ -219,7 +219,7 @@ class CaseInsensitiveAuthenticationForm(AuthenticationForm):
 
     error_messages = {
         'invalid_login': _(
-            "Please enter a correct username and password. "
+            "Please enter a correct username/email and password. "
             "Note that password is case-sensitive"
         ),
         'inactive': _("This account is inactive"),
