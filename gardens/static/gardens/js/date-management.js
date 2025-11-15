@@ -18,10 +18,10 @@ function setupDateManagement() {
 
     let currentRow, currentCol, currentPlantName;
 
-    // Add double-click handlers to all plant cells
+    // Add click handlers to all plant cells
     const gardenCells = document.querySelectorAll('.garden-cell');
     gardenCells.forEach(cell => {
-        cell.addEventListener('dblclick', function(e) {
+        cell.addEventListener('click', function(e) {
             const plantName = this.dataset.plant;
 
             // Skip empty cells and paths
