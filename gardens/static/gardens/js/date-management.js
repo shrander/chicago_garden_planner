@@ -20,8 +20,52 @@ function setupDateManagement() {
     const plantedDateLabel = document.getElementById('plantedDateLabel');
     const plantedDateHelp = document.getElementById('plantedDateHelp');
 
-    let currentRow, currentCol, currentPlantName;
+    let currentRow, currentCol, currentPlantName, currentPlantData;
     let isDragging = false;
+
+    // Helper function to calculate expected transplant date
+    function calculateExpectedTransplantDate(seedStartedDate, plantData) {
+        if (!seedStartedDate || !plantData || plantData.direct_sow) return null;
+
+        const seedDate = new Date(seedStartedDate);
+        let totalDays = 0;
+        if (plantData.days_to_germination) totalDays += plantData.days_to_germination;
+        if (plantData.days_before_transplant_ready) totalDays += plantData.days_before_transplant_ready;
+
+        if (totalDays > 0) {
+            const transplantDate = new Date(seedDate);
+            transplantDate.setDate(transplantDate.getDate() + totalDays);
+            return transplantDate;
+        }
+        return null;
+    }
+
+    // Helper function to calculate expected harvest date
+    function calculateExpectedHarvestDate(plantedDate, plantData) {
+        if (!plantedDate || !plantData) return null;
+
+        const planted = new Date(plantedDate);
+        const days = plantData.transplant_to_harvest_days || plantData.days_to_harvest;
+
+        if (days) {
+            const harvestDate = new Date(planted);
+            harvestDate.setDate(harvestDate.getDate() + days);
+            return harvestDate;
+        }
+        return null;
+    }
+
+    // Helper function to calculate days until date
+    function daysUntil(targetDate) {
+        if (!targetDate) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(targetDate);
+        target.setHours(0, 0, 0, 0);
+        const diffTime = target - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    }
 
     // Add click handlers to all plant cells
     const gardenCells = document.querySelectorAll('.garden-cell');
@@ -64,6 +108,10 @@ function setupDateManagement() {
             const instanceKey = `${rowIndex},${colIndex}`;
             const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
 
+            // Get plant data from PLANT_MAP and store it
+            currentPlantData = window.PLANT_MAP && window.PLANT_MAP[plantName.toLowerCase()] ? window.PLANT_MAP[plantName.toLowerCase()] : null;
+            const plantData = currentPlantData;
+
             // Populate modal
             document.getElementById('selectedPlantName').textContent = plantName;
             document.getElementById('selectedPlantPosition').textContent = `Row ${rowIndex + 1}, Column ${colIndex + 1}`;
@@ -75,7 +123,7 @@ function setupDateManagement() {
                 actualHarvestDateInput.value = currentInstanceData.actual_harvest_date || '';
 
                 // Update UI based on whether plant is direct sown
-                const isDirectSown = currentInstanceData.plant_direct_sow;
+                const isDirectSown = plantData ? plantData.direct_sow : false;
                 if (isDirectSown) {
                     plantedDateLabel.textContent = 'Direct Sown Date';
                     plantedDateHelp.textContent = 'When were seeds sown directly in the garden?';
@@ -130,6 +178,16 @@ function setupDateManagement() {
                 expectedHarvestInfo.style.display = 'none';
                 expectedTransplantInfo.style.display = 'none';
                 clearDatesBtn.style.display = 'none';
+
+                // Set up UI based on plant type even for new instances
+                const isDirectSown = plantData ? plantData.direct_sow : false;
+                if (isDirectSown) {
+                    plantedDateLabel.textContent = 'Direct Sown Date';
+                    plantedDateHelp.textContent = 'When were seeds sown directly in the garden?';
+                } else {
+                    plantedDateLabel.textContent = 'Actual Planted Date';
+                    plantedDateHelp.textContent = 'When was this actually transplanted to the garden plot?';
+                }
             }
 
             modal.show();
@@ -142,6 +200,47 @@ function setupDateManagement() {
         if (this.checked && !actualHarvestDateInput.value) {
             // Set to today by default
             actualHarvestDateInput.value = new Date().toISOString().split('T')[0];
+        }
+    });
+
+    // Real-time calculation when seed started date changes
+    seedStartedDateInput.addEventListener('change', function() {
+        if (!currentPlantData) return;
+
+        // Calculate and show expected transplant date
+        if (!currentPlantData.direct_sow) {
+            const expectedTransplant = calculateExpectedTransplantDate(this.value, currentPlantData);
+            if (expectedTransplant) {
+                expectedTransplantInfo.style.display = 'block';
+                document.getElementById('expectedTransplantDate').textContent = expectedTransplant.toLocaleDateString();
+            } else {
+                expectedTransplantInfo.style.display = 'none';
+            }
+        }
+
+        // For direct sown plants, auto-fill planted date
+        if (currentPlantData.direct_sow && this.value && !plantedDateInput.value) {
+            plantedDateInput.value = this.value;
+            // Trigger planted date change to calculate harvest
+            plantedDateInput.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Real-time calculation when planted date changes
+    plantedDateInput.addEventListener('change', function() {
+        if (!currentPlantData) return;
+
+        // Calculate and show expected harvest date
+        const expectedHarvest = calculateExpectedHarvestDate(this.value, currentPlantData);
+        if (expectedHarvest) {
+            const daysRemaining = daysUntil(expectedHarvest);
+            expectedHarvestInfo.style.display = 'block';
+            document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
+            if (daysRemaining !== null) {
+                document.getElementById('daysToHarvest').textContent = daysRemaining;
+            }
+        } else {
+            expectedHarvestInfo.style.display = 'none';
         }
     });
 

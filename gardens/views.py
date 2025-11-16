@@ -168,13 +168,18 @@ def garden_detail(request, pk):
     for plant in all_plants_for_stats:
         plant_yields[plant.name.lower()] = plant
 
-    # Create a mapping of plant names to their symbols and colors for the grid display
+    # Create a mapping of plant names to their symbols, colors, and timing data for the grid display
     plant_map = {}
     for plant in Plant.objects.all():
         plant_map[plant.name.lower()] = {
             'symbol': plant.symbol,
             'color': plant.color,
-            'name': plant.name
+            'name': plant.name,
+            'direct_sow': plant.direct_sow,
+            'days_to_germination': plant.days_to_germination,
+            'days_before_transplant_ready': plant.days_before_transplant_ready,
+            'transplant_to_harvest_days': plant.transplant_to_harvest_days,
+            'days_to_harvest': plant.days_to_harvest,
         }
 
     # Convert plant_map to JSON string for JavaScript
