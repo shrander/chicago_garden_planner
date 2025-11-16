@@ -180,15 +180,41 @@ class PlantInstance(models.Model):
     col = models.IntegerField(help_text='Column position in garden grid (0-indexed)')
 
     # Date tracking
+    SEED_STARTING_METHODS = [
+        ('pot', 'Started in Pot'),
+        ('direct', 'Direct Sown in Garden'),
+    ]
+
+    seed_starting_method = models.CharField(
+        max_length=10,
+        choices=SEED_STARTING_METHODS,
+        null=True,
+        blank=True,
+        help_text='How seeds were/will be started'
+    )
+
+    # Planned dates (for planning ahead)
+    planned_seed_start_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Planned date to start seeds (in pot or direct sow)'
+    )
+    planned_planting_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Planned date to transplant seedlings or direct sow in garden'
+    )
+
+    # Actual dates (what really happened)
     seed_started_date = models.DateField(
         null=True,
         blank=True,
-        help_text='Date when seeds were started (either indoors in pot or direct sown in garden)'
+        help_text='Actual date when seeds were started (in pot or direct sown)'
     )
     planted_date = models.DateField(
         null=True,
         blank=True,
-        help_text='Date when plant was placed in garden plot (either seed_started_date for direct sow, or actual transplant date)'
+        help_text='Actual date when plant was placed in garden plot (transplant or direct sow)'
     )
     expected_harvest_date = models.DateField(
         null=True,
@@ -257,10 +283,10 @@ class PlantInstance(models.Model):
     def save(self, *args, **kwargs):
         """
         Auto-calculate expected harvest date.
-        For direct sown plants, sync seed_started_date to planted_date if not set.
+        For direct sown, sync actual dates.
         """
-        # For direct sown plants, if they only entered seed_started_date, use it as planted_date
-        if self.plant.direct_sow and self.seed_started_date and not self.planted_date:
+        # For direct sown: actual planted date should match actual seed started date
+        if self.seed_starting_method == 'direct' and self.seed_started_date and not self.planted_date:
             self.planted_date = self.seed_started_date
 
         # Auto-calculate expected harvest date if we have a planted_date

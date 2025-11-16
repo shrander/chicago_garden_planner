@@ -8,9 +8,20 @@ function setupDateManagement() {
     if (!plantDateModal) return;
 
     const modal = new bootstrap.Modal(plantDateModal);
+
+    // Checkbox for seed starting method
+    const directSownCheck = document.getElementById('directSownCheck');
+
+    // Planned date inputs
+    const plannedSeedStartInput = document.getElementById('plannedSeedStartInput');
+    const plannedPlantingInput = document.getElementById('plannedPlantingInput');
+
+    // Actual date inputs
     const seedStartedDateInput = document.getElementById('seedStartedDateInput');
     const plantedDateInput = document.getElementById('plantedDateInput');
     const actualHarvestDateInput = document.getElementById('actualHarvestDateInput');
+
+    // Other controls
     const markHarvestedCheck = document.getElementById('markHarvestedCheck');
     const saveDatesBtn = document.getElementById('saveDatesBtn');
     const clearDatesBtn = document.getElementById('clearDatesBtn');
@@ -19,13 +30,16 @@ function setupDateManagement() {
     const expectedTransplantInfo = document.getElementById('expectedTransplantInfo');
     const plantedDateLabel = document.getElementById('plantedDateLabel');
     const plantedDateHelp = document.getElementById('plantedDateHelp');
+    const plannedPlantingLabel = document.getElementById('plannedPlantingLabel');
+    const plannedPlantingHelp = document.getElementById('plannedPlantingHelp');
 
     let currentRow, currentCol, currentPlantName, currentPlantData;
     let isDragging = false;
 
     // Helper function to calculate expected transplant date
-    function calculateExpectedTransplantDate(seedStartedDate, plantData) {
-        if (!seedStartedDate || !plantData || plantData.direct_sow) return null;
+    // Takes either planned or actual seed start date
+    function calculateExpectedTransplantDate(seedStartedDate, plantData, isDirectSown) {
+        if (!seedStartedDate || !plantData || isDirectSown) return null;
 
         const seedDate = new Date(seedStartedDate);
         let totalDays = 0;
@@ -66,6 +80,59 @@ function setupDateManagement() {
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays;
     }
+
+    // Helper function to update UI based on seed starting method
+    function updateUIForSeedingMethod(isDirectSown) {
+        if (isDirectSown) {
+            // Direct sown: disable actual planted date (syncs with seed started)
+            plantedDateInput.disabled = true;
+            plantedDateLabel.textContent = 'Actual Direct Sown';
+            plantedDateHelp.textContent = 'Auto-syncs with actual seed started date';
+            plannedPlantingLabel.textContent = 'Planned Direct Sow';
+            plannedPlantingHelp.textContent = 'When do you plan to sow directly?';
+            expectedTransplantInfo.style.display = 'none';
+        } else {
+            // Pot started: enable actual planted date
+            plantedDateInput.disabled = false;
+            plantedDateLabel.textContent = 'Actual Transplanted';
+            plantedDateHelp.textContent = 'When was this transplanted to the garden?';
+            plannedPlantingLabel.textContent = 'Planned Transplant';
+            plannedPlantingHelp.textContent = 'When do you plan to transplant?';
+        }
+    }
+
+    // Checkbox change handler for seed starting method
+    directSownCheck.addEventListener('change', function() {
+        const isDirectSown = this.checked;
+        updateUIForSeedingMethod(isDirectSown);
+
+        // If switching to direct sown and actual seed started exists, sync planted date
+        if (isDirectSown && seedStartedDateInput.value) {
+            plantedDateInput.value = seedStartedDateInput.value;
+            // Recalculate harvest
+            plantedDateInput.dispatchEvent(new Event('change'));
+        }
+
+        // If switching to direct sown and planned seed start exists, sync planned planting
+        if (isDirectSown && plannedSeedStartInput.value) {
+            plannedPlantingInput.value = plannedSeedStartInput.value;
+            // Recalculate harvest with planned date
+            const expectedHarvest = calculateExpectedHarvestDate(plannedPlantingInput.value, currentPlantData);
+            if (expectedHarvest) {
+                const daysRemaining = daysUntil(expectedHarvest);
+                expectedHarvestInfo.style.display = 'block';
+                document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
+                if (daysRemaining !== null) {
+                    document.getElementById('daysToHarvest').textContent = daysRemaining;
+                }
+            }
+        }
+
+        // Hide transplant info when direct sown
+        if (isDirectSown) {
+            expectedTransplantInfo.style.display = 'none';
+        }
+    });
 
     // Add click handlers to all plant cells
     const gardenCells = document.querySelectorAll('.garden-cell');
@@ -117,44 +184,61 @@ function setupDateManagement() {
             document.getElementById('selectedPlantPosition').textContent = `Row ${rowIndex + 1}, Column ${colIndex + 1}`;
 
             if (currentInstanceData) {
-                // Populate date fields
+                // Populate seed starting method checkbox
+                const isDirectSown = currentInstanceData.seed_starting_method === 'direct';
+                directSownCheck.checked = isDirectSown;
+
+                // Populate planned date fields
+                plannedSeedStartInput.value = currentInstanceData.planned_seed_start_date || '';
+                plannedPlantingInput.value = currentInstanceData.planned_planting_date || '';
+
+                // Populate actual date fields
                 seedStartedDateInput.value = currentInstanceData.seed_started_date || '';
                 plantedDateInput.value = currentInstanceData.planted_date || '';
                 actualHarvestDateInput.value = currentInstanceData.actual_harvest_date || '';
 
-                // Update UI based on whether plant is direct sown
-                const isDirectSown = plantData ? plantData.direct_sow : false;
-                if (isDirectSown) {
-                    plantedDateLabel.textContent = 'Direct Sown Date';
-                    plantedDateHelp.textContent = 'When were seeds sown directly in the garden?';
-                    expectedTransplantInfo.style.display = 'none';
-                } else {
-                    plantedDateLabel.textContent = 'Actual Planted Date';
-                    plantedDateHelp.textContent = 'When was this actually transplanted to the garden plot?';
+                // Update UI based on direct sown checkbox
+                updateUIForSeedingMethod(isDirectSown);
 
-                    // Show expected transplant date if available
-                    if (currentInstanceData.expected_transplant_date) {
-                        expectedTransplantInfo.style.display = 'block';
-                        document.getElementById('expectedTransplantDate').textContent =
-                            new Date(currentInstanceData.expected_transplant_date).toLocaleDateString();
+                // Calculate and show expected transplant date if not direct sown
+                if (!isDirectSown) {
+                    const seedDate = currentInstanceData.seed_started_date || currentInstanceData.planned_seed_start_date;
+                    if (seedDate) {
+                        const expectedTransplant = calculateExpectedTransplantDate(seedDate, plantData, false);
+                        if (expectedTransplant) {
+                            expectedTransplantInfo.style.display = 'block';
+                            document.getElementById('expectedTransplantDate').textContent = expectedTransplant.toLocaleDateString();
+                        } else {
+                            expectedTransplantInfo.style.display = 'none';
+                        }
                     } else {
                         expectedTransplantInfo.style.display = 'none';
                     }
+                } else {
+                    expectedTransplantInfo.style.display = 'none';
                 }
 
                 // Show clear button if any date is set
-                if (currentInstanceData.seed_started_date || currentInstanceData.planted_date) {
+                if (currentInstanceData.seed_started_date || currentInstanceData.planted_date ||
+                    currentInstanceData.planned_seed_start_date || currentInstanceData.planned_planting_date) {
                     clearDatesBtn.style.display = 'inline-block';
                 } else {
                     clearDatesBtn.style.display = 'none';
                 }
 
-                // Show expected harvest info
-                if (currentInstanceData.expected_harvest_date) {
-                    expectedHarvestInfo.style.display = 'block';
-                    document.getElementById('expectedHarvestDate').textContent = new Date(currentInstanceData.expected_harvest_date).toLocaleDateString();
-                    if (currentInstanceData.days_until_harvest !== null) {
-                        document.getElementById('daysToHarvest').textContent = currentInstanceData.days_until_harvest;
+                // Show expected harvest info using actual OR planned dates
+                const effectivePlantedDate = currentInstanceData.planted_date || currentInstanceData.planned_planting_date;
+                if (effectivePlantedDate) {
+                    const expectedHarvest = calculateExpectedHarvestDate(effectivePlantedDate, plantData);
+                    if (expectedHarvest) {
+                        const daysRemaining = daysUntil(expectedHarvest);
+                        expectedHarvestInfo.style.display = 'block';
+                        document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
+                        if (daysRemaining !== null) {
+                            document.getElementById('daysToHarvest').textContent = daysRemaining;
+                        }
+                    } else {
+                        expectedHarvestInfo.style.display = 'none';
                     }
                 } else {
                     expectedHarvestInfo.style.display = 'none';
@@ -170,6 +254,9 @@ function setupDateManagement() {
                 }
             } else {
                 // Clear all fields for new plant
+                directSownCheck.checked = false;
+                plannedSeedStartInput.value = '';
+                plannedPlantingInput.value = '';
                 seedStartedDateInput.value = '';
                 plantedDateInput.value = '';
                 actualHarvestDateInput.value = '';
@@ -179,15 +266,8 @@ function setupDateManagement() {
                 expectedTransplantInfo.style.display = 'none';
                 clearDatesBtn.style.display = 'none';
 
-                // Set up UI based on plant type even for new instances
-                const isDirectSown = plantData ? plantData.direct_sow : false;
-                if (isDirectSown) {
-                    plantedDateLabel.textContent = 'Direct Sown Date';
-                    plantedDateHelp.textContent = 'When were seeds sown directly in the garden?';
-                } else {
-                    plantedDateLabel.textContent = 'Actual Planted Date';
-                    plantedDateHelp.textContent = 'When was this actually transplanted to the garden plot?';
-                }
+                // Set up UI for pot-started by default
+                updateUIForSeedingMethod(false);
             }
 
             modal.show();
@@ -203,13 +283,20 @@ function setupDateManagement() {
         }
     });
 
-    // Real-time calculation when seed started date changes
-    seedStartedDateInput.addEventListener('change', function() {
+    // Real-time calculation when planned seed start date changes
+    plannedSeedStartInput.addEventListener('change', function() {
         if (!currentPlantData) return;
 
-        // Calculate and show expected transplant date
-        if (!currentPlantData.direct_sow) {
-            const expectedTransplant = calculateExpectedTransplantDate(this.value, currentPlantData);
+        const isDirectSown = directSownCheck.checked;
+
+        // For direct sown, auto-sync planned planting with planned seed start
+        if (isDirectSown && this.value) {
+            plannedPlantingInput.value = this.value;
+            // Recalculate harvest based on planned planting
+            plannedPlantingInput.dispatchEvent(new Event('change'));
+        } else if (!isDirectSown) {
+            // For pot-started, calculate expected transplant date
+            const expectedTransplant = calculateExpectedTransplantDate(this.value, currentPlantData, false);
             if (expectedTransplant) {
                 expectedTransplantInfo.style.display = 'block';
                 document.getElementById('expectedTransplantDate').textContent = expectedTransplant.toLocaleDateString();
@@ -217,30 +304,75 @@ function setupDateManagement() {
                 expectedTransplantInfo.style.display = 'none';
             }
         }
+    });
 
-        // For direct sown plants, auto-fill planted date
-        if (currentPlantData.direct_sow && this.value && !plantedDateInput.value) {
+    // Real-time calculation when actual seed started date changes
+    seedStartedDateInput.addEventListener('change', function() {
+        if (!currentPlantData) return;
+
+        const isDirectSown = directSownCheck.checked;
+
+        // For direct sown, auto-sync actual planted with actual seed started
+        if (isDirectSown && this.value) {
             plantedDateInput.value = this.value;
             // Trigger planted date change to calculate harvest
             plantedDateInput.dispatchEvent(new Event('change'));
+        } else if (!isDirectSown) {
+            // For pot-started, calculate expected transplant date
+            const expectedTransplant = calculateExpectedTransplantDate(this.value, currentPlantData, false);
+            if (expectedTransplant) {
+                expectedTransplantInfo.style.display = 'block';
+                document.getElementById('expectedTransplantDate').textContent = expectedTransplant.toLocaleDateString();
+            } else {
+                expectedTransplantInfo.style.display = 'none';
+            }
         }
     });
 
-    // Real-time calculation when planted date changes
+    // Real-time calculation when planned planting date changes
+    plannedPlantingInput.addEventListener('change', function() {
+        if (!currentPlantData) return;
+
+        // Only calculate if no actual planted date (actual takes precedence)
+        if (!plantedDateInput.value && this.value) {
+            const expectedHarvest = calculateExpectedHarvestDate(this.value, currentPlantData);
+            if (expectedHarvest) {
+                const daysRemaining = daysUntil(expectedHarvest);
+                expectedHarvestInfo.style.display = 'block';
+                document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
+                if (daysRemaining !== null) {
+                    document.getElementById('daysToHarvest').textContent = daysRemaining;
+                }
+            } else {
+                expectedHarvestInfo.style.display = 'none';
+            }
+        }
+    });
+
+    // Real-time calculation when actual planted date changes
     plantedDateInput.addEventListener('change', function() {
         if (!currentPlantData) return;
 
-        // Calculate and show expected harvest date
-        const expectedHarvest = calculateExpectedHarvestDate(this.value, currentPlantData);
-        if (expectedHarvest) {
-            const daysRemaining = daysUntil(expectedHarvest);
-            expectedHarvestInfo.style.display = 'block';
-            document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
-            if (daysRemaining !== null) {
-                document.getElementById('daysToHarvest').textContent = daysRemaining;
+        // Actual planted date takes precedence over planned
+        if (this.value) {
+            const expectedHarvest = calculateExpectedHarvestDate(this.value, currentPlantData);
+            if (expectedHarvest) {
+                const daysRemaining = daysUntil(expectedHarvest);
+                expectedHarvestInfo.style.display = 'block';
+                document.getElementById('expectedHarvestDate').textContent = expectedHarvest.toLocaleDateString();
+                if (daysRemaining !== null) {
+                    document.getElementById('daysToHarvest').textContent = daysRemaining;
+                }
+            } else {
+                expectedHarvestInfo.style.display = 'none';
             }
         } else {
-            expectedHarvestInfo.style.display = 'none';
+            // If cleared, fall back to planned date if available
+            if (plannedPlantingInput.value) {
+                plannedPlantingInput.dispatchEvent(new Event('change'));
+            } else {
+                expectedHarvestInfo.style.display = 'none';
+            }
         }
     });
 
@@ -250,8 +382,12 @@ function setupDateManagement() {
         btnManager.setLoading('Saving...');
 
         try {
-            // Save all planting dates if any are provided
-            if (seedStartedDateInput.value || plantedDateInput.value) {
+            // Determine seed starting method
+            const seedStartingMethod = directSownCheck.checked ? 'direct' : 'pot';
+
+            // Save all planting dates and method if any are provided
+            if (plannedSeedStartInput.value || seedStartedDateInput.value ||
+                plannedPlantingInput.value || plantedDateInput.value) {
                 const response = await fetch(`/gardens/${window.GARDEN_ID}/set-planting-date/`, {
                     method: 'POST',
                     headers: {
@@ -261,6 +397,9 @@ function setupDateManagement() {
                     body: JSON.stringify({
                         row: currentRow,
                         col: currentCol,
+                        seed_starting_method: seedStartingMethod,
+                        planned_seed_start_date: plannedSeedStartInput.value || null,
+                        planned_planting_date: plannedPlantingInput.value || null,
                         seed_started_date: seedStartedDateInput.value || null,
                         planted_date: plantedDateInput.value || null
                     })
@@ -335,6 +474,10 @@ function setupDateManagement() {
                 body: JSON.stringify({
                     row: currentRow,
                     col: currentCol,
+                    seed_starting_method: null,
+                    planned_seed_start_date: null,
+                    planned_planting_date: null,
+                    seed_started_date: null,
                     planted_date: null
                 })
             });

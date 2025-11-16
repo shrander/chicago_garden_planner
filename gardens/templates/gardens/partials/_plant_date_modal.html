@@ -17,11 +17,34 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="seedStartedDateInput" class="form-label">
-                        <i class="bi bi-sunrise"></i> Seed Started Date
-                    </label>
-                    <input type="date" class="form-control" id="seedStartedDateInput">
-                    <small class="form-text text-muted">When were seeds started (indoors or directly in garden)?</small>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="directSownCheck">
+                        <label class="form-check-label" for="directSownCheck">
+                            <i class="bi bi-flower1"></i> Direct sown in garden (not started in pot)
+                        </label>
+                    </div>
+                    <small class="form-text text-muted">Check this if seeds go directly in the garden plot</small>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="plannedSeedStartInput" class="form-label">
+                                <i class="bi bi-calendar-week"></i> Planned Seed Start
+                            </label>
+                            <input type="date" class="form-control" id="plannedSeedStartInput">
+                            <small class="form-text text-muted">When do you plan to start seeds?</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="seedStartedDateInput" class="form-label">
+                                <i class="bi bi-check2-circle text-success"></i> Actual Seed Started
+                            </label>
+                            <input type="date" class="form-control" id="seedStartedDateInput">
+                            <small class="form-text text-muted">When did you actually start?</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3" id="expectedTransplantInfo" style="display: none;">
@@ -33,12 +56,25 @@
                     </div>
                 </div>
 
-                <div class="mb-3" id="plantedDateGroup">
-                    <label for="plantedDateInput" class="form-label">
-                        <i class="bi bi-geo-alt-fill"></i> <span id="plantedDateLabel">Actual Planted Date</span>
-                    </label>
-                    <input type="date" class="form-control" id="plantedDateInput">
-                    <small class="form-text text-muted" id="plantedDateHelp">When was this actually placed in the garden plot?</small>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="plannedPlantingInput" class="form-label">
+                                <i class="bi bi-calendar-week"></i> <span id="plannedPlantingLabel">Planned Planting</span>
+                            </label>
+                            <input type="date" class="form-control" id="plannedPlantingInput">
+                            <small class="form-text text-muted" id="plannedPlantingHelp">When do you plan to plant?</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3" id="plantedDateGroup">
+                            <label for="plantedDateInput" class="form-label">
+                                <i class="bi bi-check2-circle text-success"></i> <span id="plantedDateLabel">Actual Planted</span>
+                            </label>
+                            <input type="date" class="form-control" id="plantedDateInput">
+                            <small class="form-text text-muted" id="plantedDateHelp">When did you actually plant?</small>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3" id="expectedHarvestInfo" style="display: none;">

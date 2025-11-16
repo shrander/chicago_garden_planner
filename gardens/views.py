@@ -226,6 +226,9 @@ def garden_detail(request, pk):
         expected_transplant_date = instance.calculate_expected_transplant_date()
         instance_map[f"{instance.row},{instance.col}"] = {
             'id': instance.id,
+            'seed_starting_method': instance.seed_starting_method,
+            'planned_seed_start_date': instance.planned_seed_start_date.isoformat() if instance.planned_seed_start_date else None,
+            'planned_planting_date': instance.planned_planting_date.isoformat() if instance.planned_planting_date else None,
             'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
             'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
             'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
@@ -609,10 +612,10 @@ def garden_save_layout(request, pk):
                             instance.plant = plant
                             instance.save()
 
-                        # Update planted_date if provided
+                        # Update planned_planting_date if provided (AI suggestions are planned dates)
                         if provided_date:
                             from datetime import datetime
-                            instance.planted_date = datetime.fromisoformat(provided_date).date()
+                            instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
                             instance.save()
                     else:
                         # Check if this plant was moved from another position (preserve dates)
@@ -629,11 +632,11 @@ def garden_save_layout(request, pk):
                             moved_instance.col = col_idx
                             if provided_date:
                                 from datetime import datetime
-                                moved_instance.planted_date = datetime.fromisoformat(provided_date).date()
+                                moved_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
                             moved_instance.save()
                             current_positions.add((moved_instance.row, moved_instance.col))
                         else:
-                            # New plant placement - create instance with optional date
+                            # New plant placement - create instance with optional planned date
                             new_instance = PlantInstance(
                                 garden=garden,
                                 plant=plant,
@@ -642,7 +645,7 @@ def garden_save_layout(request, pk):
                             )
                             if provided_date:
                                 from datetime import datetime
-                                new_instance.planted_date = datetime.fromisoformat(provided_date).date()
+                                new_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
                             new_instance.save()
 
         # Remove instances that no longer have plants
@@ -782,16 +785,20 @@ def garden_ai_assistant(request, pk):
 
                     # Check for planted instance data
                     instance = instance_map.get((row_idx, col_idx))
-                    if instance and instance.planted_date:
-                        planted_instances_info.append({
-                            'plant': cell,
-                            'row': row_idx,
-                            'col': col_idx,
-                            'planted_date': instance.planted_date.isoformat(),
-                            'expected_harvest': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
-                            'status': instance.harvest_status(),
-                            'days_until_harvest': instance.days_until_harvest()
-                        })
+                    if instance:
+                        # Use actual planted date if available, otherwise use planned
+                        effective_planted_date = instance.planted_date or instance.planned_planting_date
+                        if effective_planted_date:
+                            planted_instances_info.append({
+                                'plant': cell,
+                                'row': row_idx,
+                                'col': col_idx,
+                                'planted_date': effective_planted_date.isoformat(),
+                                'is_planned': instance.planted_date is None,  # Flag to indicate if date is planned
+                                'expected_harvest': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+                                'status': instance.harvest_status(),
+                                'days_until_harvest': instance.days_until_harvest()
+                            })
                 elif cell and cell.lower() in ['path']:
                     path_cells += 1
                     visual_row.append('===')
@@ -846,7 +853,8 @@ def garden_ai_assistant(request, pk):
         if planted_instances_info:
             planted_info = "\n\nPLANTED CROPS WITH DATES:\n"
             for inst in planted_instances_info:
-                planted_info += f"- {inst['plant']} at ({inst['row']},{inst['col']}): planted {inst['planted_date']}"
+                date_type = "planned" if inst.get('is_planned') else "planted"
+                planted_info += f"- {inst['plant']} at ({inst['row']},{inst['col']}): {date_type} {inst['planted_date']}"
                 if inst['expected_harvest']:
                     planted_info += f", expected harvest {inst['expected_harvest']}"
                     if inst['days_until_harvest'] is not None:
@@ -901,6 +909,7 @@ IMPORTANT:
 - Ensure row/col coordinates match empty cell positions: {empty_cells[:20]}{'...' if len(empty_cells) > 20 else ''}
 - Create logical companion groupings across the garden
 - Include "planted_date" field (YYYY-MM-DD format) for each suggestion if planting date is relevant
+- The system supports both PLANNED and ACTUAL dates - your suggested planted_date will be stored as a planned date
 - The system will auto-calculate expected_harvest_date based on the plant's days_to_harvest
 - planted_date is OPTIONAL - omit it if you're just suggesting plant placement without dates
 - If suggesting succession planting, include planted_date to indicate when to plant
@@ -976,6 +985,9 @@ def set_planting_date(request, pk):
 
         row = data.get('row')
         col = data.get('col')
+        seed_starting_method = data.get('seed_starting_method')
+        planned_seed_start_date_str = data.get('planned_seed_start_date')
+        planned_planting_date_str = data.get('planned_planting_date')
         seed_started_date_str = data.get('seed_started_date')
         planted_date_str = data.get('planted_date')
 
@@ -996,20 +1008,38 @@ def set_planting_date(request, pk):
 
         from datetime import datetime
 
-        # Parse and set seed started date
+        # Set seed starting method
+        if seed_starting_method:
+            instance.seed_starting_method = seed_starting_method
+        else:
+            instance.seed_starting_method = None
+
+        # Parse and set planned seed start date
+        if planned_seed_start_date_str:
+            instance.planned_seed_start_date = datetime.fromisoformat(planned_seed_start_date_str).date()
+        else:
+            instance.planned_seed_start_date = None
+
+        # Parse and set planned planting date
+        if planned_planting_date_str:
+            instance.planned_planting_date = datetime.fromisoformat(planned_planting_date_str).date()
+        else:
+            instance.planned_planting_date = None
+
+        # Parse and set actual seed started date
         if seed_started_date_str:
             instance.seed_started_date = datetime.fromisoformat(seed_started_date_str).date()
         else:
             instance.seed_started_date = None
 
-        # Parse and set planted date
+        # Parse and set actual planted date
         if planted_date_str:
             instance.planted_date = datetime.fromisoformat(planted_date_str).date()
         else:
             instance.planted_date = None
 
-        # Clear expected harvest if no planted date
-        if not instance.planted_date:
+        # Clear expected harvest if no planted date (actual or planned)
+        if not instance.planted_date and not instance.planned_planting_date:
             instance.expected_harvest_date = None
 
         instance.save()
@@ -1022,6 +1052,9 @@ def set_planting_date(request, pk):
             'success': True,
             'instance': {
                 'id': instance.id,
+                'seed_starting_method': instance.seed_starting_method,
+                'planned_seed_start_date': instance.planned_seed_start_date.isoformat() if instance.planned_seed_start_date else None,
+                'planned_planting_date': instance.planned_planting_date.isoformat() if instance.planned_planting_date else None,
                 'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
                 'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
                 'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
