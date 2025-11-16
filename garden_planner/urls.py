@@ -30,6 +30,10 @@ urlpatterns = [
     path('gardens/', include('gardens.urls')),
 ]
 
+# Serve media files (user uploads like avatars)
+# Note: In production with Traefik, Django serves media files directly
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Serve static files in development (in production, WhiteNoise handles this)
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
