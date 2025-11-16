@@ -16,9 +16,10 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve
 from django.views.generic import RedirectView
 
 urlpatterns = [
@@ -31,8 +32,11 @@ urlpatterns = [
 ]
 
 # Serve media files (user uploads like avatars)
-# Note: In production with Traefik, Django serves media files directly
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Django's static() helper only works in DEBUG mode, so we manually add the pattern
+# for production to serve media files through Gunicorn/Traefik
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
 # Serve static files in development (in production, WhiteNoise handles this)
 if settings.DEBUG:
