@@ -9,7 +9,6 @@ function setupDateManagement() {
 
     const modal = new bootstrap.Modal(plantDateModal);
     const seedStartedDateInput = document.getElementById('seedStartedDateInput');
-    const transplantedDateInput = document.getElementById('transplantedDateInput');
     const plantedDateInput = document.getElementById('plantedDateInput');
     const actualHarvestDateInput = document.getElementById('actualHarvestDateInput');
     const markHarvestedCheck = document.getElementById('markHarvestedCheck');
@@ -17,6 +16,9 @@ function setupDateManagement() {
     const clearDatesBtn = document.getElementById('clearDatesBtn');
     const actualHarvestGroup = document.getElementById('actualHarvestGroup');
     const expectedHarvestInfo = document.getElementById('expectedHarvestInfo');
+    const expectedTransplantInfo = document.getElementById('expectedTransplantInfo');
+    const plantedDateLabel = document.getElementById('plantedDateLabel');
+    const plantedDateHelp = document.getElementById('plantedDateHelp');
 
     let currentRow, currentCol, currentPlantName;
     let isDragging = false;
@@ -67,14 +69,33 @@ function setupDateManagement() {
             document.getElementById('selectedPlantPosition').textContent = `Row ${rowIndex + 1}, Column ${colIndex + 1}`;
 
             if (currentInstanceData) {
-                // Populate all date fields
+                // Populate date fields
                 seedStartedDateInput.value = currentInstanceData.seed_started_date || '';
-                transplantedDateInput.value = currentInstanceData.transplanted_date || '';
                 plantedDateInput.value = currentInstanceData.planted_date || '';
                 actualHarvestDateInput.value = currentInstanceData.actual_harvest_date || '';
 
+                // Update UI based on whether plant is direct sown
+                const isDirectSown = currentInstanceData.plant_direct_sow;
+                if (isDirectSown) {
+                    plantedDateLabel.textContent = 'Direct Sown Date';
+                    plantedDateHelp.textContent = 'When were seeds sown directly in the garden?';
+                    expectedTransplantInfo.style.display = 'none';
+                } else {
+                    plantedDateLabel.textContent = 'Actual Planted Date';
+                    plantedDateHelp.textContent = 'When was this actually transplanted to the garden plot?';
+
+                    // Show expected transplant date if available
+                    if (currentInstanceData.expected_transplant_date) {
+                        expectedTransplantInfo.style.display = 'block';
+                        document.getElementById('expectedTransplantDate').textContent =
+                            new Date(currentInstanceData.expected_transplant_date).toLocaleDateString();
+                    } else {
+                        expectedTransplantInfo.style.display = 'none';
+                    }
+                }
+
                 // Show clear button if any date is set
-                if (currentInstanceData.seed_started_date || currentInstanceData.transplanted_date || currentInstanceData.planted_date) {
+                if (currentInstanceData.seed_started_date || currentInstanceData.planted_date) {
                     clearDatesBtn.style.display = 'inline-block';
                 } else {
                     clearDatesBtn.style.display = 'none';
@@ -102,12 +123,12 @@ function setupDateManagement() {
             } else {
                 // Clear all fields for new plant
                 seedStartedDateInput.value = '';
-                transplantedDateInput.value = '';
                 plantedDateInput.value = '';
                 actualHarvestDateInput.value = '';
                 markHarvestedCheck.checked = false;
                 actualHarvestGroup.style.display = 'none';
                 expectedHarvestInfo.style.display = 'none';
+                expectedTransplantInfo.style.display = 'none';
                 clearDatesBtn.style.display = 'none';
             }
 
@@ -131,7 +152,7 @@ function setupDateManagement() {
 
         try {
             // Save all planting dates if any are provided
-            if (seedStartedDateInput.value || transplantedDateInput.value || plantedDateInput.value) {
+            if (seedStartedDateInput.value || plantedDateInput.value) {
                 const response = await fetch(`/gardens/${window.GARDEN_ID}/set-planting-date/`, {
                     method: 'POST',
                     headers: {
@@ -142,7 +163,6 @@ function setupDateManagement() {
                         row: currentRow,
                         col: currentCol,
                         seed_started_date: seedStartedDateInput.value || null,
-                        transplanted_date: transplantedDateInput.value || null,
                         planted_date: plantedDateInput.value || null
                     })
                 });

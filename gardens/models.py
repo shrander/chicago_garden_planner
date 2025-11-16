@@ -72,6 +72,11 @@ class Plant(models.Model):
         blank=True,
         help_text='Days for seeds to germinate'
     )
+    days_before_transplant_ready = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Days from germination until seedling is ready to transplant (hardening off period)'
+    )
     transplant_to_harvest_days = models.IntegerField(
         null=True,
         blank=True,
@@ -178,17 +183,12 @@ class PlantInstance(models.Model):
     seed_started_date = models.DateField(
         null=True,
         blank=True,
-        help_text='Date when seeds were started indoors'
-    )
-    transplanted_date = models.DateField(
-        null=True,
-        blank=True,
-        help_text='Date when seedlings were transplanted to garden'
+        help_text='Date when seeds were started (either indoors in pot or direct sown in garden)'
     )
     planted_date = models.DateField(
         null=True,
         blank=True,
-        help_text='Date when this plant was planted (direct sow or transplant)'
+        help_text='Date when plant was placed in garden plot (either seed_started_date for direct sow, or actual transplant date)'
     )
     expected_harvest_date = models.DateField(
         null=True,
@@ -219,32 +219,52 @@ class PlantInstance(models.Model):
 
     def calculate_expected_harvest_date(self):
         """
-        Calculate expected harvest date based on transplanted_date or planted_date.
+        Calculate expected harvest date based on planted_date.
         Uses transplant_to_harvest_days if available, otherwise days_to_harvest.
         """
         from datetime import timedelta
 
-        # Determine the base date (transplant takes precedence over direct plant)
-        base_date = self.transplanted_date or self.planted_date
-        if not base_date:
+        if not self.planted_date:
             return
 
-        # Determine days to harvest
+        # Determine days to harvest based on whether plant was direct sown or transplanted
         days = self.plant.transplant_to_harvest_days or self.plant.days_to_harvest
         if days:
-            self.expected_harvest_date = base_date + timedelta(days=days)
+            self.expected_harvest_date = self.planted_date + timedelta(days=days)
+
+    def calculate_expected_transplant_date(self):
+        """
+        Calculate expected transplant date based on seed_started_date.
+        Returns None if plant is direct sown or no seed_started_date.
+        This is NOT stored in the database, just calculated for display.
+        """
+        from datetime import timedelta
+
+        # Direct sown plants don't get transplanted
+        if self.plant.direct_sow or not self.seed_started_date:
+            return None
+
+        total_days = 0
+        if self.plant.days_to_germination:
+            total_days += self.plant.days_to_germination
+        if self.plant.days_before_transplant_ready:
+            total_days += self.plant.days_before_transplant_ready
+
+        if total_days > 0:
+            return self.seed_started_date + timedelta(days=total_days)
+        return None
 
     def save(self, *args, **kwargs):
         """
-        Auto-calculate expected harvest date and sync planted_date with transplanted_date.
-        If transplanted_date is set but planted_date isn't, set planted_date to transplanted_date.
+        Auto-calculate expected harvest date.
+        For direct sown plants, sync seed_started_date to planted_date if not set.
         """
-        # Sync transplanted_date to planted_date if not set
-        if self.transplanted_date and not self.planted_date:
-            self.planted_date = self.transplanted_date
+        # For direct sown plants, if they only entered seed_started_date, use it as planted_date
+        if self.plant.direct_sow and self.seed_started_date and not self.planted_date:
+            self.planted_date = self.seed_started_date
 
-        # Auto-calculate expected harvest date if not already set
-        if (self.transplanted_date or self.planted_date) and not self.expected_harvest_date:
+        # Auto-calculate expected harvest date if we have a planted_date
+        if self.planted_date and not self.expected_harvest_date:
             if self.plant.transplant_to_harvest_days or self.plant.days_to_harvest:
                 self.calculate_expected_harvest_date()
 

@@ -218,17 +218,19 @@ def garden_detail(request, pk):
     # Create mapping of grid position to instance data
     instance_map = {}
     for instance in plant_instances:
+        expected_transplant_date = instance.calculate_expected_transplant_date()
         instance_map[f"{instance.row},{instance.col}"] = {
             'id': instance.id,
             'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
-            'transplanted_date': instance.transplanted_date.isoformat() if instance.transplanted_date else None,
             'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+            'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
             'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
             'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
             'harvest_status': instance.harvest_status(),
             'days_until_harvest': instance.days_until_harvest(),
             'plant_name': instance.plant.name,
             'plant_id': instance.plant.id,
+            'plant_direct_sow': instance.plant.direct_sow,
         }
 
     instance_map_json = json.dumps(instance_map)
@@ -970,7 +972,6 @@ def set_planting_date(request, pk):
         row = data.get('row')
         col = data.get('col')
         seed_started_date_str = data.get('seed_started_date')
-        transplanted_date_str = data.get('transplanted_date')
         planted_date_str = data.get('planted_date')
 
         if row is None or col is None:
@@ -996,23 +997,20 @@ def set_planting_date(request, pk):
         else:
             instance.seed_started_date = None
 
-        # Parse and set transplanted date
-        if transplanted_date_str:
-            instance.transplanted_date = datetime.fromisoformat(transplanted_date_str).date()
-        else:
-            instance.transplanted_date = None
-
         # Parse and set planted date
         if planted_date_str:
             instance.planted_date = datetime.fromisoformat(planted_date_str).date()
         else:
             instance.planted_date = None
 
-        # Clear expected harvest if no base date
-        if not instance.transplanted_date and not instance.planted_date:
+        # Clear expected harvest if no planted date
+        if not instance.planted_date:
             instance.expected_harvest_date = None
 
         instance.save()
+
+        # Calculate expected transplant date for display (not stored)
+        expected_transplant_date = instance.calculate_expected_transplant_date()
 
         # Return updated instance data
         return JsonResponse({
@@ -1020,8 +1018,8 @@ def set_planting_date(request, pk):
             'instance': {
                 'id': instance.id,
                 'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
-                'transplanted_date': instance.transplanted_date.isoformat() if instance.transplanted_date else None,
                 'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+                'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
                 'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
                 'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
                 'harvest_status': instance.harvest_status(),
@@ -1079,14 +1077,17 @@ def mark_harvested(request, pk):
 
         instance.save()
 
+        # Calculate expected transplant date for display
+        expected_transplant_date = instance.calculate_expected_transplant_date()
+
         # Return updated instance data
         return JsonResponse({
             'success': True,
             'instance': {
                 'id': instance.id,
                 'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
-                'transplanted_date': instance.transplanted_date.isoformat() if instance.transplanted_date else None,
                 'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+                'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
                 'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
                 'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
                 'harvest_status': instance.harvest_status(),
