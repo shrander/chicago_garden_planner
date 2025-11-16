@@ -146,3 +146,24 @@
 .date-badge.overdue {
     background-color: #dc3545;
 }
+
+/* Garden Title Edit Input - maintain display-5 size */
+#gardenNameInput {
+    font-size: 3rem !important;
+    font-weight: 300 !important;
+    line-height: 1.2 !important;
+}
+
+/* Add subtle glow to text inputs on hover */
+.form-control:hover:not(:focus):not(:disabled),
+.form-select:hover:not(:focus):not(:disabled) {
+    box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.15);
+    border-color: rgba(25, 135, 84, 0.3);
+}
+
+/* Enhanced focus state for inputs */
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+    border-color: rgba(25, 135, 84, 0.5);
+}
