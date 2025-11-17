@@ -1,6 +1,26 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.shortcuts import render, redirect
+from django.urls import path
+from django.contrib import messages
+from django import forms
+import csv
+import json
 from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare
+
+
+class CSVImportForm(forms.Form):
+    """Form for uploading CSV file to import plants"""
+    csv_file = forms.FileField(
+        label='CSV File',
+        help_text='Upload a CSV file with plant data. See plant_import_template.csv for format.'
+    )
+    overwrite_existing = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Overwrite existing plants',
+        help_text='If checked, plants with matching names will be updated. Otherwise, duplicates will be skipped.'
+    )
 
 
 @admin.register(Plant)
@@ -78,6 +98,130 @@ class PlantAdmin(admin.ModelAdmin):
         """Optimize queries with prefetch_related"""
         qs = super().get_queryset(request)
         return qs.prefetch_related('companion_plants')
+
+    def get_urls(self):
+        """Add custom URL for CSV import"""
+        urls = super().get_urls()
+        custom_urls = [
+            path('import-csv/', self.admin_site.admin_view(self.import_csv), name='gardens_plant_import_csv'),
+        ]
+        return custom_urls + urls
+
+    def import_csv(self, request):
+        """Handle CSV import for bulk plant creation"""
+        if request.method == 'POST':
+            form = CSVImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                csv_file = request.FILES['csv_file']
+                overwrite = form.cleaned_data['overwrite_existing']
+
+                # Decode the file
+                try:
+                    decoded_file = csv_file.read().decode('utf-8').splitlines()
+                    reader = csv.DictReader(decoded_file)
+
+                    created_count = 0
+                    updated_count = 0
+                    skipped_count = 0
+                    errors = []
+
+                    for row_num, row in enumerate(reader, start=2):  # Start at 2 (header is row 1)
+                        try:
+                            # Parse required fields
+                            name = row.get('name', '').strip()
+                            if not name:
+                                errors.append(f"Row {row_num}: Missing 'name' field")
+                                continue
+
+                            # Parse planting_seasons JSON
+                            planting_seasons_str = row.get('planting_seasons', '[]').strip()
+                            try:
+                                planting_seasons = json.loads(planting_seasons_str) if planting_seasons_str else []
+                            except json.JSONDecodeError:
+                                planting_seasons = []
+
+                            # Parse boolean fields
+                            direct_sow = row.get('direct_sow', '').strip().upper() in ['TRUE', '1', 'YES']
+
+                            # Prepare plant data
+                            plant_data = {
+                                'latin_name': row.get('latin_name', '').strip(),
+                                'symbol': row.get('symbol', '')[:2].strip(),  # Max 2 chars
+                                'color': row.get('color', '#90EE90').strip(),
+                                'plant_type': row.get('plant_type', '').strip(),
+                                'life_cycle': row.get('life_cycle', '').strip() or None,
+                                'planting_seasons': planting_seasons,
+                                'spacing_inches': float(row.get('spacing_inches', 0)) if row.get('spacing_inches') else None,
+                                'chicago_notes': row.get('chicago_notes', '').strip(),
+                                'direct_sow': direct_sow,
+                                'is_default': True,  # CSV imports are default plants
+                                'created_by': None,  # System plants have no creator
+                            }
+
+                            # Parse optional integer fields
+                            for field in ['days_to_harvest', 'weeks_before_last_frost_start',
+                                        'weeks_after_last_frost_transplant', 'days_to_germination',
+                                        'days_before_transplant_ready', 'transplant_to_harvest_days']:
+                                value = row.get(field, '').strip()
+                                plant_data[field] = int(value) if value else None
+
+                            # Parse optional text fields
+                            for field in ['yield_per_plant', 'pest_deterrent_for']:
+                                plant_data[field] = row.get(field, '').strip()
+
+                            # Check if plant exists
+                            existing_plant = Plant.objects.filter(name=name, is_default=True).first()
+
+                            if existing_plant:
+                                if overwrite:
+                                    # Update existing plant
+                                    for key, value in plant_data.items():
+                                        setattr(existing_plant, key, value)
+                                    existing_plant.save()
+                                    updated_count += 1
+                                else:
+                                    skipped_count += 1
+                            else:
+                                # Create new plant
+                                Plant.objects.create(name=name, **plant_data)
+                                created_count += 1
+
+                        except Exception as e:
+                            errors.append(f"Row {row_num} ({name}): {str(e)}")
+
+                    # Show results
+                    if created_count > 0:
+                        messages.success(request, f'Successfully created {created_count} plant(s)')
+                    if updated_count > 0:
+                        messages.success(request, f'Successfully updated {updated_count} plant(s)')
+                    if skipped_count > 0:
+                        messages.warning(request, f'Skipped {skipped_count} duplicate plant(s)')
+                    if errors:
+                        for error in errors[:10]:  # Show first 10 errors
+                            messages.error(request, error)
+                        if len(errors) > 10:
+                            messages.error(request, f'... and {len(errors) - 10} more errors')
+
+                    return redirect('..')
+
+                except Exception as e:
+                    messages.error(request, f'Error processing CSV file: {str(e)}')
+        else:
+            form = CSVImportForm()
+
+        context = {
+            'form': form,
+            'title': 'Import Plants from CSV',
+            'site_header': 'Chicago Garden Planner Admin',
+            'has_permission': True,
+        }
+        return render(request, 'admin/gardens/plant/import_csv.html', context)
+
+    def changelist_view(self, request, extra_context=None):
+        """Add import button to the change list view"""
+        extra_context = extra_context or {}
+        extra_context['show_import_button'] = True
+        return super().changelist_view(request, extra_context)
 
 
 @admin.register(Garden)

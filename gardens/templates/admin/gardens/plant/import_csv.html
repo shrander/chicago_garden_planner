@@ -1,0 +1,89 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+
+    <div class="module">
+        <div class="module-header">
+            <h2>Upload CSV File</h2>
+        </div>
+        <div class="module-content">
+            <p class="help">
+                Upload a CSV file containing plant data. The file should include the following columns:
+            </p>
+
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+                <h3 style="margin-top: 0;">Required Fields:</h3>
+                <ul>
+                    <li><strong>name</strong> - Plant common name</li>
+                    <li><strong>latin_name</strong> - Scientific name</li>
+                    <li><strong>symbol</strong> - 1-2 character symbol for grid</li>
+                    <li><strong>color</strong> - Hex color code (e.g., #FF6347)</li>
+                    <li><strong>plant_type</strong> - One of: utility, vegetable, herb, flower, fruit, companion, cover_crop</li>
+                    <li><strong>spacing_inches</strong> - Spacing between plants</li>
+                </ul>
+
+                <h3>Optional Fields:</h3>
+                <ul>
+                    <li><strong>life_cycle</strong> - annual, biennial, or perennial</li>
+                    <li><strong>planting_seasons</strong> - JSON array like <code>["spring"]</code> or <code>["spring", "fall"]</code></li>
+                    <li><strong>days_to_harvest</strong> - Days from transplant to harvest</li>
+                    <li><strong>chicago_notes</strong> - Zone 5b/6a specific notes</li>
+                    <li><strong>weeks_before_last_frost_start</strong> - Weeks before last frost to start indoors</li>
+                    <li><strong>weeks_after_last_frost_transplant</strong> - Weeks after last frost to transplant</li>
+                    <li><strong>direct_sow</strong> - TRUE or FALSE</li>
+                    <li><strong>days_to_germination</strong> - Days for seeds to germinate</li>
+                    <li><strong>days_before_transplant_ready</strong> - Days until ready to transplant</li>
+                    <li><strong>transplant_to_harvest_days</strong> - Days from transplant to harvest</li>
+                    <li><strong>yield_per_plant</strong> - Expected yield description</li>
+                    <li><strong>pest_deterrent_for</strong> - Comma-separated pests</li>
+                </ul>
+
+                <p style="margin-top: 15px;">
+                    <strong>Template:</strong> See
+                    <a href="{% url 'admin:index' %}../../plant_import_template.csv" target="_blank" style="color: #007bff;">
+                        plant_import_template.csv
+                    </a>
+                    for an example format.
+                </p>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" style="margin-top: 20px;">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="errornote">
+                    <h3>Please correct the errors below:</h3>
+                    {{ form.errors }}
+                </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div>
+                        <label for="id_csv_file">{{ form.csv_file.label }}:</label>
+                        {{ form.csv_file }}
+                        <p class="help">{{ form.csv_file.help_text }}</p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div>
+                        <label for="id_overwrite_existing">
+                            {{ form.overwrite_existing }}
+                            {{ form.overwrite_existing.label }}
+                        </label>
+                        <p class="help">{{ form.overwrite_existing.help_text }}</p>
+                    </div>
+                </div>
+
+                <div class="submit-row" style="margin-top: 20px;">
+                    <input type="submit" value="Import Plants" class="default" />
+                    <a href="{% url 'admin:gardens_plant_changelist' %}" class="button cancel-link">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
