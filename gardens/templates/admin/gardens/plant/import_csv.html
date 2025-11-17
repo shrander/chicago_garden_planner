@@ -1,6 +1,22 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 
+{% block extrastyle %}
+<style>
+    /* Style for code elements in dark background */
+    .instructions-box code {
+        background-color: #1a1a1a;
+        color: #4da3ff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+    }
+    .instructions-box strong {
+        color: #ffd700;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div id="content-main">
     <h1>{{ title }}</h1>
@@ -14,8 +30,8 @@
                 Upload a CSV file containing plant data. The file should include the following columns:
             </p>
 
-            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
-                <h3 style="margin-top: 0;">Required Fields:</h3>
+            <div class="instructions-box" style="margin: 20px 0; padding: 15px; background-color: #2b2b2b; border-left: 4px solid #007bff; color: #e0e0e0;">
+                <h3 style="margin-top: 0; color: #ffffff;">Required Fields:</h3>
                 <ul>
                     <li><strong>name</strong> - Plant common name</li>
                     <li><strong>latin_name</strong> - Scientific name</li>
@@ -25,7 +41,7 @@
                     <li><strong>spacing_inches</strong> - Spacing between plants</li>
                 </ul>
 
-                <h3>Optional Fields:</h3>
+                <h3 style="color: #ffffff;">Optional Fields:</h3>
                 <ul>
                     <li><strong>life_cycle</strong> - annual, biennial, or perennial</li>
                     <li><strong>planting_seasons</strong> - JSON array like <code>["spring"]</code> or <code>["spring", "fall"]</code></li>
@@ -41,9 +57,9 @@
                     <li><strong>pest_deterrent_for</strong> - Comma-separated pests</li>
                 </ul>
 
-                <p style="margin-top: 15px;">
-                    <strong>Template:</strong> See
-                    <a href="{% url 'admin:index' %}../../plant_import_template.csv" target="_blank" style="color: #007bff;">
+                <p style="margin-top: 15px; color: #e0e0e0;">
+                    <strong style="color: #ffffff;">Template:</strong> See
+                    <a href="{% url 'admin:index' %}../../plant_import_template.csv" target="_blank" style="color: #4da3ff;">
                         plant_import_template.csv
                     </a>
                     for an example format.
