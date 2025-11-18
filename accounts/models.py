@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from .managers import CustomUserManager
 from .encryption import encrypt_value, decrypt_value
+from gardens.constants import HARDINESS_ZONES
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     """
@@ -102,27 +103,6 @@ class UserProfile(models.Model):
         help_text='City and state (e.g., "Chicago, IL")'
     )
 
-    # We need to duplicate HARDINESS_ZONES here to avoid circular import
-    # This will be defined in gardens.models as the canonical source
-    HARDINESS_ZONES = [
-        ('3a', 'Zone 3a (-40°F to -35°F)'),
-        ('3b', 'Zone 3b (-35°F to -30°F)'),
-        ('4a', 'Zone 4a (-30°F to -25°F)'),
-        ('4b', 'Zone 4b (-25°F to -20°F)'),
-        ('5a', 'Zone 5a (-20°F to -15°F)'),
-        ('5b', 'Zone 5b (-15°F to -10°F)'),
-        ('6a', 'Zone 6a (-10°F to -5°F)'),
-        ('6b', 'Zone 6b (-5°F to 0°F)'),
-        ('7a', 'Zone 7a (0°F to 5°F)'),
-        ('7b', 'Zone 7b (5°F to 10°F)'),
-        ('8a', 'Zone 8a (10°F to 15°F)'),
-        ('8b', 'Zone 8b (15°F to 20°F)'),
-        ('9a', 'Zone 9a (20°F to 25°F)'),
-        ('9b', 'Zone 9b (25°F to 30°F)'),
-        ('10a', 'Zone 10a (30°F to 35°F)'),
-        ('10b', 'Zone 10b (35°F to 40°F)'),
-    ]
-
     gardening_zone = models.CharField(
         max_length=3,
         blank=True,
@@ -216,14 +196,15 @@ class UserProfile(models.Model):
     def get_frost_dates(self):
         """Get frost dates for this user (custom or zone defaults)"""
         from datetime import datetime
+        from gardens.utils import parse_frost_date, get_default_zone
 
         # Check for custom frost dates first
         if self.custom_frost_dates and self.custom_frost_dates.get('last_frost'):
             current_year = datetime.now().year
             try:
                 return {
-                    'last_frost': datetime.strptime(f"{current_year}-{self.custom_frost_dates['last_frost']}", '%Y-%m-%d').date(),
-                    'first_frost': datetime.strptime(f"{current_year}-{self.custom_frost_dates['first_frost']}", '%Y-%m-%d').date(),
+                    'last_frost': parse_frost_date(current_year, self.custom_frost_dates['last_frost']),
+                    'first_frost': parse_frost_date(current_year, self.custom_frost_dates['first_frost']),
                 }
             except (ValueError, KeyError):
                 pass
@@ -234,18 +215,29 @@ class UserProfile(models.Model):
             current_year = datetime.now().year
             try:
                 return {
-                    'last_frost': datetime.strptime(f"{current_year}-{climate.typical_last_frost}", '%Y-%m-%d').date(),
-                    'first_frost': datetime.strptime(f"{current_year}-{climate.typical_first_frost}", '%Y-%m-%d').date(),
+                    'last_frost': parse_frost_date(current_year, climate.typical_last_frost),
+                    'first_frost': parse_frost_date(current_year, climate.typical_first_frost),
                 }
             except ValueError:
                 pass
 
-        # Fallback to Chicago dates (5b/6a)
+        # Fallback to default zone from settings
         current_year = datetime.now().year
-        return {
-            'last_frost': datetime.strptime(f"{current_year}-05-15", '%Y-%m-%d').date(),
-            'first_frost': datetime.strptime(f"{current_year}-10-15", '%Y-%m-%d').date(),
-        }
+        default_zone = get_default_zone()
+
+        try:
+            from gardens.models import ClimateZone
+            climate = ClimateZone.objects.get(zone=default_zone)
+            return {
+                'last_frost': parse_frost_date(current_year, climate.typical_last_frost),
+                'first_frost': parse_frost_date(current_year, climate.typical_first_frost),
+            }
+        except:
+            # Final fallback to hardcoded dates (Chicago 5b)
+            return {
+                'last_frost': parse_frost_date(current_year, "05-15"),
+                'first_frost': parse_frost_date(current_year, "10-15"),
+            }
 
     class Meta:
         verbose_name = _('user profile')

@@ -873,9 +873,9 @@ def garden_ai_assistant(request, pk):
                 planted_info += f" [{inst['status']}]\n"
 
         # Get zone-specific climate information
-        from gardens.utils import get_user_frost_dates, get_growing_season_info
+        from gardens.utils import get_user_frost_dates, get_growing_season_info, get_default_zone
 
-        user_zone = request.user.profile.gardening_zone if hasattr(request.user, 'profile') and request.user.profile.gardening_zone else '5b'
+        user_zone = request.user.profile.gardening_zone if hasattr(request.user, 'profile') and request.user.profile.gardening_zone else get_default_zone()
         frost_dates = get_user_frost_dates(request.user)
         climate_info = get_growing_season_info(user_zone)
 

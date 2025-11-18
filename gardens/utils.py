@@ -5,8 +5,36 @@ Utility functions for garden planning and zone-based calculations.
 from datetime import datetime, timedelta, date
 from typing import Dict, Optional
 from django.contrib.auth import get_user_model
+from django.conf import settings
 
 User = get_user_model()
+
+
+def parse_frost_date(year: int, date_str: str) -> date:
+    """
+    Parse a frost date string (MM-DD format) and return a date object for the given year.
+
+    Args:
+        year: Year to use for the date
+        date_str: Date string in MM-DD format (e.g., "05-15")
+
+    Returns:
+        datetime.date object
+
+    Raises:
+        ValueError: If date_str is not in MM-DD format
+    """
+    return datetime.strptime(f"{year}-{date_str}", '%Y-%m-%d').date()
+
+
+def get_default_zone() -> str:
+    """
+    Get the default hardiness zone from settings.
+
+    Returns:
+        Default zone string (e.g., '5b')
+    """
+    return getattr(settings, 'DEFAULT_HARDINESS_ZONE', '5b')
 
 
 def get_user_frost_dates(user) -> Dict[str, date]:
@@ -22,12 +50,23 @@ def get_user_frost_dates(user) -> Dict[str, date]:
     if hasattr(user, 'profile'):
         return user.profile.get_frost_dates()
 
-    # Fallback to Chicago dates (5b/6a) if no profile
+    # Fallback to default zone dates if no profile
     current_year = datetime.now().year
-    return {
-        'last_frost': datetime.strptime(f"{current_year}-05-15", '%Y-%m-%d').date(),
-        'first_frost': datetime.strptime(f"{current_year}-10-15", '%Y-%m-%d').date(),
-    }
+    default_zone = get_default_zone()
+
+    try:
+        from gardens.models import ClimateZone
+        climate = ClimateZone.objects.get(zone=default_zone)
+        return {
+            'last_frost': parse_frost_date(current_year, climate.typical_last_frost),
+            'first_frost': parse_frost_date(current_year, climate.typical_first_frost),
+        }
+    except:
+        # Final fallback to hardcoded dates (Chicago 5b)
+        return {
+            'last_frost': parse_frost_date(current_year, "05-15"),
+            'first_frost': parse_frost_date(current_year, "10-15"),
+        }
 
 
 def calculate_planting_dates(plant, user_zone: str, reference_date: Optional[date] = None) -> Dict[str, date]:
@@ -51,7 +90,7 @@ def calculate_planting_dates(plant, user_zone: str, reference_date: Optional[dat
 
     try:
         climate = ClimateZone.objects.get(zone=user_zone)
-        last_frost = datetime.strptime(f"{reference_date.year}-{climate.typical_last_frost}", '%Y-%m-%d').date()
+        last_frost = parse_frost_date(reference_date.year, climate.typical_last_frost)
 
         # Calculate seed starting date (weeks before last frost)
         if plant.weeks_before_last_frost_start:
@@ -96,8 +135,8 @@ def get_growing_season_info(zone: str) -> Optional[Dict]:
         return {
             'zone': climate.zone,
             'region_examples': climate.region_examples,
-            'last_frost': datetime.strptime(f"{current_year}-{climate.typical_last_frost}", '%Y-%m-%d').date(),
-            'first_frost': datetime.strptime(f"{current_year}-{climate.typical_first_frost}", '%Y-%m-%d').date(),
+            'last_frost': parse_frost_date(current_year, climate.typical_last_frost),
+            'first_frost': parse_frost_date(current_year, climate.typical_first_frost),
             'growing_season_days': climate.growing_season_days,
             'growing_season_weeks': climate.growing_season_days // 7,
             'avg_annual_min_temp_f': climate.avg_annual_min_temp_f,
