@@ -415,7 +415,16 @@ window.INSTANCE_MAP = {{ instance_map_json|safe }};
 window.GARDEN_DATA = {
     width: {{ garden.width }},
     height: {{ garden.height }},
-    plantDatabase: {{ plant_database_json|safe }}
+    plantDatabase: {{ plant_database_json|safe }},
+    userZone: '{{ user_zone }}',
+    {% if frost_dates %}
+    lastFrostDate: '{{ frost_dates.last_frost|date:"F j" }}',
+    firstFrostDate: '{{ frost_dates.first_frost|date:"F j" }}',
+    {% endif %}
+    {% if climate_info %}
+    growingSeasonDays: {{ climate_info.growing_season_days }},
+    specialConsiderations: '{{ climate_info.special_considerations|escapejs }}'
+    {% endif %}
 };
 </script>
 

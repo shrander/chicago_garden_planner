@@ -243,6 +243,13 @@ def garden_detail(request, pk):
 
     instance_map_json = json.dumps(instance_map)
 
+    # Get zone-specific information for export functionality
+    from gardens.utils import get_user_frost_dates, get_growing_season_info
+
+    user_zone = request.user.profile.gardening_zone if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.gardening_zone else '5b'
+    frost_dates = get_user_frost_dates(request.user) if request.user.is_authenticated else None
+    climate_info = get_growing_season_info(user_zone)
+
     context = {
         'garden': garden,
         'grid_data': grid_data,
@@ -269,6 +276,10 @@ def garden_detail(request, pk):
         'total_spaces': total_spaces,
         'plant_count': plant_count,
         'plant_yields': plant_yields,
+        # Zone-specific data for export
+        'user_zone': user_zone,
+        'frost_dates': frost_dates,
+        'climate_info': climate_info,
     }
 
     return render(request, 'gardens/garden_detail.html', context)
@@ -861,8 +872,26 @@ def garden_ai_assistant(request, pk):
                         planted_info += f" ({inst['days_until_harvest']} days)"
                 planted_info += f" [{inst['status']}]\n"
 
+        # Get zone-specific climate information
+        from gardens.utils import get_user_frost_dates, get_growing_season_info
+
+        user_zone = request.user.profile.gardening_zone if hasattr(request.user, 'profile') and request.user.profile.gardening_zone else '5b'
+        frost_dates = get_user_frost_dates(request.user)
+        climate_info = get_growing_season_info(user_zone)
+
+        # Format climate information for prompt
+        climate_context = f"""
+CLIMATE ZONE: {user_zone}
+- Last Frost Date: {frost_dates['last_frost'].strftime('%B %d')}
+- First Frost Date: {frost_dates['first_frost'].strftime('%B %d')}
+- Growing Season: {climate_info['growing_season_days'] if climate_info else 153} days"""
+
+        if climate_info and climate_info.get('special_considerations'):
+            climate_context += f"\n- Special Considerations: {climate_info['special_considerations']}"
+
         # Build prompt for Claude
-        prompt = f"""You are a Chicago garden planning assistant (USDA zones 5b/6a). Your goal is to create a COMPREHENSIVE garden layout by filling ALL empty spaces with companion plants.
+        prompt = f"""You are a garden planning assistant for USDA zone {user_zone}. Your goal is to create a COMPREHENSIVE garden layout by filling ALL empty spaces with companion plants.
+{climate_context}
 
 GARDEN INFORMATION:
 - Size: {garden.width} columns × {garden.height} rows ({garden.width * garden.height} total cells)
@@ -887,7 +916,7 @@ Create a comprehensive garden layout by filling ALL {len(empty_cells)} empty spa
 2. **Pest Management**: Use pest deterrent plants strategically (check 'pest_deterrent' field)
 3. **Plant Spacing**: Respect spacing requirements (check 'spacing' field)
 4. **Variety**: Include vegetables, herbs, and flowers for a balanced ecosystem
-5. **Chicago Climate**: All plants are pre-selected for zones 5b/6a
+5. **Climate Zone**: All plants are pre-selected for zone {user_zone} - consider the growing season and frost dates above
 6. **Succession Planting**: Consider planting dates and harvest times (days_to_harvest field) - suggest plants to replace crops nearing harvest{'(see PLANTED CROPS section above)' if planted_instances_info else ''}
 7. **Maximize Yield**: Fill all spaces efficiently - don't waste any cells!
 

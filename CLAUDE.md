@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Chicago Garden Planner is a Django web application designed to help gardeners in the Chicago area (USDA zones 5b/6a) plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design.
+Chicago Garden Planner is a Django web application designed to help gardeners across North America plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design. Originally created for Chicago (USDA zones 5b/6a), now expanded to support all 16 USDA hardiness zones (3a-10b).
 
 ## Development Commands
 
@@ -31,8 +31,14 @@ python manage.py makemigrations accounts
 # Apply migrations
 python manage.py migrate
 
-# Populate database with Chicago-specific plants
+# Populate database with default plants
 python manage.py populate_default_plants --create-sample-user
+
+# Populate climate zone data (all 16 USDA zones)
+python manage.py populate_climate_zones
+
+# Populate plant zone success ratings
+python manage.py populate_plant_zone_ratings
 
 # Create companion plant relationships
 python manage.py create_companion_relationship
@@ -114,8 +120,12 @@ Handles user authentication, registration, and profile management.
 Core garden planning functionality.
 
 - **Models** (implemented in `gardens/models.py`):
-  - `Plant`: Plant library with Chicago-specific growing info, companion planting relationships, and pest deterrent information
-    - Fields: name, latin_name, symbol, color, plant_type, planting_season, days_to_harvest, spacing_inches, chicago_notes
+  - `Plant`: Plant library with zone-specific growing info, companion planting relationships, and pest deterrent information
+    - Fields: name, latin_name, symbol, color, plant_type, planting_season, days_to_harvest, spacing_inches, growing_notes
+  - `ClimateZone`: Climate and growing information for USDA hardiness zones
+    - Frost dates, growing season days, temperature ranges, soil types, special considerations
+  - `PlantZoneData`: Zone-specific success ratings and growing notes for plants
+    - Success rating (1-5 stars), zone_specific_notes, soil_amendments, special_considerations
     - Many-to-many relationship with itself for companion plants
     - Can be user-created or system defaults (is_default flag)
   - `Garden`: User's garden layouts with grid-based design
@@ -125,7 +135,9 @@ Core garden planning functionality.
   - `PlantingNote`: Journal entries for specific plants in gardens with timestamps
 - **Views**: Currently placeholder views (`gardens/views.py`) returning "coming soon" messages - need implementation
 - **Management Commands**:
-  - `populate_default_plants.py`: Loads 16+ default Chicago-optimized plants
+  - `populate_default_plants.py`: Loads 20+ default plants with growing information
+  - `populate_climate_zones.py`: Loads all 16 USDA hardiness zones with climate data
+  - `populate_plant_zone_ratings.py`: Loads zone-specific success ratings for common plants
   - `create_companion_relationships.py`: Sets up companion planting data
 
 ### URL Structure
@@ -314,14 +326,15 @@ Custom management commands go in:
 - `gardens/management/commands/`
 - Must include `__init__.py` files in both `management/` and `commands/` directories
 
-## Chicago-Specific Features
+## Multi-Zone Support
 
-This app is optimized for Chicago's climate (USDA zones 5b/6a):
-- Frost date awareness
-- Heat-tolerant plant varieties
-- Seasonal planting calendars
-- Humidity and pest management specific to the region
-- Default plants include chicago_notes field with zone-specific guidance
+The app supports all 16 USDA hardiness zones (3a-10b):
+- **Automatic climate adaptation**: Frost dates, growing season info for user's zone
+- **Zone-specific plant ratings**: Success ratings (1-5 stars) for each plant by zone
+- **Tailored growing advice**: Zone-specific notes, soil amendments, special considerations
+- **AI zone-awareness**: AI assistant provides zone-appropriate recommendations
+- **Custom frost dates**: Users can override defaults with microclimate data
+- **Default zone**: Chicago (5b) for backward compatibility and anonymous users
 
 ## Dependencies
 

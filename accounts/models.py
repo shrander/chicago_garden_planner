@@ -88,12 +88,22 @@ class UserProfile(models.Model):
     Created automatically when a user is creatd via signals.
     """
     user = models.OneToOneField(
-        CustomUser, 
+        CustomUser,
         on_delete=models.CASCADE,
         related_name='profile'
     )
     bio=models.TextField(max_length=500, blank=True, help_text='Tell us about your gardening experience')
-    location = models.CharField(max_length=150, blank=True, help_text='City, State')
+    location = models.CharField(max_length=150, blank=True, help_text='City, State (deprecated - use location_name instead)')
+
+    # Location and zone information
+    location_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='City and state (e.g., "Chicago, IL")'
+    )
+
+    # We need to duplicate HARDINESS_ZONES here to avoid circular import
+    # This will be defined in gardens.models as the canonical source
     HARDINESS_ZONES = [
         ('3a', 'Zone 3a (-40°F to -35°F)'),
         ('3b', 'Zone 3b (-35°F to -30°F)'),
@@ -114,11 +124,18 @@ class UserProfile(models.Model):
     ]
 
     gardening_zone = models.CharField(
-        max_length=10,
+        max_length=3,
         blank=True,
         default='5b',
         choices=HARDINESS_ZONES,
-        help_text='USDA Hardiness Zone (Chicago is typically 5b/6a)'
+        help_text='USDA Hardiness Zone'
+    )
+
+    # Custom frost dates override
+    custom_frost_dates = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Custom last/first frost dates: {"last_frost": "MM-DD", "first_frost": "MM-DD"}'
     )
     year_started_gardening = models.PositiveIntegerField(
         null=True,
@@ -186,7 +203,51 @@ class UserProfile(models.Model):
         else:
             self._anthropic_api_key_encrypted = ''
 
-    class Meta: 
+    def get_climate_zone(self):
+        """Get ClimateZone instance for user's gardening zone"""
+        from gardens.models import ClimateZone
+        if self.gardening_zone:
+            try:
+                return ClimateZone.objects.get(zone=self.gardening_zone)
+            except ClimateZone.DoesNotExist:
+                pass
+        return None
+
+    def get_frost_dates(self):
+        """Get frost dates for this user (custom or zone defaults)"""
+        from datetime import datetime
+
+        # Check for custom frost dates first
+        if self.custom_frost_dates and self.custom_frost_dates.get('last_frost'):
+            current_year = datetime.now().year
+            try:
+                return {
+                    'last_frost': datetime.strptime(f"{current_year}-{self.custom_frost_dates['last_frost']}", '%Y-%m-%d').date(),
+                    'first_frost': datetime.strptime(f"{current_year}-{self.custom_frost_dates['first_frost']}", '%Y-%m-%d').date(),
+                }
+            except (ValueError, KeyError):
+                pass
+
+        # Use zone defaults
+        climate = self.get_climate_zone()
+        if climate:
+            current_year = datetime.now().year
+            try:
+                return {
+                    'last_frost': datetime.strptime(f"{current_year}-{climate.typical_last_frost}", '%Y-%m-%d').date(),
+                    'first_frost': datetime.strptime(f"{current_year}-{climate.typical_first_frost}", '%Y-%m-%d').date(),
+                }
+            except ValueError:
+                pass
+
+        # Fallback to Chicago dates (5b/6a)
+        current_year = datetime.now().year
+        return {
+            'last_frost': datetime.strptime(f"{current_year}-05-15", '%Y-%m-%d').date(),
+            'first_frost': datetime.strptime(f"{current_year}-10-15", '%Y-%m-%d').date(),
+        }
+
+    class Meta:
         verbose_name = _('user profile')
         verbose_name_plural = _('user profiles')
 

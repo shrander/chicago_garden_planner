@@ -765,7 +765,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
 
-            const exportText = `I'm planning a garden in Chicago (USDA zones 5b/6a) and need help filling empty spaces with companion plants.
+            // Get zone information from window.GARDEN_DATA
+            const userZone = gardenData.userZone || '5b';
+            const lastFrostDate = gardenData.lastFrostDate || 'May 15';
+            const firstFrostDate = gardenData.firstFrostDate || 'October 15';
+            const growingSeasonDays = gardenData.growingSeasonDays || 153;
+            const specialConsiderations = gardenData.specialConsiderations || '';
+
+            // Build climate context
+            let climateContext = `
+CLIMATE ZONE: ${userZone}
+- Last Frost Date: ${lastFrostDate}
+- First Frost Date: ${firstFrostDate}
+- Growing Season: ${growingSeasonDays} days`;
+
+            if (specialConsiderations) {
+                climateContext += `\n- Special Considerations: ${specialConsiderations}`;
+            }
+
+            const exportText = `I'm planning a garden in USDA zone ${userZone} and need help filling empty spaces with companion plants.
+${climateContext}
 
 GARDEN INFORMATION:
 - Size: ${gardenData.width} columns × ${gardenData.height} rows (${totalCells} total cells)
@@ -790,7 +809,7 @@ Create a comprehensive garden layout by filling ALL ${emptyCells.length} empty s
 2. Pest Management: Use pest deterrent plants strategically
 3. Plant Spacing: Respect spacing requirements
 4. Variety: Include vegetables, herbs, and flowers
-5. Chicago Climate: All plants are pre-selected for zones 5b/6a
+5. Climate Zone: All plants are pre-selected for zone ${userZone} - consider the growing season and frost dates above
 6. Succession Planting: Consider planting dates and harvest times - suggest plants to replace crops nearing harvest${plantedInstances.length > 0 ? ' (see PLANTED CROPS section above)' : ''}
 
 RESPONSE FORMAT (JSON):

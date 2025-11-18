@@ -4,8 +4,28 @@ from django.urls import reverse
 
 User = get_user_model()
 
+# USDA Hardiness Zones - shared constant
+HARDINESS_ZONES = [
+    ('3a', 'Zone 3a (-40°F to -35°F)'),
+    ('3b', 'Zone 3b (-35°F to -30°F)'),
+    ('4a', 'Zone 4a (-30°F to -25°F)'),
+    ('4b', 'Zone 4b (-25°F to -20°F)'),
+    ('5a', 'Zone 5a (-20°F to -15°F)'),
+    ('5b', 'Zone 5b (-15°F to -10°F)'),
+    ('6a', 'Zone 6a (-10°F to -5°F)'),
+    ('6b', 'Zone 6b (-5°F to 0°F)'),
+    ('7a', 'Zone 7a (0°F to 5°F)'),
+    ('7b', 'Zone 7b (5°F to 10°F)'),
+    ('8a', 'Zone 8a (10°F to 15°F)'),
+    ('8b', 'Zone 8b (15°F to 20°F)'),
+    ('9a', 'Zone 9a (20°F to 25°F)'),
+    ('9b', 'Zone 9b (25°F to 30°F)'),
+    ('10a', 'Zone 10a (30°F to 35°F)'),
+    ('10b', 'Zone 10b (35°F to 40°F)'),
+]
+
 class Plant(models.Model):
-    """Plant library with Chicago-specific growing info"""
+    """Plant library with zone-specific growing information"""
 
     PLANT_TYPES = [
         ('utility', 'Utility'),
@@ -43,14 +63,14 @@ class Plant(models.Model):
         help_text='Annual, Biennial, or Perennial'
     )
 
-    # Chicago specific growing info
+    # General growing information
     planting_seasons = models.JSONField(
         default=list,
         help_text='List of seasons when this plant can be planted (e.g., ["spring", "fall"])'
     )
     days_to_harvest = models.IntegerField(null=True, blank=True, help_text='Days from transplant to harvest')
     spacing_inches = models.FloatField(help_text='Spacing between plants in inches')
-    chicago_notes = models.TextField(blank=True, help_text='Chicago Zone 5b/6a specific notes')
+    growing_notes = models.TextField(blank=True, help_text='General growing notes and tips')
 
     # Seed starting and transplant timing
     weeks_before_last_frost_start = models.IntegerField(
@@ -381,3 +401,131 @@ class PlantingNote(models.Model):
     def __str__(self):
         plant_name = self.plant.name if self.plant else 'General'
         return f"{self.garden.name} - {plant_name}: {self.title or self.note_text[:50]}"
+
+
+class ClimateZone(models.Model):
+    """Climate and growing information for USDA hardiness zones"""
+
+    zone = models.CharField(
+        max_length=3,
+        choices=HARDINESS_ZONES,
+        unique=True,
+        help_text='USDA Hardiness Zone'
+    )
+
+    # Geographic information
+    region_examples = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text='Example cities/regions (e.g., "Chicago, Minneapolis, Portland OR")'
+    )
+
+    # Frost dates (MM-DD format)
+    typical_last_frost = models.CharField(
+        max_length=5,
+        help_text='Typical last spring frost date (MM-DD format)'
+    )
+    typical_first_frost = models.CharField(
+        max_length=5,
+        help_text='Typical first fall frost date (MM-DD format)'
+    )
+
+    # Temperature data
+    avg_annual_min_temp_f = models.IntegerField(
+        help_text='Average annual minimum temperature (Fahrenheit)'
+    )
+    avg_summer_high_f = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Average summer high temperature'
+    )
+
+    # Growing season
+    growing_season_days = models.IntegerField(
+        help_text='Average frost-free days'
+    )
+
+    # Soil and climate characteristics
+    common_soil_types = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text='Common soil types (e.g., "Clay, Loam")'
+    )
+    humidity_level = models.CharField(
+        max_length=20,
+        choices=[
+            ('low', 'Low'),
+            ('moderate', 'Moderate'),
+            ('high', 'High'),
+        ],
+        default='moderate'
+    )
+
+    # Additional notes
+    special_considerations = models.TextField(
+        blank=True,
+        help_text='Special climate considerations for this zone'
+    )
+
+    class Meta:
+        ordering = ['zone']
+        verbose_name = 'Climate Zone'
+        verbose_name_plural = 'Climate Zones'
+
+    def __str__(self):
+        return f"Zone {self.zone} - {self.region_examples}"
+
+    def get_growing_season_weeks(self):
+        """Calculate growing season in weeks"""
+        return self.growing_season_days // 7
+
+
+class PlantZoneData(models.Model):
+    """Zone-specific growing information for plants"""
+
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='zone_data')
+    zone = models.CharField(max_length=3, choices=HARDINESS_ZONES)
+
+    # Zone-specific information
+    zone_specific_notes = models.TextField(
+        blank=True,
+        help_text='Growing notes specific to this hardiness zone'
+    )
+    success_rating = models.IntegerField(
+        choices=[
+            (1, '⭐ Not Recommended'),
+            (2, '⭐⭐ Challenging'),
+            (3, '⭐⭐⭐ Moderate'),
+            (4, '⭐⭐⭐⭐ Good'),
+            (5, '⭐⭐⭐⭐⭐ Excellent')
+        ],
+        default=3,
+        help_text='How well this plant grows in this zone'
+    )
+
+    # Climate considerations
+    soil_amendments = models.TextField(
+        blank=True,
+        help_text='Recommended soil amendments for this zone'
+    )
+    special_considerations = models.TextField(
+        blank=True,
+        help_text='Special care needed in this zone (e.g., winter protection)'
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['plant', 'zone']
+        ordering = ['zone', 'plant__name']
+        verbose_name = 'Plant Zone Data'
+        verbose_name_plural = 'Plant Zone Data'
+        indexes = [
+            models.Index(fields=['zone']),
+            models.Index(fields=['plant', 'zone']),
+        ]
+
+    def __str__(self):
+        return f"{self.plant.name} in Zone {self.zone}"

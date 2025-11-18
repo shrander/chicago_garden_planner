@@ -30,7 +30,7 @@ class PlantAdmin(admin.ModelAdmin):
     list_display = ['symbol_preview', 'name', 'latin_name', 'plant_type', 'planting_seasons_display',
                     'days_to_harvest', 'spacing_inches', 'is_default', 'companion_count']
     list_filter = ['plant_type', 'is_default', 'created_at']
-    search_fields = ['name', 'latin_name', 'chicago_notes', 'pest_deterrent_for']
+    search_fields = ['name', 'latin_name', 'growing_notes', 'pest_deterrent_for']
     filter_horizontal = ['companion_plants']
     readonly_fields = ['created_at', 'color_preview']
 
@@ -44,8 +44,8 @@ class PlantAdmin(admin.ModelAdmin):
         ('Growing Information', {
             'fields': ('life_cycle', 'planting_seasons', 'days_to_harvest', 'spacing_inches', 'yield_per_plant')
         }),
-        ('Chicago-Specific Notes', {
-            'fields': ('chicago_notes',),
+        ('Growing Notes', {
+            'fields': ('growing_notes',),
             'classes': ('wide',)
         }),
         ('Companion Planting', {
@@ -152,7 +152,7 @@ class PlantAdmin(admin.ModelAdmin):
                                 'life_cycle': row.get('life_cycle', '').strip() or None,
                                 'planting_seasons': planting_seasons,
                                 'spacing_inches': float(row.get('spacing_inches', 0)) if row.get('spacing_inches') else None,
-                                'chicago_notes': row.get('chicago_notes', '').strip(),
+                                'growing_notes': row.get('growing_notes', '').strip(),
                                 'direct_sow': direct_sow,
                                 'is_default': True,  # CSV imports are default plants
                                 'created_by': None,  # System plants have no creator

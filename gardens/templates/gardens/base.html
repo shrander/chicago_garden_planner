@@ -119,7 +119,13 @@
     <footer class="bg-light mt-5 py-4">
         <div class="container text-center text-muted">
             <p class="mb-1">
-                <i class="bi bi-geo-alt"></i> Optimized for Chicago (USDA Zones 5b/6a)
+                <i class="bi bi-geo-alt"></i>
+                {% if user.is_authenticated and user.profile.gardening_zone %}
+                    Optimized for USDA Zone {{ user.profile.gardening_zone }}
+                    {% if user.profile.location_name %}({{ user.profile.location_name }}){% endif %}
+                {% else %}
+                    Supporting all USDA Hardiness Zones (3a-10b)
+                {% endif %}
             </p>
             <p class="mb-0">
                 <small>&copy; 2025 Chicago Garden Planner &middot; v{{ APP_VERSION }}</small>

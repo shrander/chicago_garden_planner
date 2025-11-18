@@ -142,20 +142,36 @@
     </div>
 </div>
 
-<!-- Chicago Gardening Tip -->
+<!-- Zone Gardening Tip -->
 <div class="row">
     <div class="col-12">
         <div class="card shadow border-success">
             <div class="card-header bg-success bg-opacity-10">
                 <h5 class="mb-0 text-success">
-                    <i class="bi bi-lightbulb"></i> Chicago Gardening Tip
+                    <i class="bi bi-lightbulb"></i> Zone {{ user.profile.gardening_zone }} Gardening Tip
                 </h5>
             </div>
             <div class="card-body">
-                <p class="mb-0">
-                    <strong>USDA Zones 5b/6a:</strong> Chicago's last frost date is typically around mid-May,
-                    and the first fall frost arrives in mid-October. Plan your planting schedule accordingly!
+                {% with frost_dates=user.profile.get_frost_dates climate=user.profile.get_climate_zone %}
+                <p class="mb-2">
+                    <strong>Your Growing Zone:</strong> USDA Zone {{ user.profile.gardening_zone }}
+                    {% if user.profile.location_name %}({{ user.profile.location_name }}){% endif %}
                 </p>
+                <p class="mb-2">
+                    <strong>Last Frost:</strong> {{ frost_dates.last_frost|date:"F j" }}
+                    &nbsp;|&nbsp;
+                    <strong>First Frost:</strong> {{ frost_dates.first_frost|date:"F j" }}
+                    {% if climate %}
+                    &nbsp;|&nbsp;
+                    <strong>Growing Season:</strong> {{ climate.growing_season_days }} days
+                    {% endif %}
+                </p>
+                {% if climate and climate.special_considerations %}
+                <p class="mb-0 text-muted small">
+                    <i class="bi bi-info-circle"></i> {{ climate.special_considerations }}
+                </p>
+                {% endif %}
+                {% endwith %}
             </div>
         </div>
     </div>

@@ -1,13 +1,16 @@
 # 🌱 Chicago Garden Planner
+### Now Supporting All USDA Hardiness Zones (3a-10b)
 
-A Django web application designed to help gardeners in the Chicago area (USDA zones 5b/6a) plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design.
+A Django web application designed to help gardeners across North America plan and manage their gardens with zone-specific plant recommendations, companion planting relationships, and interactive drag-and-drop garden design. Originally created for Chicago (zones 5b/6a), now expanded to support all 16 USDA hardiness zones.
 
 ## Features
 
 - ✅ **Interactive Garden Designer**: Drag-and-drop interface for planning garden layouts
-- ✅ **Chicago-Specific Plant Library**: 20+ plants optimized for zones 5b/6a with local growing tips
+- ✅ **Multi-Zone Plant Library**: 20+ plants with zone-specific growing tips for all USDA zones (3a-10b)
+- ✅ **Zone-Specific Recommendations**: Success ratings and tailored advice for your hardiness zone
 - ✅ **Companion Planting**: Smart recommendations for plant combinations
-- ✅ **AI Garden Assistant**: Get AI-powered layout suggestions based on your preferences
+- ✅ **AI Garden Assistant**: Get zone-aware AI-powered layout suggestions
+- ✅ **Climate Data**: Automatic frost dates and growing season info for your zone
 - ✅ **Yield Calculations**: Automatic calculation of expected harvest yields
 - ✅ **Garden Sharing**: Share your garden designs with friends via email invitations
 - ✅ **Access Control**: Manage who can view and edit your gardens
@@ -345,14 +348,18 @@ The project uses GitHub Actions for automated deployment triggered by version ta
 ./scripts/release.sh 1.0.0 "Initial release"
 ```
 
-## Chicago-Specific Features
+## Multi-Zone Support
 
-This application is optimized for Chicago's climate (USDA zones 5b/6a):
-- **Frost date awareness**: Last frost ~May 15, First frost ~October 15
-- **Heat-tolerant varieties**: Plants selected for Midwest summers
-- **Seasonal planting calendars**: Zone-specific timing
-- **Local pest management**: Chicago-specific pest information
-- **Default plants**: 20+ vegetables, herbs, and fruits proven for Chicago
+The application now supports all 16 USDA hardiness zones (3a through 10b):
+- **Automatic climate detection**: Frost dates and growing season info based on your zone
+- **Zone-specific plant ratings**: Success ratings (1-5 stars) for each plant in your zone
+- **Tailored growing advice**: Zone-specific notes, soil amendments, and special considerations
+- **AI-powered recommendations**: Zone-aware garden layout suggestions
+- **Custom frost dates**: Override defaults with your local microclimate data
+- **Default zone**: Chicago (5b/6a) for backward compatibility
+
+### Supported Zones
+From coldest to warmest: **3a** (International Falls, MN) → **5b** (Chicago, IL) → **7a** (Oklahoma City, OK) → **9a** (Houston, TX) → **10b** (Hawaii)
 
 ### Default Plant Library
 
