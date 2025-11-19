@@ -71,6 +71,45 @@ jobs:
           sleep 10
           docker compose ps
 
+      - name: Run database migrations
+        run: |
+          echo "🗄️ Running database migrations..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose exec -T web python manage.py migrate --noinput
+
+      - name: Collect static files
+        run: |
+          echo "📦 Collecting static files..."
+          cd ~/workspace/chicago-garden-planner
+          docker compose exec -T web python manage.py collectstatic --noinput
+
+      - name: Populate climate zones (if needed)
+        run: |
+          echo "🌡️ Checking if climate zones need to be populated..."
+          cd ~/workspace/chicago-garden-planner
+          ZONE_COUNT=$(docker compose exec -T web python manage.py shell -c "from gardens.models import ClimateZone; print(ClimateZone.objects.count())")
+          if [ "$ZONE_COUNT" -eq 0 ]; then
+            echo "📍 Populating climate zones..."
+            docker compose exec -T web python manage.py populate_climate_zones
+          else
+            echo "✅ Climate zones already populated ($ZONE_COUNT zones found)"
+          fi
+
+      - name: Populate plant zone data (if needed)
+        run: |
+          echo "🌱 Checking if plant zone data needs to be populated..."
+          cd ~/workspace/chicago-garden-planner
+          ZONE_DATA_COUNT=$(docker compose exec -T web python manage.py shell -c "from gardens.models import PlantZoneData; print(PlantZoneData.objects.count())")
+          # Expected: 20 plants × 16 zones = 320 records
+          if [ "$ZONE_DATA_COUNT" -lt 320 ]; then
+            echo "📊 Populating plant zone ratings..."
+            docker compose exec -T web python manage.py populate_plant_zone_ratings
+            echo "🔧 Adding remaining zone data..."
+            docker compose exec -T web python manage.py add_remaining_zone_data
+          else
+            echo "✅ Plant zone data already populated ($ZONE_DATA_COUNT records found)"
+          fi
+
       - name: Check deployment status
         run: |
           echo "✅ Checking deployment status..."
