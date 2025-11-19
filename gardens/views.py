@@ -202,8 +202,7 @@ def garden_detail(request, pk):
             'planting_seasons': plant.planting_seasons,
             'life_cycle': plant.life_cycle,
             'companions': companions,
-            'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
-            'growing_notes': plant.growing_notes[:100] if plant.growing_notes else None
+            'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None
         }
         plant_database.append(plant_info)
 
@@ -407,8 +406,7 @@ def plant_library(request):
     if search_query:
         plants = plants.filter(
             Q(name__icontains=search_query) |
-            Q(latin_name__icontains=search_query) |
-            Q(growing_notes__icontains=search_query)
+            Q(latin_name__icontains=search_query)
         )
 
     if plant_type:
@@ -848,8 +846,7 @@ def garden_ai_assistant(request, pk):
                 'planting_seasons': plant.planting_seasons,
                 'life_cycle': plant.life_cycle,
                 'companions': companions,
-                'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
-                'growing_notes': plant.growing_notes[:100] if plant.growing_notes else None
+                'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None
             }
             plant_database.append(plant_info)
 

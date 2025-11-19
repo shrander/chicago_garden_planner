@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 import csv
 import json
-from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare
+from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare, UserPlantNote
 
 
 class CSVImportForm(forms.Form):
@@ -30,7 +30,7 @@ class PlantAdmin(admin.ModelAdmin):
     list_display = ['symbol_preview', 'name', 'latin_name', 'plant_type', 'planting_seasons_display',
                     'days_to_harvest', 'spacing_inches', 'is_default', 'companion_count']
     list_filter = ['plant_type', 'is_default', 'created_at']
-    search_fields = ['name', 'latin_name', 'growing_notes', 'pest_deterrent_for']
+    search_fields = ['name', 'latin_name', 'pest_deterrent_for']
     filter_horizontal = ['companion_plants']
     readonly_fields = ['created_at', 'color_preview']
 
@@ -43,10 +43,6 @@ class PlantAdmin(admin.ModelAdmin):
         }),
         ('Growing Information', {
             'fields': ('life_cycle', 'planting_seasons', 'days_to_harvest', 'spacing_inches', 'yield_per_plant')
-        }),
-        ('Growing Notes', {
-            'fields': ('growing_notes',),
-            'classes': ('wide',)
         }),
         ('Companion Planting', {
             'fields': ('companion_plants', 'pest_deterrent_for'),
@@ -152,7 +148,6 @@ class PlantAdmin(admin.ModelAdmin):
                                 'life_cycle': row.get('life_cycle', '').strip() or None,
                                 'planting_seasons': planting_seasons,
                                 'spacing_inches': float(row.get('spacing_inches', 0)) if row.get('spacing_inches') else None,
-                                'growing_notes': row.get('growing_notes', '').strip(),
                                 'direct_sow': direct_sow,
                                 'is_default': True,  # CSV imports are default plants
                                 'created_by': None,  # System plants have no creator
@@ -427,6 +422,52 @@ class PlantingNoteAdmin(admin.ModelAdmin):
             return obj.title
         return obj.note_text[:50] + '...' if len(obj.note_text) > 50 else obj.note_text
     get_title.short_description = 'Title/Note'
+
+
+@admin.register(UserPlantNote)
+class UserPlantNoteAdmin(admin.ModelAdmin):
+    """Admin interface for UserPlantNote model"""
+
+    list_display = ['get_title', 'user', 'plant', 'growing_season', 'success_rating_display', 'would_grow_again', 'created_at']
+    list_filter = ['success_rating', 'would_grow_again', 'growing_season', 'created_at']
+    search_fields = ['title', 'note_text', 'user__username', 'plant__name']
+    readonly_fields = ['created_at', 'updated_at']
+    autocomplete_fields = ['user', 'plant']
+    date_hierarchy = 'created_at'
+
+    fieldsets = (
+        ('User & Plant', {
+            'fields': ('user', 'plant')
+        }),
+        ('Growing Experience', {
+            'fields': ('title', 'note_text', 'growing_season', 'success_rating', 'would_grow_again')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_title(self, obj):
+        """Display title or truncated note"""
+        if obj.title:
+            return obj.title
+        return obj.note_text[:50] + '...' if len(obj.note_text) > 50 else obj.note_text
+    get_title.short_description = 'Title/Note'
+
+    def success_rating_display(self, obj):
+        """Display success rating with stars"""
+        if obj.success_rating:
+            stars = '⭐' * obj.success_rating + '☆' * (5 - obj.success_rating)
+            colors = {1: '#dc3545', 2: '#fd7e14', 3: '#ffc107', 4: '#28a745', 5: '#28a745'}
+            return format_html(
+                '<span style="color: {};">{} ({})</span>',
+                colors.get(obj.success_rating, '#6c757d'),
+                stars,
+                obj.get_success_rating_display()
+            )
+        return '—'
+    success_rating_display.short_description = 'Success Rating'
 
 
 # Customize admin site headers

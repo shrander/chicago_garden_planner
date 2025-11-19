@@ -1,5 +1,5 @@
 from django import forms
-from .models import Garden, Plant, PlantingNote
+from .models import Garden, Plant, PlantingNote, UserPlantNote
 
 
 class GardenForm(forms.ModelForm):
@@ -106,7 +106,7 @@ class PlantForm(forms.ModelForm):
             'planting_seasons', 'days_to_harvest', 'spacing_inches',
             'weeks_before_last_frost_start', 'weeks_after_last_frost_transplant',
             'direct_sow', 'days_to_germination', 'days_before_transplant_ready', 'transplant_to_harvest_days',
-            'growing_notes', 'yield_per_plant', 'pest_deterrent_for', 'companion_plants'
+            'yield_per_plant', 'pest_deterrent_for', 'companion_plants'
         ]
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -124,7 +124,6 @@ class PlantForm(forms.ModelForm):
             'days_before_transplant_ready': forms.NumberInput(attrs={'class': 'form-control'}),
             'transplant_to_harvest_days': forms.NumberInput(attrs={'class': 'form-control'}),
             'yield_per_plant': forms.TextInput(attrs={'class': 'form-control'}),
-            'growing_notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'pest_deterrent_for': forms.TextInput(attrs={'class': 'form-control'}),
             'companion_plants': forms.SelectMultiple(attrs={'class': 'form-select', 'size': 6}),
         }
@@ -141,4 +140,42 @@ class PlantingNoteForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'note_text': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'grid_position': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class UserPlantNoteForm(forms.ModelForm):
+    """Form for users to document their growing experiences"""
+
+    class Meta:
+        model = UserPlantNote
+        fields = ['title', 'note_text', 'growing_season', 'success_rating', 'would_grow_again']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Great harvest in 2024'
+            }),
+            'note_text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Share your experience growing this plant...'
+            }),
+            'growing_season': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 2024'
+            }),
+            'success_rating': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'would_grow_again': forms.Select(attrs={
+                'class': 'form-select'
+            }, choices=[
+                ('', '---'),
+                (True, 'Yes'),
+                (False, 'No'),
+            ]),
+        }
+        help_texts = {
+            'growing_season': 'What year did you grow this plant?',
+            'success_rating': 'How well did this plant perform for you?',
+            'would_grow_again': 'Would you grow this plant again?',
         }

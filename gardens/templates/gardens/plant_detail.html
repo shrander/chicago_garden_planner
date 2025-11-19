@@ -149,13 +149,7 @@
                     <h6 class="text-warning mt-3"><i class="bi bi-exclamation-triangle"></i> Special Considerations</h6>
                     <p>{{ zone_data.special_considerations }}</p>
                     {% endif %}
-                    {% if plant.growing_notes %}
-                    <hr>
-                    <h6 class="text-muted"><i class="bi bi-book"></i> General Growing Notes</h6>
-                    <p class="text-muted">{{ plant.growing_notes }}</p>
-                    {% endif %}
                 {% else %}
-                    <p>{{ plant.growing_notes|default:"No general growing notes available." }}</p>
                     {% if user_zone %}
                     <div class="alert alert-warning mt-3">
                         <small><i class="bi bi-info-circle"></i> No zone-specific data available for Zone {{ user_zone }} yet.</small>

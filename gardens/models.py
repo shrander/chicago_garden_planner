@@ -51,7 +51,6 @@ class Plant(models.Model):
     )
     days_to_harvest = models.IntegerField(null=True, blank=True, help_text='Days from transplant to harvest')
     spacing_inches = models.FloatField(help_text='Spacing between plants in inches')
-    growing_notes = models.TextField(blank=True, help_text='General growing notes and tips')
 
     # Seed starting and transplant timing
     weeks_before_last_frost_start = models.IntegerField(
@@ -382,6 +381,57 @@ class PlantingNote(models.Model):
     def __str__(self):
         plant_name = self.plant.name if self.plant else 'General'
         return f"{self.garden.name} - {plant_name}: {self.title or self.note_text[:50]}"
+
+
+class UserPlantNote(models.Model):
+    """User-specific growing experiences and notes for plants"""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='plant_notes')
+    plant = models.ForeignKey(Plant, on_delete=models.CASCADE, related_name='user_notes')
+
+    # Note content
+    title = models.CharField(max_length=200, blank=True, help_text='Optional title for your note')
+    note_text = models.TextField(help_text='Your experience growing this plant, tips, observations, etc.')
+
+    # Optional metadata
+    growing_season = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Year you grew this plant (e.g., 2024)'
+    )
+    success_rating = models.IntegerField(
+        null=True,
+        blank=True,
+        choices=[
+            (1, '1 - Poor'),
+            (2, '2 - Fair'),
+            (3, '3 - Good'),
+            (4, '4 - Very Good'),
+            (5, '5 - Excellent'),
+        ],
+        help_text='How well did this plant grow for you?'
+    )
+    would_grow_again = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text='Would you grow this plant again?'
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'plant', 'growing_season']
+        indexes = [
+            models.Index(fields=['user', 'plant']),
+            models.Index(fields=['plant']),
+        ]
+
+    def __str__(self):
+        season = f" ({self.growing_season})" if self.growing_season else ""
+        return f"{self.user.username} - {self.plant.name}{season}"
 
 
 class ClimateZone(models.Model):

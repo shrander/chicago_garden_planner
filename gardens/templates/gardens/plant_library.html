@@ -116,8 +116,6 @@
                     {% endif %}
                 </div>
 
-                <p class="card-text small">{{ plant.growing_notes|truncatewords:15 }}</p>
-
                 {% if plant.weeks_before_last_frost_start or plant.direct_sow %}
                 <div class="alert alert-info small mb-2 py-1">
                     {% if plant.direct_sow %}
