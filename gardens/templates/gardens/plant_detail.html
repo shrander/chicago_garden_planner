@@ -134,11 +134,8 @@
                         <strong><i class="bi bi-geo-alt-fill"></i> Zone {{ user_zone }} Adaptability</strong>
                         <div class="mt-2">
                             <span class="badge bg-{% if zone_data.success_rating >= 4 %}success{% elif zone_data.success_rating == 3 %}warning{% else %}danger{% endif %} fs-6">
-                                {% for i in "12345" %}
-                                    {% if forloop.counter <= zone_data.success_rating %}⭐{% else %}☆{% endif %}
-                                {% endfor %}
+                                {{ zone_data.get_success_rating_display }}
                             </span>
-                            <span class="ms-2">{{ zone_data.get_success_rating_display }}</span>
                         </div>
                     </div>
                     {% if zone_data.zone_specific_notes %}
