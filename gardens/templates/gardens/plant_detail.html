@@ -129,7 +129,39 @@
                 <h5 class="mb-0"><i class="bi bi-map"></i> Growing Notes</h5>
             </div>
             <div class="card-body">
-                <p>{{ plant.growing_notes|default:"No general growing notes available." }}</p>
+                {% if zone_data %}
+                    <div class="alert alert-info mb-3">
+                        <strong><i class="bi bi-geo-alt-fill"></i> Zone {{ user_zone }} Information</strong>
+                        <div class="mt-2">
+                            <span class="badge bg-{% if zone_data.success_rating >= 4 %}success{% elif zone_data.success_rating == 3 %}warning{% else %}danger{% endif %} fs-6">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= zone_data.success_rating %}⭐{% else %}☆{% endif %}
+                                {% endfor %}
+                                {{ zone_data.get_success_rating_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if zone_data.zone_specific_notes %}
+                    <h6 class="text-primary"><i class="bi bi-thermometer-half"></i> Zone-Specific Tips</h6>
+                    <p>{{ zone_data.zone_specific_notes }}</p>
+                    {% endif %}
+                    {% if zone_data.special_considerations %}
+                    <h6 class="text-warning mt-3"><i class="bi bi-exclamation-triangle"></i> Special Considerations</h6>
+                    <p>{{ zone_data.special_considerations }}</p>
+                    {% endif %}
+                    {% if plant.growing_notes %}
+                    <hr>
+                    <h6 class="text-muted"><i class="bi bi-book"></i> General Growing Notes</h6>
+                    <p class="text-muted">{{ plant.growing_notes }}</p>
+                    {% endif %}
+                {% else %}
+                    <p>{{ plant.growing_notes|default:"No general growing notes available." }}</p>
+                    {% if user_zone %}
+                    <div class="alert alert-warning mt-3">
+                        <small><i class="bi bi-info-circle"></i> No zone-specific data available for Zone {{ user_zone }} yet.</small>
+                    </div>
+                    {% endif %}
+                {% endif %}
             </div>
         </div>
     </div>

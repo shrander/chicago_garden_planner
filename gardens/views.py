@@ -452,12 +452,27 @@ def plant_detail(request, pk):
     if plant.pest_deterrent_for:
         pest_list = [pest.strip() for pest in plant.pest_deterrent_for.split(',') if pest.strip()]
 
+    # Get zone-specific data for user's zone
+    from gardens.utils import get_default_zone
+    user_zone = None
+    zone_data = None
+
+    if request.user.is_authenticated and hasattr(request.user, 'profile'):
+        user_zone = request.user.profile.gardening_zone
+    else:
+        user_zone = get_default_zone()
+
+    if user_zone:
+        zone_data = plant.zone_data.filter(zone=user_zone).first()
+
     context = {
         'plant': plant,
         'can_edit': can_edit,
         'companions': companions,
         'companion_to': companion_to,
         'pest_list': pest_list,
+        'user_zone': user_zone,
+        'zone_data': zone_data,
     }
 
     return render(request, 'gardens/plant_detail.html', context)
