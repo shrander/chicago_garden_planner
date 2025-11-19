@@ -524,10 +524,10 @@ class PlantZoneData(models.Model):
     )
     success_rating = models.IntegerField(
         choices=[
-            (1, '⭐ Not Recommended'),
-            (2, '⭐⭐ Challenging'),
-            (3, '⭐⭐⭐ Moderate'),
-            (4, '⭐⭐⭐⭐ Good'),
+            (1, '⭐☆☆☆☆ Not Recommended'),
+            (2, '⭐⭐☆☆☆ Challenging'),
+            (3, '⭐⭐⭐☆☆ Moderate'),
+            (4, '⭐⭐⭐⭐☆ Good'),
             (5, '⭐⭐⭐⭐⭐ Excellent')
         ],
         default=3,
