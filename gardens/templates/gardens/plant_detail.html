@@ -176,10 +176,10 @@
 <!-- Pest Deterrent & Companion Planting -->
 <div class="row mb-4">
     {% if plant.pest_deterrent_for %}
-    <div class="col-md-6">
+    <div class="col-md-6 mb-3">
         <div class="card shadow-sm h-100">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-bug"></i> Pest Deterrent</h5>
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-shield-check"></i> Pest Deterrent</h5>
             </div>
             <div class="card-body">
                 <p>This plant helps deter:</p>
@@ -193,7 +193,28 @@
     </div>
     {% endif %}
 
-    <div class="col-md-{% if plant.pest_deterrent_for %}6{% else %}12{% endif %}">
+    {% if plant.pest_susceptibility %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Pest Susceptibility</h5>
+            </div>
+            <div class="card-body">
+                <p>This plant is susceptible to:</p>
+                <ul>
+                    {% for pest in pest_susceptibility_list %}
+                    <li>{{ pest|title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Companion Planting -->
+<div class="row mb-4">
+    <div class="col-12">
         <div class="card shadow-sm h-100">
             <div class="card-header bg-info text-white">
                 <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Companion Planting</h5>

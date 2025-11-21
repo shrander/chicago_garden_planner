@@ -455,6 +455,11 @@ def plant_detail(request, pk):
     if plant.pest_deterrent_for:
         pest_list = [pest.strip() for pest in plant.pest_deterrent_for.split(',') if pest.strip()]
 
+    # Process pest susceptibility list
+    pest_susceptibility_list = []
+    if plant.pest_susceptibility:
+        pest_susceptibility_list = [pest.strip() for pest in plant.pest_susceptibility.split(',') if pest.strip()]
+
     # Get zone-specific data for user's zone
     from gardens.utils import get_default_zone
     user_zone = None
@@ -474,6 +479,7 @@ def plant_detail(request, pk):
         'companions': companions,
         'companion_to': companion_to,
         'pest_list': pest_list,
+        'pest_susceptibility_list': pest_susceptibility_list,
         'user_zone': user_zone,
         'zone_data': zone_data,
     }
