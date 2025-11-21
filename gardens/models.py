@@ -560,3 +560,33 @@ class PlantZoneData(models.Model):
 
     def __str__(self):
         return f"{self.plant.name} in Zone {self.zone}"
+
+
+class DataMigration(models.Model):
+    """Track data population command execution and versions"""
+    command_name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text='Name of the management command (e.g., populate_climate_zones)'
+    )
+    version = models.CharField(
+        max_length=20,
+        help_text='Version of the data (e.g., 1.0.0)'
+    )
+    last_run = models.DateTimeField(
+        auto_now=True,
+        help_text='Last time this command was executed'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text='First time this command was run'
+    )
+
+    class Meta:
+        db_table = 'data_migrations'
+        verbose_name = 'Data Migration'
+        verbose_name_plural = 'Data Migrations'
+        ordering = ['-last_run']
+
+    def __str__(self):
+        return f"{self.command_name} (v{self.version})"

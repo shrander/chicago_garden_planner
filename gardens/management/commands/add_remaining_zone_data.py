@@ -3,25 +3,40 @@ Management command to add zone-specific data for plants that only have Chicago z
 
 Usage:
     python manage.py add_remaining_zone_data
-    python manage.py add_remaining_zone_data --overwrite
+    python manage.py add_remaining_zone_data --force
 """
 
 from django.core.management.base import BaseCommand
-from gardens.models import Plant, PlantZoneData
+from gardens.models import Plant, PlantZoneData, DataMigration
 
 
 class Command(BaseCommand):
     help = 'Add zone-specific ratings for plants missing full coverage'
+    VERSION = '1.0.0'  # Increment when additional zone data changes
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--overwrite',
+            '--force',
             action='store_true',
-            help='Overwrite existing zone data',
+            help='Force update even if version matches',
         )
 
     def handle(self, *args, **options):
-        overwrite = options['overwrite']
+        force = options['force']
+
+        # Check version tracking
+        migration, _ = DataMigration.objects.get_or_create(
+            command_name='add_remaining_zone_data',
+            defaults={'version': '0.0.0'}
+        )
+
+        if migration.version == self.VERSION and not force:
+            self.stdout.write(self.style.SUCCESS(
+                f'✓ Remaining zone data already at version {self.VERSION} (use --force to update)'
+            ))
+            return
+
+        self.stdout.write(f'Updating remaining zone data from v{migration.version} to v{self.VERSION}...')
 
         # Define success ratings for remaining plants by zone
         # Rating scale: 1=Not Recommended, 2=Challenging, 3=Moderate, 4=Good, 5=Excellent
@@ -169,7 +184,6 @@ class Command(BaseCommand):
 
         created_count = 0
         updated_count = 0
-        skipped_count = 0
         not_found_count = 0
 
         for plant_name, zone_ratings in all_ratings.items():
@@ -178,36 +192,34 @@ class Command(BaseCommand):
                 self.stdout.write(f'\nProcessing {plant_name}...')
 
                 for zone, (rating, notes) in zone_ratings.items():
-                    existing = PlantZoneData.objects.filter(plant=plant, zone=zone).first()
+                    zone_data, was_created = PlantZoneData.objects.update_or_create(
+                        plant=plant,
+                        zone=zone,
+                        defaults={
+                            'success_rating': rating,
+                            'zone_specific_notes': notes
+                        }
+                    )
 
-                    if existing and not overwrite:
-                        skipped_count += 1
-                        self.stdout.write(self.style.WARNING(f'  ⊘ Zone {zone}: Already exists (use --overwrite)'))
-                    elif existing and overwrite:
-                        existing.success_rating = rating
-                        existing.zone_specific_notes = notes
-                        existing.save()
-                        updated_count += 1
-                        self.stdout.write(self.style.SUCCESS(f'  ✓ Zone {zone}: Updated'))
-                    else:
-                        PlantZoneData.objects.create(
-                            plant=plant,
-                            zone=zone,
-                            success_rating=rating,
-                            zone_specific_notes=notes
-                        )
+                    if was_created:
                         created_count += 1
                         self.stdout.write(self.style.SUCCESS(f'  + Zone {zone}: Created ({rating}★)'))
+                    else:
+                        updated_count += 1
+                        self.stdout.write(f'  ✓ Zone {zone}: Updated ({rating}★)')
 
             except Plant.DoesNotExist:
                 not_found_count += 1
                 self.stdout.write(self.style.ERROR(f'✗ Plant "{plant_name}" not found'))
 
+        # Update version tracking
+        migration.version = self.VERSION
+        migration.save()
+
         # Summary
         self.stdout.write('\n' + '='*70)
-        self.stdout.write(self.style.SUCCESS('Zone Data Population Complete'))
+        self.stdout.write(self.style.SUCCESS(f'Zone Data Population Complete (v{self.VERSION})'))
         self.stdout.write(f'Created: {created_count}')
         self.stdout.write(f'Updated: {updated_count}')
-        self.stdout.write(f'Skipped: {skipped_count}')
         self.stdout.write(f'Not Found: {not_found_count}')
         self.stdout.write('='*70)

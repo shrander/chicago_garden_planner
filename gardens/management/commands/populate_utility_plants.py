@@ -1,22 +1,46 @@
 from django.core.management.base import BaseCommand
-from gardens.models import Plant
+from gardens.models import Plant, DataMigration
 
 
 class Command(BaseCommand):
     help = 'Populate database with utility plants (Empty Space and Path)'
+    VERSION = '1.0.0'  # Increment when utility plant data changes
 
-    def handle(self, *args, **kwargs):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force update even if version matches',
+        )
+
+    def handle(self, *args, **options):
+        force = options.get('force', False)
+
+        # Check version tracking
+        migration, _ = DataMigration.objects.get_or_create(
+            command_name='populate_utility_plants',
+            defaults={'version': '0.0.0'}
+        )
+
+        if migration.version == self.VERSION and not force:
+            self.stdout.write(self.style.SUCCESS(
+                f'✓ Utility plants already at version {self.VERSION} (use --force to update)'
+            ))
+            return
+
+        self.stdout.write(f'Updating utility plants from v{migration.version} to v{self.VERSION}...')
+
         # Create or update Empty Space utility plant
-        empty_space, created = Plant.objects.get_or_create(
+        empty_space, created = Plant.objects.update_or_create(
             name='Empty Space',
+            is_default=True,
             defaults={
                 'latin_name': 'Vacuus spatium',
                 'symbol': '•',
                 'color': '#8FBC8F',
                 'plant_type': 'utility',
-                'planting_season': 'year_round',
+                'planting_seasons': ['year_round'],
                 'spacing_inches': 0,
-                'chicago_notes': 'Use to clear grid cells or mark open space in your garden layout.',
                 'is_default': True,
             }
         )
@@ -24,23 +48,19 @@ class Command(BaseCommand):
         if created:
             self.stdout.write(self.style.SUCCESS(f'Created utility plant: {empty_space.name}'))
         else:
-            # Update existing if needed
-            empty_space.plant_type = 'utility'
-            empty_space.is_default = True
-            empty_space.save()
-            self.stdout.write(self.style.WARNING(f'Updated existing plant: {empty_space.name}'))
+            self.stdout.write(f'Updated utility plant: {empty_space.name}')
 
         # Create or update Path utility plant
-        path, created = Plant.objects.get_or_create(
+        path, created = Plant.objects.update_or_create(
             name='Path',
+            is_default=True,
             defaults={
                 'latin_name': 'Via hortus',
                 'symbol': '=',
                 'color': '#D2B48C',
                 'plant_type': 'utility',
-                'planting_season': 'year_round',
+                'planting_seasons': ['year_round'],
                 'spacing_inches': 0,
-                'chicago_notes': 'Mark pathways and walking areas in your garden layout.',
                 'is_default': True,
             }
         )
@@ -48,10 +68,10 @@ class Command(BaseCommand):
         if created:
             self.stdout.write(self.style.SUCCESS(f'Created utility plant: {path.name}'))
         else:
-            # Update existing if needed
-            path.plant_type = 'utility'
-            path.is_default = True
-            path.save()
-            self.stdout.write(self.style.WARNING(f'Updated existing plant: {path.name}'))
+            self.stdout.write(f'Updated utility plant: {path.name}')
 
-        self.stdout.write(self.style.SUCCESS('\nUtility plants setup complete!'))
+        # Update version tracking
+        migration.version = self.VERSION
+        migration.save()
+
+        self.stdout.write(self.style.SUCCESS(f'\nUtility plants setup complete! (v{self.VERSION})'))

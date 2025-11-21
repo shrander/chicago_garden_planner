@@ -1,8 +1,8 @@
-name,latin_name,symbol,color,plant_type,life_cycle,planting_seasons,days_to_harvest,spacing_inches,chicago_notes,weeks_before_last_frost_start,weeks_after_last_frost_transplant,direct_sow,days_to_germination,days_before_transplant_ready,transplant_to_harvest_days,yield_per_plant,pest_deterrent_for
-Tomato (Cherry),Solanum lycopersicum var. cerasiforme,To,#FF6347,vegetable,annual,"[""spring""]",65,24,"Start indoors 6-8 weeks before last frost (mid-May in Chicago). Transplant after danger of frost. Heat-loving plant.",6,2,FALSE,7,42,65,10-15 lbs per plant,aphids
-Basil,Ocimum basilicum,Ba,#228B22,herb,annual,"[""spring"", ""summer""]",,12,"Plant after last frost when soil is warm. Loves Chicago's hot summers. Pinch flowers for bushier growth.",4,2,TRUE,7,21,,Continuous harvest,mosquitoes
-Lettuce (Leaf),Lactuca sativa,Le,#90EE90,vegetable,annual,"[""spring"", ""fall""]",45,6,"Cool season crop. Direct sow in early spring and late summer. Bolt-resistant varieties work best in Chicago heat.",,,TRUE,7,,,Continuous harvest,
-Marigold,Tagetes,Ma,#FFD700,flower,annual,"[""spring""]",,12,"Plant after last frost. Excellent pest deterrent. Thrives in Chicago summers.",4,1,FALSE,7,21,,Continuous blooms,"aphids, whiteflies, nematodes"
-Jalapeno,Capsicum annuum,Ja,#228B22,vegetable,annual,"[""spring""]",75,18,"Start indoors 8-10 weeks before last frost. Needs warm soil and full sun. Productive in Chicago's hot summers.",8,2,FALSE,10,35,75,25-35 peppers per plant,
-Lacinato Kale,Brassica oleracea var. sabellica,Ka,#2F4F2F,vegetable,biennial,"[""spring"", ""fall""]",60,12,"Cold hardy! Direct sow or transplant. Flavor improves after frost. Great for Chicago fall gardens.",4,0,TRUE,7,21,60,Continuous harvest,"cabbage moths, aphids"
-Plum Tomato,Solanum lycopersicum,Pl,#DC143C,vegetable,annual,"[""spring""]",80,24,"Start indoors 6-8 weeks before last frost. Great for sauce and canning. Determinate variety works well in Chicago.",6,2,FALSE,7,42,80,20-30 lbs per plant,aphids
+name,latin_name,symbol,color,plant_type,life_cycle,planting_seasons,days_to_harvest,spacing_inches,weeks_before_last_frost_start,weeks_after_last_frost_transplant,direct_sow,days_to_germination,days_before_transplant_ready,transplant_to_harvest_days,yield_per_plant,pest_deterrent_for
+Tomato (Cherry),Solanum lycopersicum var. cerasiforme,To,#FF6347,vegetable,annual,"[""spring""]",65,24,6,2,FALSE,7,42,65,10-15 lbs per plant,aphids
+Basil,Ocimum basilicum,Ba,#228B22,herb,annual,"[""spring"", ""summer""]",,12,4,2,TRUE,7,21,,Continuous harvest,mosquitoes
+Lettuce (Leaf),Lactuca sativa,Le,#90EE90,vegetable,annual,"[""spring"", ""fall""]",45,6,,,TRUE,7,,,Continuous harvest,
+Marigold,Tagetes,Ma,#FFD700,flower,annual,"[""spring""]",,12,4,1,FALSE,7,21,,Continuous blooms,"aphids, whiteflies, nematodes"
+Jalapeno,Capsicum annuum,Ja,#228B22,vegetable,annual,"[""spring""]",75,18,8,2,FALSE,10,35,75,25-35 peppers per plant,
+Lacinato Kale,Brassica oleracea var. sabellica,Ka,#2F4F2F,vegetable,biennial,"[""spring"", ""fall""]",60,12,4,0,TRUE,7,21,60,Continuous harvest,"cabbage moths, aphids"
+Plum Tomato,Solanum lycopersicum,Pl,#DC143C,vegetable,annual,"[""spring""]",80,24,6,2,FALSE,7,42,80,20-30 lbs per plant,aphids

@@ -4,21 +4,36 @@ Usage: python manage.py populate_climate_zones
 """
 
 from django.core.management.base import BaseCommand
-from gardens.models import ClimateZone
+from gardens.models import ClimateZone, DataMigration
 
 
 class Command(BaseCommand):
     help = 'Populate or update ClimateZone table with all USDA hardiness zones'
+    VERSION = '1.0.0'  # Increment this when zone data changes
 
     def add_arguments(self, parser):
         parser.add_argument(
-            '--overwrite',
+            '--force',
             action='store_true',
-            help='Overwrite existing climate zone data',
+            help='Force update even if version matches',
         )
 
     def handle(self, *args, **options):
-        overwrite = options['overwrite']
+        force = options['force']
+
+        # Check version tracking
+        migration, created = DataMigration.objects.get_or_create(
+            command_name='populate_climate_zones',
+            defaults={'version': '0.0.0'}
+        )
+
+        if migration.version == self.VERSION and not force:
+            self.stdout.write(self.style.SUCCESS(
+                f'✓ Climate zones already at version {self.VERSION} (use --force to update)'
+            ))
+            return
+
+        self.stdout.write(f'Updating climate zones from v{migration.version} to v{self.VERSION}...')
 
         zones_data = [
             # Zone 3a - Coldest
@@ -233,34 +248,30 @@ class Command(BaseCommand):
 
         created_count = 0
         updated_count = 0
-        skipped_count = 0
 
+        # Use update_or_create for idempotent operation
         for zone_info in zones_data:
             zone_code = zone_info['zone']
-            existing = ClimateZone.objects.filter(zone=zone_code).first()
+            zone, was_created = ClimateZone.objects.update_or_create(
+                zone=zone_code,
+                defaults=zone_info
+            )
 
-            if existing:
-                if overwrite:
-                    # Update existing zone
-                    for key, value in zone_info.items():
-                        setattr(existing, key, value)
-                    existing.save()
-                    updated_count += 1
-                    self.stdout.write(self.style.SUCCESS(f'Updated zone {zone_code}'))
-                else:
-                    skipped_count += 1
-                    self.stdout.write(self.style.WARNING(f'Skipped existing zone {zone_code}'))
-            else:
-                # Create new zone
-                ClimateZone.objects.create(**zone_info)
+            if was_created:
                 created_count += 1
                 self.stdout.write(self.style.SUCCESS(f'Created zone {zone_code}'))
+            else:
+                updated_count += 1
+                self.stdout.write(f'Updated zone {zone_code}')
+
+        # Update version tracking
+        migration.version = self.VERSION
+        migration.save()
 
         # Summary
         self.stdout.write('\n' + '='*60)
-        self.stdout.write(self.style.SUCCESS(f'Climate Zone Population Complete'))
+        self.stdout.write(self.style.SUCCESS(f'Climate Zone Population Complete (v{self.VERSION})'))
         self.stdout.write(f'Created: {created_count}')
         self.stdout.write(f'Updated: {updated_count}')
-        self.stdout.write(f'Skipped: {skipped_count}')
         self.stdout.write(f'Total zones in database: {ClimateZone.objects.count()}')
         self.stdout.write('='*60)

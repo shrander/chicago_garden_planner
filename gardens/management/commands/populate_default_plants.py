@@ -1,12 +1,13 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from gardens.models import Plant, Garden
+from gardens.models import Plant, Garden, DataMigration
 import json
 
 User = get_user_model()
 
 class Command(BaseCommand):
     help = 'populate db with default plants and sample garden'
+    VERSION = '1.0.0'  # Increment when default plant data changes
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -14,8 +15,27 @@ class Command(BaseCommand):
             action='store_true',
             help='Create a sample user with a demo garden'
         )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Force update even if version matches',
+        )
 
     def handle(self, *args, **options):
+        force = options.get('force', False)
+
+        # Check version tracking
+        migration, _ = DataMigration.objects.get_or_create(
+            command_name='populate_default_plants',
+            defaults={'version': '0.0.0'}
+        )
+
+        if migration.version == self.VERSION and not force and not options.get('create_sample_user'):
+            self.stdout.write(self.style.SUCCESS(
+                f'✓ Default plants already at version {self.VERSION} (use --force to update)'
+            ))
+            return
+
         self.stdout.write(self.style.SUCCESS('🌱 Populating Chicago Garden Database...'))
 
         # create default plants
@@ -25,8 +45,12 @@ class Command(BaseCommand):
         if options['create_sample_user']:
             self.create_sample_user_and_garden()
 
+        # Update version tracking
+        migration.version = self.VERSION
+        migration.save()
+
         self.stdout.write(
-            self.style.SUCCESS('✅ Successfully populated database with Chicago garden data!')
+            self.style.SUCCESS(f'✅ Successfully populated database with Chicago garden data! (v{self.VERSION})')
         )
 
     def create_default_plants(self):

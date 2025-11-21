@@ -6,7 +6,7 @@ from django.contrib import messages
 from django import forms
 import csv
 import json
-from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare, UserPlantNote
+from .models import Plant, Garden, PlantInstance, PlantingNote, GardenShare, UserPlantNote, DataMigration
 
 
 class CSVImportForm(forms.Form):
@@ -468,6 +468,24 @@ class UserPlantNoteAdmin(admin.ModelAdmin):
             )
         return '—'
     success_rating_display.short_description = 'Success Rating'
+
+
+@admin.register(DataMigration)
+class DataMigrationAdmin(admin.ModelAdmin):
+    """Admin interface for DataMigration tracking"""
+    list_display = ['command_name', 'version', 'last_run', 'created_at']
+    list_filter = ['command_name', 'version']
+    search_fields = ['command_name', 'version']
+    readonly_fields = ['last_run', 'created_at']
+    ordering = ['-last_run']
+
+    def has_add_permission(self, request):
+        # Don't allow manual creation - commands manage this
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        # Allow deletion to force re-run of commands
+        return True
 
 
 # Customize admin site headers
