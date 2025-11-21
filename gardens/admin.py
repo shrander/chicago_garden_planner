@@ -28,25 +28,48 @@ class PlantAdmin(admin.ModelAdmin):
     """Admin interface for Plant model with companion planting support"""
 
     list_display = ['symbol_preview', 'name', 'latin_name', 'plant_type', 'planting_seasons_display',
-                    'days_to_harvest', 'spacing_inches', 'is_default', 'companion_count']
-    list_filter = ['plant_type', 'is_default', 'created_at']
-    search_fields = ['name', 'latin_name', 'pest_deterrent_for']
+                    'days_to_harvest', 'spacing_display', 'is_default', 'companion_count']
+    list_filter = ['plant_type', 'life_cycle', 'is_default', 'created_at']
+    search_fields = ['name', 'latin_name', 'pest_deterrent_for', 'pest_susceptibility']
     filter_horizontal = ['companion_plants']
     readonly_fields = ['created_at', 'color_preview']
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'latin_name', 'plant_type')
+            'fields': ('name', 'latin_name', 'plant_type', 'life_cycle')
         }),
         ('Visual Display', {
             'fields': ('symbol', 'color', 'color_preview')
         }),
         ('Growing Information', {
-            'fields': ('life_cycle', 'planting_seasons', 'days_to_harvest', 'spacing_inches', 'yield_per_plant')
+            'fields': ('planting_seasons', 'days_to_harvest', 'yield_per_plant')
         }),
-        ('Companion Planting', {
-            'fields': ('companion_plants', 'pest_deterrent_for'),
-            'description': 'Select plants that grow well together. Companion relationships help with pest control and growth.'
+        ('Spacing - General', {
+            'fields': ('spacing_inches',),
+            'description': 'Legacy spacing field (deprecated - use square foot or row spacing below)'
+        }),
+        ('Spacing - Square Foot Gardening', {
+            'fields': ('sq_ft_spacing',),
+            'description': 'Number of plants per square foot (1, 4, 9, or 16)'
+        }),
+        ('Spacing - Row Gardening', {
+            'fields': ('row_spacing_inches', 'row_spacing_between_rows'),
+            'description': 'Inches between plants in row and between rows'
+        }),
+        ('Starting & Transplanting', {
+            'fields': (
+                'direct_sow',
+                'weeks_before_last_frost_start',
+                'weeks_after_last_frost_transplant',
+                'days_to_germination',
+                'days_before_transplant_ready',
+                'transplant_to_harvest_days'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Companion Planting & Pest Management', {
+            'fields': ('companion_plants', 'pest_deterrent_for', 'pest_susceptibility'),
+            'description': 'Select plants that grow well together. Pest deterrent and susceptibility help pair plants strategically.'
         }),
         ('Ownership', {
             'fields': ('is_default', 'created_by', 'created_at'),
@@ -81,6 +104,18 @@ class PlantAdmin(admin.ModelAdmin):
             return ', '.join([season.capitalize() for season in obj.planting_seasons])
         return '—'
     planting_seasons_display.short_description = 'Planting Seasons'
+
+    def spacing_display(self, obj):
+        """Display spacing information (sq ft or row)"""
+        parts = []
+        if obj.sq_ft_spacing:
+            parts.append(f'SqFt: {obj.sq_ft_spacing}/sq ft')
+        if obj.row_spacing_inches:
+            parts.append(f'Row: {obj.row_spacing_inches}"')
+        if not parts and obj.spacing_inches:
+            parts.append(f'{obj.spacing_inches}"')
+        return ', '.join(parts) if parts else '—'
+    spacing_display.short_description = 'Spacing'
 
     def companion_count(self, obj):
         """Count of companion plants"""
@@ -167,7 +202,7 @@ class PlantAdmin(admin.ModelAdmin):
                                 plant_data[field] = float(value) if value else None
 
                             # Parse optional text fields
-                            for field in ['yield_per_plant', 'pest_deterrent_for']:
+                            for field in ['yield_per_plant', 'pest_deterrent_for', 'pest_susceptibility']:
                                 plant_data[field] = row.get(field, '').strip()
 
                             # Check if plant exists

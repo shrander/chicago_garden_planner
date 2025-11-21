@@ -180,6 +180,11 @@ def garden_detail(request, pk):
             'days_before_transplant_ready': plant.days_before_transplant_ready,
             'transplant_to_harvest_days': plant.transplant_to_harvest_days,
             'days_to_harvest': plant.days_to_harvest,
+            'sq_ft_spacing': plant.sq_ft_spacing,
+            'row_spacing_inches': plant.row_spacing_inches,
+            'row_spacing_between_rows': plant.row_spacing_between_rows,
+            'spacing_inches': plant.spacing_inches,
+            'yield_per_plant': plant.yield_per_plant,
         }
 
     # Convert plant_map to JSON string for JavaScript
@@ -742,6 +747,56 @@ def garden_update_name(request, pk):
 
 @login_required
 @require_POST
+def garden_update_info(request, pk):
+    """AJAX endpoint to update garden description and garden_type"""
+    try:
+        garden = get_object_or_404(Garden, pk=pk, owner=request.user)
+
+        # Parse JSON data from request body
+        data = json.loads(request.body)
+
+        # Update description if provided
+        if 'description' in data:
+            description = data.get('description', '').strip()
+            garden.description = description
+
+        # Update garden_type if provided
+        if 'garden_type' in data:
+            garden_type = data.get('garden_type', '').strip()
+            # Validate garden_type
+            valid_types = [choice[0] for choice in Garden.GARDEN_TYPES]
+            if garden_type not in valid_types:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Invalid garden type. Must be one of: {", ".join(valid_types)}'
+                }, status=400)
+            garden.garden_type = garden_type
+
+        # Save changes
+        garden.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Garden information updated successfully',
+            'description': garden.description,
+            'garden_type': garden.garden_type,
+            'garden_type_display': garden.get_garden_type_display()
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
 def garden_ai_assistant(request, pk):
     """AI assistant endpoint to get garden layout suggestions from Claude"""
     try:
@@ -846,7 +901,8 @@ def garden_ai_assistant(request, pk):
                 'planting_seasons': plant.planting_seasons,
                 'life_cycle': plant.life_cycle,
                 'companions': companions,
-                'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None
+                'pest_deterrent': plant.pest_deterrent_for if plant.pest_deterrent_for else None,
+                'pest_susceptibility': plant.pest_susceptibility if plant.pest_susceptibility else None
             }
             plant_database.append(plant_info)
 

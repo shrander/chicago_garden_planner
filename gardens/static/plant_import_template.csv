@@ -1,8 +1,8 @@
-name,latin_name,symbol,color,plant_type,life_cycle,planting_seasons,days_to_harvest,spacing_inches,sq_ft_spacing,row_spacing_inches,row_spacing_between_rows,weeks_before_last_frost_start,weeks_after_last_frost_transplant,direct_sow,days_to_germination,days_before_transplant_ready,transplant_to_harvest_days,yield_per_plant,pest_deterrent_for
-Tomato (Cherry),Solanum lycopersicum var. cerasiforme,To,#FF6347,vegetable,annual,"[""spring""]",65,24,1,24,36,6,2,FALSE,7,42,65,10-15 lbs per plant,aphids
-Basil,Ocimum basilicum,Ba,#228B22,herb,annual,"[""spring"", ""summer""]",,12,4,6,12,4,2,TRUE,7,21,,Continuous harvest,mosquitoes
-Lettuce (Leaf),Lactuca sativa,Le,#90EE90,vegetable,annual,"[""spring"", ""fall""]",45,6,4,6,12,,,TRUE,7,,,Continuous harvest,
-Marigold,Tagetes,Ma,#FFD700,flower,annual,"[""spring""]",,12,4,6,12,4,1,FALSE,7,21,,Continuous blooms,"aphids, whiteflies, nematodes"
-Jalapeno,Capsicum annuum,Ja,#228B22,vegetable,annual,"[""spring""]",75,18,1,18,24,8,2,FALSE,10,35,75,25-35 peppers per plant,
-Lacinato Kale,Brassica oleracea var. sabellica,Ka,#2F4F2F,vegetable,biennial,"[""spring"", ""fall""]",60,12,1,18,24,4,0,TRUE,7,21,60,Continuous harvest,"cabbage moths, aphids"
-Plum Tomato,Solanum lycopersicum,Pl,#DC143C,vegetable,annual,"[""spring""]",80,24,1,24,36,6,2,FALSE,7,42,80,20-30 lbs per plant,aphids
+name,latin_name,symbol,color,plant_type,life_cycle,planting_seasons,days_to_harvest,spacing_inches,sq_ft_spacing,row_spacing_inches,row_spacing_between_rows,weeks_before_last_frost_start,weeks_after_last_frost_transplant,direct_sow,days_to_germination,days_before_transplant_ready,transplant_to_harvest_days,yield_per_plant,pest_deterrent_for,pest_susceptibility
+Tomato (Cherry),Solanum lycopersicum var. cerasiforme,To,#FF6347,vegetable,annual,"[""spring""]",65,24,1,24,36,6,2,FALSE,7,42,65,10-15 lbs per plant,"aphids, whiteflies","hornworms, aphids, whiteflies, cutworms, early blight"
+Basil,Ocimum basilicum,Ba,#228B22,herb,annual,"[""spring"", ""summer""]",,12,4,6,12,4,2,TRUE,7,21,,Continuous harvest,"mosquitoes, flies, aphids, hornworms","Japanese beetles, slugs"
+Lettuce (Leaf),Lactuca sativa,Le,#90EE90,vegetable,annual,"[""spring"", ""fall""]",45,6,4,6,12,,,TRUE,7,,,Continuous harvest,,"aphids, slugs, snails, cutworms, leaf miners"
+Marigold,Tagetes,Ma,#FFD700,flower,annual,"[""spring""]",,12,4,6,12,4,1,FALSE,7,21,,Continuous blooms,"nematodes, aphids, whiteflies, Mexican bean beetles","spider mites, slugs, snails"
+Jalapeno,Capsicum annuum,Ja,#228B22,vegetable,annual,"[""spring""]",75,18,1,18,24,8,2,FALSE,10,35,75,25-35 peppers per plant,,"aphids, spider mites, pepper weevils, cutworms"
+Lacinato Kale,Brassica oleracea var. sabellica,Ka,#2F4F2F,vegetable,biennial,"[""spring"", ""fall""]",60,12,1,18,24,4,0,TRUE,7,21,60,Continuous harvest,,"cabbage worms, aphids, flea beetles, cabbage moths, slugs"
+Plum Tomato,Solanum lycopersicum,Pl,#DC143C,vegetable,annual,"[""spring""]",80,24,1,24,36,6,2,FALSE,7,42,80,20-30 lbs per plant,"aphids, whiteflies","hornworms, aphids, whiteflies, cutworms, early blight"

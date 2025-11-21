@@ -109,9 +109,10 @@ class Plant(models.Model):
         help_text='Expected yield per plant (e.g., "2-3 lbs", "10-15 fruits", "continuous harvest")'
     )
 
-    # Companion planting
+    # Companion planting and pest management
     companion_plants = models.ManyToManyField('self', blank=True, symmetrical=False)
-    pest_deterrent_for = models.TextField(blank=True, help_text='Comma-separated list of pests deterred')
+    pest_deterrent_for = models.TextField(blank=True, help_text='Comma-separated list of pests this plant deters')
+    pest_susceptibility = models.TextField(blank=True, help_text='Comma-separated list of pests this plant is susceptible to')
 
     # User management 
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)

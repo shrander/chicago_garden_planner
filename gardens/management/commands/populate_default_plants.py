@@ -7,7 +7,7 @@ User = get_user_model()
 
 class Command(BaseCommand):
     help = 'populate db with default plants and sample garden'
-    VERSION = '1.0.0'  # Increment when default plant data changes
+    VERSION = '1.1.0'  # Increment when default plant data changes
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -70,6 +70,7 @@ class Command(BaseCommand):
                 'yield_per_plant': '1-2 quarts per plant per season',
                 'chicago_notes': 'Plant in early spring after last frost danger. June-bearing varieties work best in Chicago. Protect from late frosts with row covers. Harvest peak season: June-July.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'slugs, snails, spider mites, aphids, gray mold, verticillium wilt, leaf spot',
                 'is_default': True,
             },
             {
@@ -83,7 +84,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 75,
                 'spacing_inches': 24.0,
                 'chicago_notes': 'Start indoors 6-8 weeks before last frost (mid-March). Transplant after soil reaches 65°F (late May). Choose disease-resistant varieties for Chicago humidity. Stake or cage for support.',
-                'pest_deterrent_for': '',
+                'pest_deterrent_for': 'aphids, whiteflies',
+                'pest_susceptibility': 'hornworms, aphids, whiteflies, cutworms, tomato fruitworms, early blight, late blight, blossom end rot',
                 'is_default': True,
             },
             {
@@ -98,6 +100,7 @@ class Command(BaseCommand):
                 'spacing_inches': 15.0,
                 'chicago_notes': 'Cool-season crop that thrives in Chicago springs and falls. Plant 2-4 weeks before last frost. Heat-tolerant varieties for summer growing. Sweetens after light frost.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'cabbage worms, cabbage loopers, aphids, flea beetles, cabbage moths, slugs, whiteflies',
                 'is_default': True,
             },
             {
@@ -112,6 +115,7 @@ class Command(BaseCommand):
                 'spacing_inches': 2.0,
                 'chicago_notes': 'Direct seed 2-3 weeks before last frost. Succession plant every 2-3 weeks through August. Choose shorter varieties for clay soil common in Chicago area.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'carrot rust flies, aphids, wireworms, root-knot nematodes',
                 'is_default': True,
             },
             {
@@ -126,6 +130,7 @@ class Command(BaseCommand):
                 'spacing_inches': 18.0,
                 'chicago_notes': 'Start indoors in June for fall harvest. Transplant in July. Flavor improves after frost. Harvest from bottom up through winter in Chicago.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'cabbage worms, cabbage loopers, aphids, flea beetles, cabbage moths, root maggots',
                 'is_default': True,
             },
             {
@@ -140,6 +145,7 @@ class Command(BaseCommand):
                 'spacing_inches': 18.0,
                 'chicago_notes': 'Plant 2 weeks before last frost in Chicago (early April). Hill soil around plants as they grow. Harvest new potatoes in July, storage potatoes in September.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'potato beetles, aphids, flea beetles, wireworms, late blight, early blight, potato scab',
                 'is_default': True,
             },
             {
@@ -154,6 +160,7 @@ class Command(BaseCommand):
                 'spacing_inches': 6.0,
                 'chicago_notes': 'Cool-season crop. Plant early spring and late summer in Chicago. Use heat-tolerant varieties for summer succession. Provide afternoon shade in hot weather.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'aphids, slugs, snails, cutworms, leaf miners',
                 'is_default': True,
             },
             {
@@ -167,7 +174,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 240,
                 'spacing_inches': 4.0,
                 'chicago_notes': 'Plant hardneck varieties in October in Chicago. Harvest scapes in June, bulbs in July. Cure in ventilated area. Excellent companion plant.',
-                'pest_deterrent_for': 'aphids, cabbage worms, Japanese beetles, carrot flies',
+                'pest_deterrent_for': 'aphids, cabbage worms, Japanese beetles, carrot flies, spider mites, fungus gnats',
+                'pest_susceptibility': 'white rot, rust, onion maggots',
                 'is_default': True,
             },
             {
@@ -181,7 +189,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 60,
                 'spacing_inches': 12.0,
                 'chicago_notes': 'Heat-loving herb. Plant after soil warms to 65°F in Chicago (late May). Pinch flowers to encourage leaf growth. Excellent companion to tomatoes.',
-                'pest_deterrent_for': 'hornworms, aphids, spider mites',
+                'pest_deterrent_for': 'mosquitoes, flies, aphids, spider mites, hornworms, whiteflies',
+                'pest_susceptibility': 'Japanese beetles, slugs, aphids (under stress)',
                 'is_default': True,
             },
             {
@@ -195,7 +204,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 25,
                 'spacing_inches': 1.0,
                 'chicago_notes': 'Fast-growing crop perfect for Chicago springs and falls. Direct seed 4 weeks before last frost. Succession plant every 2 weeks. Natural soil cultivator.',
-                'pest_deterrent_for': 'root maggots, flea beetles',
+                'pest_deterrent_for': 'flea beetles, root maggots',
+                'pest_susceptibility': 'flea beetles, root maggots, cabbage worms',
                 'is_default': True,
             },
             {
@@ -209,7 +219,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 50,
                 'spacing_inches': 8.0,
                 'chicago_notes': 'Heat-loving annual flowers. Plant after last frost in Chicago. Excellent companion plants. Deadhead for continuous blooms through first frost.',
-                'pest_deterrent_for': 'nematodes, aphids, whiteflies, Mexican bean beetles',
+                'pest_deterrent_for': 'nematodes, aphids, whiteflies, Mexican bean beetles, mosquitoes, cabbage moths',
+                'pest_susceptibility': 'spider mites, slugs, snails',
                 'is_default': True,
             },
             {
@@ -223,7 +234,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 75,
                 'spacing_inches': 18.0,
                 'chicago_notes': 'Perennial herb hardy in Chicago Zone 5b. Plant in spring. Harvest leaves before flowering. Cut back in fall. Survives Chicago winters with mulch.',
-                'pest_deterrent_for': 'cabbage moths, flea beetles, carrot flies',
+                'pest_deterrent_for': 'cabbage moths, flea beetles, carrot flies, slugs, snails',
+                'pest_susceptibility': 'spider mites, whiteflies (occasionally)',
                 'is_default': True,
             },
             # Additional Chicago-friendly plants
@@ -239,6 +251,7 @@ class Command(BaseCommand):
                 'spacing_inches': 4.0,
                 'chicago_notes': 'Cool-season green perfect for Chicago springs and falls. Plant 4-6 weeks before last frost. Bolt-resistant varieties for longer harvest.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': 'aphids, leaf miners, slugs, snails, downy mildew',
                 'is_default': True,
             },
             {
@@ -252,7 +265,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 30,
                 'spacing_inches': 6.0,
                 'chicago_notes': 'Hardy perennial herb. Plant once and harvest for years. Divides easily. Purple flowers attract beneficial insects. Cut back after blooming.',
-                'pest_deterrent_for': 'aphids, Japanese beetles',
+                'pest_deterrent_for': 'aphids, Japanese beetles, carrot flies, mildew',
+                'pest_susceptibility': 'onion maggots, thrips',
                 'is_default': True,
             },
             {
@@ -266,7 +280,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 45,
                 'spacing_inches': 10.0,
                 'chicago_notes': 'Annual flowers with edible blooms. Direct seed after last frost. Thrives in poor soil. Excellent trap crop for aphids. Climbing varieties save space.',
-                'pest_deterrent_for': 'squash bugs, cucumber beetles',
+                'pest_deterrent_for': 'squash bugs, cucumber beetles, whiteflies, woolly aphids',
+                'pest_susceptibility': 'aphids, cabbage worms, flea beetles (attracts as trap crop)',
                 'is_default': True,
             },
             {
@@ -280,7 +295,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 40,
                 'spacing_inches': 8.0,
                 'chicago_notes': 'Annual herb that self-seeds readily in Chicago gardens. Direct seed in spring. Attracts beneficial wasps and swallowtail butterflies.',
-                'pest_deterrent_for': 'aphids, spider mites, cabbage loopers',
+                'pest_deterrent_for': 'aphids, spider mites, cabbage loopers, squash bugs',
+                'pest_susceptibility': 'tomato hornworms (attracts them as food source for parasitic wasps)',
                 'is_default': True,
             },
             {
@@ -294,7 +310,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 150,
                 'spacing_inches': 24.0,
                 'chicago_notes': 'Hardy perennial root vegetable. Plant crowns in early spring or fall. Harvest roots in late fall after first frost for best flavor. Can be invasive - contain in dedicated bed. Thrives in Chicago climate.',
-                'pest_deterrent_for': 'potato beetles, blister beetles, aphids',
+                'pest_deterrent_for': 'potato beetles, blister beetles, aphids, fungal diseases',
+                'pest_susceptibility': 'flea beetles, root rot (in wet soil)',
                 'is_default': True,
             },
             {
@@ -308,7 +325,8 @@ class Command(BaseCommand):
                 'days_to_harvest': 75,
                 'spacing_inches': 12.0,
                 'chicago_notes': 'Hardy perennial herb for Chicago Zone 5b. Plant in spring after frost. Drought-tolerant once established. Harvest before flowering. Mulch heavily for winter protection. Attracts beneficial insects.',
-                'pest_deterrent_for': 'cabbage worms, whiteflies',
+                'pest_deterrent_for': 'cabbage worms, whiteflies, corn earworms, tomato hornworms',
+                'pest_susceptibility': 'root rot (in wet conditions)',
                 'is_default': True,
             },
             # System plants
@@ -323,6 +341,7 @@ class Command(BaseCommand):
                 'spacing_inches': 12.0,
                 'chicago_notes': 'Designated walking paths prevent soil compaction in garden beds.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': '',
                 'is_default': True,
             },
             {
@@ -336,25 +355,28 @@ class Command(BaseCommand):
                 'spacing_inches': 0.0,
                 'chicago_notes': 'Open space ready for planting or succession crops.',
                 'pest_deterrent_for': '',
+                'pest_susceptibility': '',
                 'is_default': True,
             },
         ]
 
-        created_count=0
+        created_count = 0
+        updated_count = 0
         for plant_data in default_plants:
-            plant, created = Plant.objects.get_or_create(
+            plant, created = Plant.objects.update_or_create(
                 name=plant_data['name'],
                 is_default=True,
                 defaults=plant_data
             )
-            if created: 
-                created_count+=1
+            if created:
+                created_count += 1
                 self.stdout.write(f'  ✓ Created: {plant.name}')
             else:
-                self.stdout.write(f'  - Already exists: {plant.name}')
+                updated_count += 1
+                self.stdout.write(f'  ↻ Updated: {plant.name}')
 
         self.stdout.write(
-            self.style.SUCCESS(f'📦 Created {created_count} new plants out of {len(default_plants)} total')
+            self.style.SUCCESS(f'📦 Created {created_count}, Updated {updated_count} (Total: {len(default_plants)} plants)')
         )
 
     def create_sample_user_and_garden(self):
