@@ -41,18 +41,20 @@ def divide(value, arg):
 def calculate_total_yield(yield_str, count):
     """
     Calculate total yield by parsing the yield string and multiplying by count.
-    For ranges (e.g., "10-15 lbs"), uses the average.
-    For continuous harvests, returns the base yield description.
+    Returns compact, human-readable format.
 
     Examples:
-        "10-15 lbs per plant" × 5 = "62.5 lbs"
-        "1-2 quarts per plant per season" × 3 = "4.5 quarts per season"
-        "1 cup per week (continuous harvest)" × 2 = "2 cups per week (continuous)"
+        "10-15 lbs per plant" × 5 = "50-75 lb"
+        "Continuous harvest" → "Continuous"
     """
     import re
 
     if not yield_str or not count:
         return "No estimate"
+
+    # Handle continuous harvest specially
+    if 'continuous' in yield_str.lower():
+        return "Continuous"
 
     # Handle N/A or special cases
     if yield_str.upper() == 'N/A':
@@ -106,19 +108,25 @@ def calculate_total_yield(yield_str, count):
     if range_match:
         low = float(range_match.group(1))
         high = float(range_match.group(2))
-        avg = (low + high) / 2
-        total = avg * count
+        total_low = int(low * count)
+        total_high = int(high * count)
 
-        # Extract the unit (everything after the number range)
+        # Extract and compact the unit
         unit_part = yield_str[range_match.end():].strip()
-        # Remove "per plant" if present
-        unit_part = re.sub(r'\s*per plant\s*', ' ', unit_part).strip()
+        unit_part = re.sub(r'\s*per plant\s*', '', unit_part).strip()
 
-        # Format the total nicely
-        if total == int(total):
-            return f"{int(total)} {unit_part}"
-        else:
-            return f"{total:.1f} {unit_part}"
+        # Shorten common units
+        unit_map = {
+            'lbs': 'lb',
+            'pounds': 'lb',
+            'ounces': 'oz',
+            'peppers': 'peppers',
+            'blooms': 'blooms'
+        }
+        for old, new in unit_map.items():
+            unit_part = unit_part.replace(old, new)
+
+        return f"{total_low}-{total_high} {unit_part}"
 
     # Check for continuous harvest BEFORE single number check
     # (e.g., "1 cup per week (continuous harvest)")

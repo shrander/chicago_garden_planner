@@ -621,6 +621,297 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ========================================
+    // GARDEN DESCRIPTION INLINE EDITING
+    // ========================================
+
+    /**
+     * Initialize garden description inline editing functionality
+     */
+    function setupGardenDescriptionEditing() {
+        const descriptionDisplay = document.getElementById('gardenDescriptionDisplay');
+        const descriptionInput = document.getElementById('gardenDescriptionInput');
+        const descriptionSave = document.getElementById('gardenDescriptionSave');
+        const descriptionCancel = document.getElementById('gardenDescriptionCancel');
+        const descriptionStatus = document.getElementById('gardenDescriptionStatus');
+
+        console.log('setupGardenDescriptionEditing called');
+        console.log('descriptionDisplay:', descriptionDisplay);
+        console.log('descriptionInput:', descriptionInput);
+
+        if (!descriptionDisplay || !descriptionInput) {
+            console.warn('Garden description editing elements not found, skipping setup');
+            return;
+        }
+
+        let originalValue = descriptionInput.value;
+
+        // Click to edit
+        descriptionDisplay.addEventListener('click', function() {
+            console.log('Description display clicked!');
+            originalValue = descriptionInput.value;
+            descriptionDisplay.classList.add('d-none');
+            descriptionInput.classList.remove('d-none');
+            descriptionSave.classList.remove('d-none');
+            descriptionCancel.classList.remove('d-none');
+            descriptionInput.focus();
+        });
+
+        console.log('Garden description editing setup complete');
+
+        // Save button
+        descriptionSave.addEventListener('click', function() {
+            saveGardenDescription();
+        });
+
+        // Cancel button
+        descriptionCancel.addEventListener('click', function() {
+            descriptionInput.value = originalValue;
+            hideDescriptionEditor();
+        });
+
+        // Save on Ctrl+Enter
+        descriptionInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveGardenDescription();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                descriptionInput.value = originalValue;
+                hideDescriptionEditor();
+            }
+        });
+
+        function hideDescriptionEditor() {
+            descriptionInput.classList.add('d-none');
+            descriptionSave.classList.add('d-none');
+            descriptionCancel.classList.add('d-none');
+            descriptionDisplay.classList.remove('d-none');
+        }
+
+        function saveGardenDescription() {
+            const newDescription = descriptionInput.value.trim();
+
+            // Show saving status
+            descriptionStatus.textContent = 'Saving...';
+            descriptionStatus.className = 'badge bg-info ms-2';
+
+            fetch(`/gardens/${gardenId}/update-info/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ description: newDescription })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update display
+                    const displayText = newDescription || 'No description provided. Click to add one.';
+                    const p = descriptionDisplay.querySelector('p');
+                    p.textContent = displayText;
+
+                    originalValue = newDescription;
+                    hideDescriptionEditor();
+
+                    // Show success
+                    descriptionStatus.textContent = 'Saved';
+                    descriptionStatus.className = 'badge bg-success ms-2';
+                    setTimeout(() => {
+                        descriptionStatus.textContent = '';
+                    }, 2000);
+                } else {
+                    descriptionStatus.textContent = 'Error: ' + (data.error || 'Failed to save');
+                    descriptionStatus.className = 'badge bg-danger ms-2';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                descriptionStatus.textContent = 'Network error';
+                descriptionStatus.className = 'badge bg-danger ms-2';
+            });
+        }
+    }
+
+    // ========================================
+    // GARDEN TYPE SELECTOR
+    // ========================================
+
+    /**
+     * Update yield display based on garden type and spacing data
+     * Recalculates plant quantities based on spacing method
+     * @param {string} gardenType - 'square_foot' or 'row'
+     */
+    function updateYieldDisplay(gardenType) {
+        const yieldTableBody = document.getElementById('yieldTableBody');
+        if (!yieldTableBody) return;
+
+        console.log('Updating yield display for garden type:', gardenType);
+
+        // Count plants in the grid by type
+        const grid = document.querySelectorAll('#gardenGrid .garden-cell');
+        const plantCounts = {};
+
+        grid.forEach(cell => {
+            const plantName = cell.dataset.plant;
+            if (!plantName || plantName === 'empty space' || plantName === 'path' || plantName === '') {
+                return;
+            }
+
+            const plantData = window.PLANT_MAP[plantName];
+            if (!plantData) return;
+
+            // Calculate how many actual plants per grid cell based on garden type
+            let plantsPerCell = 1; // Default
+
+            if (gardenType === 'square_foot' && plantData.sq_ft_spacing) {
+                // Square foot: each cell can hold multiple plants
+                plantsPerCell = plantData.sq_ft_spacing;
+            } else if (gardenType === 'row' && plantData.row_spacing_inches) {
+                // Row: typically 1 plant per cell in the grid
+                // (grid cells represent spacing, not multiple plants)
+                plantsPerCell = 1;
+            }
+
+            plantCounts[plantName] = (plantCounts[plantName] || 0) + plantsPerCell;
+        });
+
+        // Update the table rows
+        const rows = yieldTableBody.querySelectorAll('tr[data-plant]');
+
+        rows.forEach(row => {
+            const plantName = row.dataset.plant;
+            const plantData = window.PLANT_MAP[plantName];
+
+            if (!plantData) return;
+
+            const newCount = plantCounts[plantName] || 0;
+            const quantityCell = row.querySelector('.yield-quantity strong');
+            const totalCell = row.querySelector('.yield-total');
+
+            if (!quantityCell || !totalCell) return;
+
+            // Update quantity
+            quantityCell.textContent = newCount;
+
+            // Calculate new total yield
+            if (plantData.yield_per_plant) {
+                const totalYield = calculateTotalYield(plantData.yield_per_plant, newCount);
+                totalCell.innerHTML = `<strong>${totalYield}</strong>`;
+            } else {
+                totalCell.innerHTML = '<span class="text-muted">No estimate</span>';
+            }
+
+            console.log(`${plantData.name}: ${newCount} plants (${gardenType})`);
+        });
+    }
+
+    /**
+     * Calculate total yield from yield_per_plant string and count
+     * Mirrors the Django template filter calculate_total_yield
+     * @param {string} yieldPerPlant - e.g. "10-15 lbs per plant"
+     * @param {number} count - number of plants
+     * @returns {string} Total yield estimate (compact format)
+     */
+    function calculateTotalYield(yieldPerPlant, count) {
+        // Handle "Continuous harvest" or non-numeric yields
+        if (!yieldPerPlant || yieldPerPlant.toLowerCase().includes('continuous')) {
+            return 'Continuous';
+        }
+
+        // Simple calculation - extract numbers and multiply
+        const match = yieldPerPlant.match(/(\d+)(?:-(\d+))?/);
+        if (!match) return yieldPerPlant; // Return as-is if can't parse
+
+        const low = parseInt(match[1]);
+        const high = match[2] ? parseInt(match[2]) : low;
+
+        const totalLow = low * count;
+        const totalHigh = high * count;
+
+        // Extract and shorten unit
+        let unit = yieldPerPlant.replace(/[\d\-\s]/g, '').replace('per plant', '').replace('plant', '').trim();
+
+        // Compact unit names for better display
+        const unitMap = {
+            'lbs': 'lb',
+            'pounds': 'lb',
+            'ounces': 'oz',
+            'peppers': 'peppers',
+            'blooms': 'blooms',
+            'heads': 'heads',
+            'bunches': 'bunches'
+        };
+
+        unit = unitMap[unit.toLowerCase()] || unit;
+
+        if (totalLow === totalHigh) {
+            return `${totalLow} ${unit}`;
+        } else {
+            return `${totalLow}-${totalHigh} ${unit}`;
+        }
+    }
+
+    /**
+     * Initialize garden type selector with auto-save
+     */
+    function setupGardenTypeSelector() {
+        const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+        const gardenTypeStatus = document.getElementById('gardenTypeStatus');
+
+        if (!gardenTypeSelect) return;
+
+        gardenTypeSelect.addEventListener('change', function() {
+            const newType = this.value;
+
+            // Show saving status
+            gardenTypeStatus.textContent = 'Saving...';
+            gardenTypeStatus.className = 'badge bg-info ms-2';
+
+            fetch(`/gardens/${gardenId}/update-info/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ garden_type: newType })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update yield display based on new garden type
+                    updateYieldDisplay(newType);
+
+                    // Update original value for future reverts
+                    gardenTypeSelect.setAttribute('data-original-value', newType);
+
+                    // Show success
+                    gardenTypeStatus.textContent = 'Saved';
+                    gardenTypeStatus.className = 'badge bg-success ms-2';
+                    setTimeout(() => {
+                        gardenTypeStatus.textContent = '';
+                    }, 2000);
+                } else {
+                    gardenTypeStatus.textContent = 'Error: ' + (data.error || 'Failed to save');
+                    gardenTypeStatus.className = 'badge bg-danger ms-2';
+                    // Revert selection on error
+                    this.value = this.getAttribute('data-original-value') || 'square_foot';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                gardenTypeStatus.textContent = 'Network error';
+                gardenTypeStatus.className = 'badge bg-danger ms-2';
+                // Revert selection on error
+                this.value = this.getAttribute('data-original-value') || 'square_foot';
+            });
+        });
+
+        // Store original value for revert on error
+        gardenTypeSelect.setAttribute('data-original-value', gardenTypeSelect.value);
+    }
+
+    // ========================================
     // EXPORT/IMPORT
     // ========================================
 
@@ -1222,7 +1513,10 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
     }
 
     // Initialize all handlers
+    console.log('Initializing all handlers...');
     setupGardenNameEditing();
+    setupGardenDescriptionEditing();
+    setupGardenTypeSelector();
     setupAIAssistant();
     setupExportHandler();
     setupImportHandler();

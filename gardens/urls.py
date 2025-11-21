@@ -14,6 +14,7 @@ urlpatterns = [
     path('<int:pk>/clear/', views.garden_clear, name='garden_clear'),
     path('<int:pk>/save-layout/', views.garden_save_layout, name='garden_save_layout'),
     path('<int:pk>/update-name/', views.garden_update_name, name='garden_update_name'),
+    path('<int:pk>/update-info/', views.garden_update_info, name='garden_update_info'),
     path('<int:pk>/ai-suggest/', views.garden_ai_assistant, name='garden_ai_assistant'),
     path('<int:pk>/set-planting-date/', views.set_planting_date, name='set_planting_date'),
     path('<int:pk>/mark-harvested/', views.mark_harvested, name='mark_harvested'),

@@ -213,18 +213,51 @@
                 <h5 class="mb-0"><i class="bi bi-info-circle"></i> Garden Information</h5>
             </div>
             <div class="card-body">
+                {% if can_edit %}
+                <!-- Editable Description -->
+                <div class="mb-3">
+                    <div id="gardenDescriptionDisplay" style="cursor: pointer;" title="Click to edit">
+                        <p class="card-text mb-1">{{ garden.description|default:"No description provided. Click to add one." }}</p>
+                        <i class="bi bi-pencil-square text-muted" style="font-size: 0.9em;"></i>
+                    </div>
+                    <textarea id="gardenDescriptionInput"
+                              class="form-control d-none"
+                              rows="3"
+                              maxlength="500">{{ garden.description }}</textarea>
+                    <div class="mt-1">
+                        <button id="gardenDescriptionSave" class="btn btn-sm btn-success d-none">Save</button>
+                        <button id="gardenDescriptionCancel" class="btn btn-sm btn-secondary d-none">Cancel</button>
+                        <span id="gardenDescriptionStatus" class="badge ms-2"></span>
+                    </div>
+                </div>
+                {% else %}
                 <p class="card-text">{{ garden.description|default:"No description provided." }}</p>
+                {% endif %}
 
                 <div class="row mt-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <h6 class="text-muted">Size</h6>
                         <p><span class="badge bg-primary">{{ garden.get_size_display }}</span></p>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <h6 class="text-muted">Dimensions</h6>
                         <p><strong>{{ garden.width }}' × {{ garden.height }}'</strong></p>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Garden Type</h6>
+                        {% if can_edit %}
+                        <div>
+                            <select id="gardenTypeSelect" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+                                <option value="square_foot" {% if garden.garden_type == 'square_foot' %}selected{% endif %}>Square Foot</option>
+                                <option value="row" {% if garden.garden_type == 'row' %}selected{% endif %}>Row</option>
+                            </select>
+                            <span id="gardenTypeStatus" class="badge ms-2"></span>
+                        </div>
+                        {% else %}
+                        <p><span class="badge bg-info">{{ garden.get_garden_type_display }}</span></p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
                         <h6 class="text-muted">Total Plants</h6>
                         <p><i class="bi bi-flower1 text-success"></i> <strong>{{ garden.get_plant_count }}</strong></p>
                     </div>
@@ -310,20 +343,20 @@
                     <div class="col-md-12">
                         <h6 class="text-muted mb-3"><i class="bi bi-basket"></i> Estimated Yield</h6>
                         <div class="table-responsive">
-                            <table class="table table-sm table-hover">
+                            <table class="table table-sm table-hover" style="table-layout: auto;">
                                 <thead>
                                     <tr>
-                                        <th>Plant</th>
-                                        <th class="text-center">Quantity</th>
-                                        <th class="text-center">Yield/Plant</th>
-                                        <th class="text-end">Total Estimated Yield</th>
+                                        <th style="width: 30%;">Plant</th>
+                                        <th class="text-center" style="width: 15%;">Qty</th>
+                                        <th class="text-center" style="width: 25%;">Yield/Plant</th>
+                                        <th class="text-end" style="width: 30%;">Total Yield</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="yieldTableBody">
                                     {% for plant, count in plant_counts_detail.items %}
-                                    <tr>
+                                    <tr data-plant="{{ plant }}">
                                         <td class="text-capitalize">{{ plant }}</td>
-                                        <td class="text-center"><strong>{{ count }}</strong></td>
+                                        <td class="text-center yield-quantity"><strong>{{ count }}</strong></td>
                                         <td class="text-center">
                                             {% with plant_obj=plant_yields|get_item:plant %}
                                                 {% if plant_obj.yield_per_plant %}
@@ -333,7 +366,7 @@
                                                 {% endif %}
                                             {% endwith %}
                                         </td>
-                                        <td class="text-end text-success">
+                                        <td class="text-end text-success yield-total">
                                             {% with plant_obj=plant_yields|get_item:plant %}
                                                 {% if plant_obj.yield_per_plant %}
                                                     <strong>{{ plant_obj.yield_per_plant|calculate_total_yield:count }}</strong>
