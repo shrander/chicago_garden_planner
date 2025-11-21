@@ -55,7 +55,7 @@ class Command(BaseCommand):
             'Lettuce (Leaf)': (4, 6, 12),
             'Spinach': (9, 4, 12),  # 9 per sq ft, 4" apart, 12" rows
             'Basil': (4, 6, 12),  # 4 per sq ft, 6" apart, 12" rows
-            'Garlic': (9, 4, 12),  # 9 per sq ft, 4" apart (cloves), 12" rows
+            'Garlic': (4, 4, 12),  # 4 per sq ft, 4" apart (cloves), 12" rows
             'Jalapeno': (1, 18, 24),  # 1 per sq ft, 18" apart, 24" rows
 
             # Herbs
