@@ -69,11 +69,11 @@ def garden_detail(request, pk):
 
     if request.user.is_authenticated:
         # Check if garden is shared with this user
-        share = GardenShare.objects.filter(  # type: ignore[attr-defined]
+        share = GardenShare.objects.filter(
             garden=garden,
             shared_with_user=request.user,
             accepted_at__isnull=False
-        ).first()  # type: ignore[attr-defined]
+        ).first()
 
         if share:
             is_shared = True
@@ -105,9 +105,9 @@ def garden_detail(request, pk):
     plants_in_garden = []
     for plant_name in unique_plants:
         try:
-            plant = Plant.objects.filter(  # type: ignore[attr-defined]
+            plant = Plant.objects.filter(
                 Q(name__iexact=plant_name) | Q(symbol__iexact=plant_name)
-            ).first()  # type: ignore[attr-defined]
+            ).first()
             if plant:
                 plants_in_garden.append(plant)
         except Plant.DoesNotExist:
@@ -118,13 +118,13 @@ def garden_detail(request, pk):
     utility_plants = []
     if request.user.is_authenticated and garden.owner == request.user:
         # Get utility plants (Empty Space, Path) - these go at the top
-        utility_plants = Plant.objects.filter(  # type: ignore[attr-defined]
+        utility_plants = Plant.objects.filter(
             plant_type='utility',
             is_default=True
         ).order_by('name')
 
         # Get all other plants (non-utility) sorted alphabetically
-        all_plants = Plant.objects.filter(  # type: ignore[attr-defined]
+        all_plants = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
         ).exclude(plant_type='utility').order_by('name')  # Sort alphabetically by common name
 
@@ -140,7 +140,7 @@ def garden_detail(request, pk):
     empty_cells_count = 0
 
     # Get all plants for type lookup
-    all_plants_for_stats = Plant.objects.filter(  # type: ignore[attr-defined]
+    all_plants_for_stats = Plant.objects.filter(
         Q(is_default=True) | Q(created_by=request.user)
     ).exclude(plant_type='utility')
     plant_type_lookup = {p.name.lower(): p.plant_type for p in all_plants_for_stats}
@@ -170,7 +170,7 @@ def garden_detail(request, pk):
 
     # Create a mapping of plant names to their symbols, colors, and timing data for the grid display
     plant_map = {}
-    for plant in Plant.objects.all():  # type: ignore[attr-defined]
+    for plant in Plant.objects.all():
         plant_map[plant.name.lower()] = {
             'symbol': plant.symbol,
             'color': plant.color,
@@ -193,9 +193,9 @@ def garden_detail(request, pk):
 
     # Build plant database for export feature
     plant_database = []
-    export_plants = Plant.objects.filter(  # type: ignore[attr-defined]
+    export_plants = Plant.objects.filter(
         Q(is_default=True) | Q(created_by=request.user)
-    ).exclude(plant_type='utility').prefetch_related('companion_plants')  # type: ignore[attr-defined]
+    ).exclude(plant_type='utility').prefetch_related('companion_plants')
 
     for plant in export_plants:
         companions = [c.name for c in plant.companion_plants.all()]
@@ -222,7 +222,7 @@ def garden_detail(request, pk):
             has_api_key = False
 
     # Get PlantInstance data for date tracking
-    plant_instances = garden.plant_instances.select_related('plant').all()  # type: ignore[attr-defined]
+    plant_instances = garden.plant_instances.select_related('plant').all() # pyright: ignore[reportAttributeAccessIssue]
 
     # Create mapping of grid position to instance data
     instance_map = {}
@@ -297,7 +297,7 @@ def garden_create(request):
         if form.is_valid():
             garden = form.save(commit=False)
             garden.owner = request.user
-            garden.save()  # type: ignore[attr-defined]
+            garden.save()
             messages.success(request, f'Garden "{garden.name}" has been created successfully!')
             return redirect('gardens:garden_detail', pk=garden.pk)
         else:
@@ -325,7 +325,7 @@ def garden_delete(request, pk):
 
     if request.method == 'POST':
         garden_name = garden.name
-        garden.delete()  # type: ignore[attr-defined]
+        garden.delete()
         messages.success(request, f'Garden "{garden_name}" has been deleted.')
         return redirect('gardens:garden_list')
 
@@ -344,7 +344,7 @@ def garden_clear(request, pk):
 
         # Update garden layout with empty grid
         garden.layout_data = {'grid': empty_grid}
-        garden.save()  # type: ignore[attr-defined]
+        garden.save()
 
         return JsonResponse({
             'success': True,
@@ -370,7 +370,7 @@ def garden_duplicate(request, pk):
         original_garden = get_object_or_404(Garden, pk=pk, owner=request.user)
 
         # Create a copy of the garden
-        new_garden = Garden.objects.create(  # type: ignore[attr-defined]
+        new_garden = Garden.objects.create(
             name=f"{original_garden.name} (Copy)",
             description=original_garden.description,
             owner=request.user,
@@ -400,11 +400,11 @@ def plant_library(request):
     season = request.GET.get('season', '')
 
     # Get plants
-    plants = Plant.objects.filter(is_default=True).order_by('name')  # type: ignore[attr-defined]
+    plants = Plant.objects.filter(is_default=True).order_by('name')
 
     # Add user's custom plants if authenticated
     if request.user.is_authenticated:
-        user_plants = Plant.objects.filter(created_by=request.user).order_by('name')  # type: ignore[attr-defined]
+        user_plants = Plant.objects.filter(created_by=request.user).order_by('name')
         plants = plants | user_plants
 
     # Apply filters
@@ -448,7 +448,7 @@ def plant_detail(request, pk):
     companions = plant.companion_plants.all()
 
     # Get plants that list this as a companion
-    companion_to = Plant.objects.filter(companion_plants=plant)  # type: ignore[attr-defined]
+    companion_to = Plant.objects.filter(companion_plants=plant)
 
     # Process pest deterrent list
     pest_list = []
@@ -471,7 +471,7 @@ def plant_detail(request, pk):
         user_zone = get_default_zone()
 
     if user_zone:
-        zone_data = plant.zone_data.filter(zone=user_zone).first()  # type: ignore[attr-defined]
+        zone_data = plant.zone_data.filter(zone=user_zone).first() # pyright: ignore[reportAttributeAccessIssue]
 
     context = {
         'plant': plant,
@@ -496,7 +496,7 @@ def plant_create(request):
             plant = form.save(commit=False)
             plant.created_by = request.user
             plant.is_default = request.user.is_superuser  # Only superusers can create default plants
-            plant.save()  # type: ignore[attr-defined]
+            plant.save()
             form.save_m2m()  # Save many-to-many relationships
             messages.success(request, f'Plant "{plant.name}" has been created successfully!')
             return redirect('gardens:plant_detail', pk=plant.pk)
@@ -527,7 +527,7 @@ def plant_edit(request, pk):
             # Superusers can toggle is_default, others cannot
             if not request.user.is_superuser:
                 updated_plant.is_default = plant.is_default
-            updated_plant.save()  # type: ignore[attr-defined]
+            updated_plant.save()
             form.save_m2m()
             messages.success(request, f'Plant "{updated_plant.name}" has been updated successfully!')
             return redirect('gardens:plant_detail', pk=updated_plant.pk)
@@ -553,7 +553,7 @@ def plant_delete(request, pk):
 
     if request.method == 'POST':
         plant_name = plant.name
-        plant.delete()  # type: ignore[attr-defined]
+        plant.delete()
         messages.success(request, f'Plant "{plant_name}" has been deleted.')
         return redirect('gardens:plant_library')
 
@@ -573,12 +573,12 @@ def garden_save_layout(request, pk):
 
         if not is_owner:
             # Check if user has edit permission via share
-            share = GardenShare.objects.filter(  # type: ignore[attr-defined]
+            share = GardenShare.objects.filter(
                 garden=garden,
                 shared_with_user=request.user,
                 permission='edit',
                 accepted_at__isnull=False
-            ).first()  # type: ignore[attr-defined]
+            ).first()
 
             if share:
                 can_edit = True
@@ -610,11 +610,11 @@ def garden_save_layout(request, pk):
 
         # Update garden layout
         garden.layout_data = {'grid': grid}
-        garden.save()  # type: ignore[attr-defined]
+        garden.save()
 
         # Sync PlantInstance records with the new grid
         # Get existing instances for this garden
-        existing_instances = {(inst.row, inst.col): inst for inst in garden.plant_instances.all()}
+        existing_instances = {(inst.row, inst.col): inst for inst in garden.plant_instances.all()} # pyright: ignore[reportAttributeAccessIssue]
 
         # Track which positions still have plants
         current_positions = set()
@@ -629,9 +629,9 @@ def garden_save_layout(request, pk):
                 current_positions.add((row_idx, col_idx))
 
                 # Try to find the Plant object for this cell
-                plant = Plant.objects.filter(  # type: ignore[attr-defined]
+                plant = Plant.objects.filter(
                     Q(name__iexact=cell_value) | Q(symbol__iexact=cell_value)
-                ).first()  # type: ignore[attr-defined]
+                ).first()
 
                 if plant:
                     # Check if planted_date was provided for this position
@@ -645,13 +645,13 @@ def garden_save_layout(request, pk):
                         if instance.plant != plant:
                             # Plant changed - preserve dates if user moved the plant, clear if different plant
                             instance.plant = plant
-                            instance.save()  # type: ignore[attr-defined]
+                            instance.save()
 
                         # Update planned_planting_date if provided (AI suggestions are planned dates)
                         if provided_date:
                             from datetime import datetime
                             instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
-                            instance.save()  # type: ignore[attr-defined]
+                            instance.save()
                     else:
                         # Check if this plant was moved from another position (preserve dates)
                         moved_instance = None
@@ -668,7 +668,7 @@ def garden_save_layout(request, pk):
                             if provided_date:
                                 from datetime import datetime
                                 moved_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
-                            moved_instance.save()  # type: ignore[attr-defined]
+                            moved_instance.save()
                             current_positions.add((moved_instance.row, moved_instance.col))
                         else:
                             # New plant placement - create instance with optional planned date
@@ -681,12 +681,12 @@ def garden_save_layout(request, pk):
                             if provided_date:
                                 from datetime import datetime
                                 new_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
-                            new_instance.save()  # type: ignore[attr-defined]
+                            new_instance.save()
 
         # Remove instances that no longer have plants
         for pos, instance in existing_instances.items():
             if pos not in current_positions:
-                instance.delete()  # type: ignore[attr-defined]
+                instance.delete()
 
         return JsonResponse({
             'success': True,
@@ -731,7 +731,7 @@ def garden_update_name(request, pk):
 
         # Update garden name
         garden.name = new_name
-        garden.save()  # type: ignore[attr-defined]
+        garden.save()
 
         return JsonResponse({
             'success': True,
@@ -779,14 +779,14 @@ def garden_update_info(request, pk):
             garden.garden_type = garden_type
 
         # Save changes
-        garden.save()  # type: ignore[attr-defined]
+        garden.save()
 
         return JsonResponse({
             'success': True,
             'message': 'Garden information updated successfully',
             'description': garden.description,
             'garden_type': garden.garden_type,
-            'garden_type_display': garden.get_garden_type_display()
+            'garden_type_display': garden.get_garden_type_display() # pyright: ignore[reportAttributeAccessIssue]
         })
 
     except json.JSONDecodeError:
@@ -839,11 +839,11 @@ def garden_ai_assistant(request, pk):
 
         # Get PlantInstance data for date tracking
         from .models import PlantInstance
-        instances = PlantInstance.objects.filter(garden=garden).select_related('plant')  # type: ignore[attr-defined]
+        instances = PlantInstance.objects.filter(garden=garden).select_related('plant')
         instance_map = {(inst.row, inst.col): inst for inst in instances}
 
         # Get all plants for lookup
-        all_plants_lookup = Plant.objects.filter(  # type: ignore[attr-defined]
+        all_plants_lookup = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
         ).exclude(plant_type='utility')
         plant_lookup = {p.name.lower(): p for p in all_plants_lookup}
@@ -893,9 +893,9 @@ def garden_ai_assistant(request, pk):
 
         # Build comprehensive plant database for Claude
         plant_database = []
-        all_plants = Plant.objects.filter(  # type: ignore[attr-defined]
+        all_plants = Plant.objects.filter(
             Q(is_default=True) | Q(created_by=request.user)
-        ).exclude(plant_type='utility').prefetch_related('companion_plants')  # type: ignore[attr-defined]
+        ).exclude(plant_type='utility').prefetch_related('companion_plants')
 
         for plant in all_plants:
             companions = [c.name for c in plant.companion_plants.all()]
@@ -1030,7 +1030,7 @@ IMPORTANT:
         )
 
         # Parse Claude's response
-        response_text = message.content[0].text
+        response_text = message.content[0].text # pyright: ignore[reportAttributeAccessIssue]
 
         # Try to extract JSON from response
         import re
@@ -1102,7 +1102,7 @@ def set_planting_date(request, pk):
 
         # Get the plant instance at this position
         try:
-            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)  # type: ignore[attr-defined]
+            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)
         except PlantInstance.DoesNotExist:
             return JsonResponse({
                 'success': False,
@@ -1145,7 +1145,7 @@ def set_planting_date(request, pk):
         if not instance.planted_date and not instance.planned_planting_date:
             instance.expected_harvest_date = None
 
-        instance.save()  # type: ignore[attr-defined]
+        instance.save()
 
         # Calculate expected transplant date for display (not stored)
         expected_transplant_date = instance.calculate_expected_transplant_date()
@@ -1154,12 +1154,12 @@ def set_planting_date(request, pk):
         return JsonResponse({
             'success': True,
             'instance': {
-                'id': instance.id,
+                'id': instance.id, # pyright: ignore[reportAttributeAccessIssue]
                 'seed_starting_method': instance.seed_starting_method,
-                'planned_seed_start_date': instance.planned_seed_start_date.isoformat() if instance.planned_seed_start_date else None,
-                'planned_planting_date': instance.planned_planting_date.isoformat() if instance.planned_planting_date else None,
-                'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
-                'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
+                'planned_seed_start_date': instance.planned_seed_start_date.isoformat() if instance.planned_seed_start_date else None, # pyright: ignore[reportOptionalMemberAccess]
+                'planned_planting_date': instance.planned_planting_date.isoformat() if instance.planned_planting_date else None, # pyright: ignore[reportOptionalMemberAccess]
+                'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None, # pyright: ignore[reportOptionalMemberAccess]
+                'planted_date': instance.planted_date.isoformat() if instance.planted_date else None, # pyright: ignore[reportOptionalMemberAccess]
                 'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
                 'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
                 'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
@@ -1200,7 +1200,7 @@ def mark_harvested(request, pk):
 
         # Get the plant instance at this position
         try:
-            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)  # type: ignore[attr-defined]
+            instance = PlantInstance.objects.get(garden=garden, row=row, col=col)
         except PlantInstance.DoesNotExist:
             return JsonResponse({
                 'success': False,
@@ -1216,7 +1216,7 @@ def mark_harvested(request, pk):
             from datetime import date
             instance.actual_harvest_date = date.today()
 
-        instance.save()  # type: ignore[attr-defined]
+        instance.save()
 
         # Calculate expected transplant date for display
         expected_transplant_date = instance.calculate_expected_transplant_date()
@@ -1225,12 +1225,12 @@ def mark_harvested(request, pk):
         return JsonResponse({
             'success': True,
             'instance': {
-                'id': instance.id,
+                'id': instance.id, # pyright: ignore[reportAttributeAccessIssue]
                 'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
                 'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
                 'expected_transplant_date': expected_transplant_date.isoformat() if expected_transplant_date else None,
                 'expected_harvest_date': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
-                'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
+                'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None, # pyright: ignore[reportOptionalMemberAccess]
                 'harvest_status': instance.harvest_status(),
                 'days_until_harvest': instance.days_until_harvest(),
             }
@@ -1264,15 +1264,15 @@ def garden_share(request, pk):
             return JsonResponse({'success': False, 'error': 'Email is required'}, status=400)
 
         # Check if already shared with this email
-        if GardenShare.objects.filter(garden=garden, shared_with_email=email).exists():  # type: ignore[attr-defined]
+        if GardenShare.objects.filter(garden=garden, shared_with_email=email).exists():
             return JsonResponse({'success': False, 'error': 'Garden already shared with this email'}, status=400)
 
         # Check if user exists
         User = get_user_model()
         try:
-            shared_user = User.objects.get(email__iexact=email)  # type: ignore[attr-defined]
+            shared_user = User.objects.get(email__iexact=email)
             # User exists - create share and mark as accepted
-            share = GardenShare.objects.create(  # type: ignore[attr-defined]
+            share = GardenShare.objects.create(
                 garden=garden,
                 shared_with_email=email,
                 shared_with_user=shared_user,
@@ -1283,7 +1283,7 @@ def garden_share(request, pk):
             message = f'Garden shared with {email}. They already have an account!'
         except User.DoesNotExist:
             # User doesn't exist - create pending share and send invitation
-            share = GardenShare.objects.create(  # type: ignore[attr-defined]
+            share = GardenShare.objects.create(
                 garden=garden,
                 shared_with_email=email,
                 permission=permission,
@@ -1291,7 +1291,7 @@ def garden_share(request, pk):
             )
 
             # Send invitation email
-            share_url = request.build_absolute_uri(f'/accounts/register/?email={email}&garden_share={share.id}')
+            share_url = request.build_absolute_uri(f'/accounts/register/?email={email}&garden_share={share.id}') # pyright: ignore[reportAttributeAccessIssue]
             send_mail(
                 subject=f'{request.user.username} shared a garden with you on Chicago Garden Planner',
                 message=f"""Hello!
@@ -1316,7 +1316,7 @@ Happy gardening!
             'success': True,
             'message': message,
             'share': {
-                'id': share.id,
+                'id': share.id, # pyright: ignore[reportAttributeAccessIssue]
                 'email': share.shared_with_email,
                 'permission': share.permission,
                 'accepted': share.accepted_at is not None
@@ -1334,9 +1334,9 @@ def garden_shares_list(request, pk):
     """Get list of shares for a garden"""
     garden = get_object_or_404(Garden, pk=pk, owner=request.user)
 
-    shares = GardenShare.objects.filter(garden=garden).select_related('shared_with_user')  # type: ignore[attr-defined]
+    shares = GardenShare.objects.filter(garden=garden).select_related('shared_with_user')
     shares_data = [{
-        'id': share.id,
+        'id': share.id, # pyright: ignore[reportAttributeAccessIssue]
         'email': share.shared_with_email,
         'permission': share.permission,
         'accepted': share.accepted_at is not None,
@@ -1354,6 +1354,6 @@ def garden_share_revoke(request, pk, share_id):
     garden = get_object_or_404(Garden, pk=pk, owner=request.user)
     share = get_object_or_404(GardenShare, pk=share_id, garden=garden)
 
-    share.delete()  # type: ignore[attr-defined]
+    share.delete()
 
     return JsonResponse({'success': True, 'message': 'Share revoked successfully'})
