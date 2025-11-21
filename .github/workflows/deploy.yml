@@ -94,6 +94,7 @@ jobs:
           docker compose exec -T web python manage.py populate_utility_plants
           docker compose exec -T web python manage.py populate_plant_zone_ratings
           docker compose exec -T web python manage.py add_remaining_zone_data
+          docker compose exec -T web python manage.py populate_plant_spacing
           docker compose exec -T web python manage.py create_companion_relationship
 
           echo "✅ Data population complete"

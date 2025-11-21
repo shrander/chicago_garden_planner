@@ -50,7 +50,26 @@ class Plant(models.Model):
         help_text='List of seasons when this plant can be planted (e.g., ["spring", "fall"])'
     )
     days_to_harvest = models.IntegerField(null=True, blank=True, help_text='Days from transplant to harvest')
-    spacing_inches = models.FloatField(help_text='Spacing between plants in inches')
+
+    # Spacing - Square Foot Gardening vs Row Gardening
+    spacing_inches = models.FloatField(
+        help_text='General spacing between plants in inches (deprecated - use sq_ft_spacing or row_spacing)'
+    )
+    sq_ft_spacing = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Plants per square foot (e.g., 1, 4, 9, 16). Common: 1=large, 4=medium, 9=small, 16=tiny'
+    )
+    row_spacing_inches = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Spacing between plants in row gardening (inches between plants in same row)'
+    )
+    row_spacing_between_rows = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Spacing between rows in row gardening (inches between rows)'
+    )
 
     # Seed starting and transplant timing
     weeks_before_last_frost_start = models.IntegerField(
@@ -120,14 +139,25 @@ class Garden(models.Model):
         ('custom', 'Custom Size'),
     ]
 
+    GARDEN_TYPES = [
+        ('square_foot', 'Square Foot Gardening'),
+        ('row', 'Row Gardening'),
+    ]
+
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gardens')
 
-    # Garden specifications 
+    # Garden specifications
     size = models.CharField(max_length=20, choices=GARDEN_SIZES, default='10x10')
     width = models.IntegerField(default=10, help_text='Width in feet')
     height = models.IntegerField(default=10, help_text='Height in feet')
+    garden_type = models.CharField(
+        max_length=20,
+        choices=GARDEN_TYPES,
+        default='square_foot',
+        help_text='Gardening method: Square Foot (intensive) or Row (traditional)'
+    )
 
     # Layout data (json field storing 20 array)
     layout_data = models.JSONField(default=dict, help_text='Grid layout as JSON')

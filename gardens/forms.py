@@ -7,7 +7,7 @@ class GardenForm(forms.ModelForm):
 
     class Meta:
         model = Garden
-        fields = ['name', 'description', 'size', 'width', 'height', 'is_public']
+        fields = ['name', 'description', 'size', 'width', 'height', 'garden_type', 'is_public']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -31,6 +31,9 @@ class GardenForm(forms.ModelForm):
                 'min': 1,
                 'max': 50,
             }),
+            'garden_type': forms.Select(attrs={
+                'class': 'form-select',
+            }),
             'is_public': forms.CheckboxInput(attrs={
                 'class': 'form-check-input',
             }),
@@ -38,6 +41,7 @@ class GardenForm(forms.ModelForm):
         help_texts = {
             'width': 'Width in feet (1-50)',
             'height': 'Height in feet (1-50)',
+            'garden_type': 'Square Foot: intensive planting (plants/sq ft). Row: traditional rows with paths.',
             'is_public': 'Allow other users to view this garden',
         }
 
@@ -103,7 +107,8 @@ class PlantForm(forms.ModelForm):
         model = Plant
         fields = [
             'name', 'latin_name', 'symbol', 'color', 'plant_type', 'life_cycle',
-            'planting_seasons', 'days_to_harvest', 'spacing_inches',
+            'planting_seasons', 'days_to_harvest',
+            'sq_ft_spacing', 'row_spacing_inches', 'row_spacing_between_rows', 'spacing_inches',
             'weeks_before_last_frost_start', 'weeks_after_last_frost_transplant',
             'direct_sow', 'days_to_germination', 'days_before_transplant_ready', 'transplant_to_harvest_days',
             'yield_per_plant', 'pest_deterrent_for', 'companion_plants'
@@ -116,6 +121,9 @@ class PlantForm(forms.ModelForm):
             'plant_type': forms.Select(attrs={'class': 'form-select'}),
             'life_cycle': forms.Select(attrs={'class': 'form-select'}),
             'days_to_harvest': forms.NumberInput(attrs={'class': 'form-control'}),
+            'sq_ft_spacing': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Plants per square foot (1, 4, 9, 16)'}),
+            'row_spacing_inches': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'placeholder': 'Inches between plants in row'}),
+            'row_spacing_between_rows': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5', 'placeholder': 'Inches between rows'}),
             'spacing_inches': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.5'}),
             'weeks_before_last_frost_start': forms.NumberInput(attrs={'class': 'form-control'}),
             'weeks_after_last_frost_transplant': forms.NumberInput(attrs={'class': 'form-control'}),
