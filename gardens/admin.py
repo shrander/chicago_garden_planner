@@ -156,9 +156,15 @@ class PlantAdmin(admin.ModelAdmin):
                             # Parse optional integer fields
                             for field in ['days_to_harvest', 'weeks_before_last_frost_start',
                                         'weeks_after_last_frost_transplant', 'days_to_germination',
-                                        'days_before_transplant_ready', 'transplant_to_harvest_days']:
+                                        'days_before_transplant_ready', 'transplant_to_harvest_days',
+                                        'sq_ft_spacing']:
                                 value = row.get(field, '').strip()
                                 plant_data[field] = int(value) if value else None
+
+                            # Parse optional float fields (spacing)
+                            for field in ['row_spacing_inches', 'row_spacing_between_rows']:
+                                value = row.get(field, '').strip()
+                                plant_data[field] = float(value) if value else None
 
                             # Parse optional text fields
                             for field in ['yield_per_plant', 'pest_deterrent_for']:

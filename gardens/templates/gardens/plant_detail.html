@@ -108,7 +108,22 @@
 
                 <div class="mb-3">
                     <h6 class="text-muted">Spacing</h6>
-                    <p><strong>{{ plant.spacing_inches }}"</strong> between plants</p>
+                    {% if plant.sq_ft_spacing %}
+                        <p>
+                            <strong class="text-success">Square Foot:</strong>
+                            <strong>{{ plant.sq_ft_spacing }}</strong> plant{% if plant.sq_ft_spacing > 1 %}s{% endif %} per sq ft
+                        </p>
+                    {% endif %}
+                    {% if plant.row_spacing_inches %}
+                        <p>
+                            <strong class="text-primary">Row Gardening:</strong>
+                            <strong>{{ plant.row_spacing_inches }}"</strong> apart in row
+                            {% if plant.row_spacing_between_rows %}, <strong>{{ plant.row_spacing_between_rows }}"</strong> between rows{% endif %}
+                        </p>
+                    {% endif %}
+                    {% if not plant.sq_ft_spacing and not plant.row_spacing_inches and plant.spacing_inches %}
+                        <p><strong>{{ plant.spacing_inches }}"</strong> between plants</p>
+                    {% endif %}
                 </div>
 
                 <div class="mb-3">
