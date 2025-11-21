@@ -56,7 +56,7 @@ def get_user_frost_dates(user) -> Dict[str, date]:
 
     try:
         from gardens.models import ClimateZone
-        climate = ClimateZone.objects.get(zone=default_zone)
+        climate = ClimateZone.objects.get(zone=default_zone)  # type: ignore[attr-defined]
         return {
             'last_frost': parse_frost_date(current_year, climate.typical_last_frost),
             'first_frost': parse_frost_date(current_year, climate.typical_first_frost),
@@ -89,7 +89,7 @@ def calculate_planting_dates(plant, user_zone: str, reference_date: Optional[dat
     dates = {}
 
     try:
-        climate = ClimateZone.objects.get(zone=user_zone)
+        climate = ClimateZone.objects.get(zone=user_zone)  # type: ignore[attr-defined]
         last_frost = parse_frost_date(reference_date.year, climate.typical_last_frost)
 
         # Calculate seed starting date (weeks before last frost)
@@ -129,7 +129,7 @@ def get_growing_season_info(zone: str) -> Optional[Dict]:
     from gardens.models import ClimateZone
 
     try:
-        climate = ClimateZone.objects.get(zone=zone)
+        climate = ClimateZone.objects.get(zone=zone)  # type: ignore[attr-defined]
         current_year = datetime.now().year
 
         return {

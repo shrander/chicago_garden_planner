@@ -25,7 +25,7 @@ class Command(BaseCommand):
         force = options.get('force', False)
 
         # Check version tracking
-        migration, _ = DataMigration.objects.get_or_create(
+        migration, _ = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='populate_default_plants',
             defaults={'version': '0.0.0'}
         )
@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         self.stdout.write(
             self.style.SUCCESS(f'✅ Successfully populated database with Chicago garden data! (v{self.VERSION})')
@@ -363,7 +363,7 @@ class Command(BaseCommand):
         created_count = 0
         updated_count = 0
         for plant_data in default_plants:
-            plant, created = Plant.objects.update_or_create(
+            plant, created = Plant.objects.update_or_create(  # type: ignore[attr-defined]
                 name=plant_data['name'],
                 is_default=True,
                 defaults=plant_data
@@ -383,7 +383,7 @@ class Command(BaseCommand):
         """Create a demo user with a sample garden layout"""
 
         # create demo user
-        demo_user, created = User.objects.get_or_create(
+        demo_user, created = User.objects.get_or_create(  # type: ignore[attr-defined]
             username='demo_garden',
             defaults={
                 'email': 'demo@passwordspace.com',
@@ -394,7 +394,7 @@ class Command(BaseCommand):
 
         if created: 
             demo_user.set_password('chicago2025')
-            demo_user.save()
+            demo_user.save()  # type: ignore[attr-defined]
             self.stdout.write(' ✓ Created demo user: demo_gardener (password: chicago2025)')
         else:
             self.stdout.write('  - Demo user already exists')
@@ -413,7 +413,7 @@ class Command(BaseCommand):
             ['garlic','potatoes','potatoes','potatoes','potatoes','potatoes','potatoes','potatoes','garlic','garlic']
         ]
 
-        sample_garden, created = Garden.objects.get_or_create(
+        sample_garden, created = Garden.objects.get_or_create(  # type: ignore[attr-defined]
             name='Chicago Companion Garden',
             owner=demo_user,
             defaults={
@@ -439,7 +439,7 @@ class Command(BaseCommand):
             ['garlic','path','path','garlic']
         ]
 
-        small_garden, created = Garden.objects.get_or_create(
+        small_garden, created = Garden.objects.get_or_create(  # type: ignore[attr-defined]
             name='Beginner 4×4 Garden',
             owner=demo_user,
             defaults={

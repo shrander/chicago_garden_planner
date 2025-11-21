@@ -16,7 +16,7 @@ class Command(BaseCommand):
         force = options['force']
 
         # Check version tracking
-        migration, _ = DataMigration.objects.get_or_create(
+        migration, _ = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='create_companion_relationship',
             defaults={'version': '0.0.0'}
         )
@@ -31,15 +31,15 @@ class Command(BaseCommand):
 
         try: 
             # get plants
-            tomatoes = Plant.objects.get(name='Tomatoes', is_default=True)
-            basil = Plant.objects.get(name='Basil', is_default=True)
-            marigolds = Plant.objects.get(name='Marigolds', is_default=True)
-            garlic = Plant.objects.get(name='Garlic', is_default=True)
-            carrots = Plant.objects.get(name='Carrots', is_default=True)
-            radishes = Plant.objects.get(name='Radishes', is_default=True)
-            kale = Plant.objects.get(name='Kale', is_default=True)
-            brussels = Plant.objects.get(name='Brussels Sprouts', is_default=True)
-            sage = Plant.objects.get(name='Sage', is_default=True)
+            tomatoes = Plant.objects.get(name='Tomatoes', is_default=True)  # type: ignore[attr-defined]
+            basil = Plant.objects.get(name='Basil', is_default=True)  # type: ignore[attr-defined]
+            marigolds = Plant.objects.get(name='Marigolds', is_default=True)  # type: ignore[attr-defined]
+            garlic = Plant.objects.get(name='Garlic', is_default=True)  # type: ignore[attr-defined]
+            carrots = Plant.objects.get(name='Carrots', is_default=True)  # type: ignore[attr-defined]
+            radishes = Plant.objects.get(name='Radishes', is_default=True)  # type: ignore[attr-defined]
+            kale = Plant.objects.get(name='Kale', is_default=True)  # type: ignore[attr-defined]
+            brussels = Plant.objects.get(name='Brussels Sprouts', is_default=True)  # type: ignore[attr-defined]
+            sage = Plant.objects.get(name='Sage', is_default=True)  # type: ignore[attr-defined]
 
             # Create companion relationships
             companions = [
@@ -63,7 +63,7 @@ class Command(BaseCommand):
 
             # Update version tracking
             migration.version = self.VERSION
-            migration.save()
+            migration.save()  # type: ignore[attr-defined]
 
             self.stdout.write(
                 self.style.SUCCESS(f'🌿 Created {relationship_count} companion relationships! (v{self.VERSION})')

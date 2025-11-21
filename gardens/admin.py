@@ -119,7 +119,7 @@ class PlantAdmin(admin.ModelAdmin):
 
     def companion_count(self, obj):
         """Count of companion plants"""
-        count = obj.companion_plants.count()
+        count = obj.companion_plants.count()  # type: ignore[attr-defined]
         if count > 0:
             return format_html('<span style="color: green;">✓ {}</span>', count)
         return '—'
@@ -128,7 +128,7 @@ class PlantAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queries with prefetch_related"""
         qs = super().get_queryset(request)
-        return qs.prefetch_related('companion_plants')
+        return qs.prefetch_related('companion_plants')  # type: ignore[attr-defined]
 
     def get_urls(self):
         """Add custom URL for CSV import"""
@@ -206,20 +206,20 @@ class PlantAdmin(admin.ModelAdmin):
                                 plant_data[field] = row.get(field, '').strip()
 
                             # Check if plant exists
-                            existing_plant = Plant.objects.filter(name=name, is_default=True).first()
+                            existing_plant = Plant.objects.filter(name=name, is_default=True).first()  # type: ignore[attr-defined]
 
                             if existing_plant:
                                 if overwrite:
                                     # Update existing plant
                                     for key, value in plant_data.items():
                                         setattr(existing_plant, key, value)
-                                    existing_plant.save()
+                                    existing_plant.save()  # type: ignore[attr-defined]
                                     updated_count += 1
                                 else:
                                     skipped_count += 1
                             else:
                                 # Create new plant
-                                Plant.objects.create(name=name, **plant_data)
+                                Plant.objects.create(name=name, **plant_data)  # type: ignore[attr-defined]
                                 created_count += 1
 
                         except Exception as e:

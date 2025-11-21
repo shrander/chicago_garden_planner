@@ -25,7 +25,7 @@ class Command(BaseCommand):
         force = options['force']
 
         # Check version tracking
-        migration, _ = DataMigration.objects.get_or_create(
+        migration, _ = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='add_remaining_zone_data',
             defaults={'version': '0.0.0'}
         )
@@ -188,11 +188,11 @@ class Command(BaseCommand):
 
         for plant_name, zone_ratings in all_ratings.items():
             try:
-                plant = Plant.objects.get(name=plant_name, is_default=True)
+                plant = Plant.objects.get(name=plant_name, is_default=True)  # type: ignore[attr-defined]
                 self.stdout.write(f'\nProcessing {plant_name}...')
 
                 for zone, (rating, notes) in zone_ratings.items():
-                    zone_data, was_created = PlantZoneData.objects.update_or_create(
+                    zone_data, was_created = PlantZoneData.objects.update_or_create(  # type: ignore[attr-defined]
                         plant=plant,
                         zone=zone,
                         defaults={
@@ -214,7 +214,7 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         # Summary
         self.stdout.write('\n' + '='*70)

@@ -17,7 +17,7 @@ class Command(BaseCommand):
         force = options.get('force', False)
 
         # Check version tracking
-        migration, _ = DataMigration.objects.get_or_create(
+        migration, _ = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='populate_utility_plants',
             defaults={'version': '0.0.0'}
         )
@@ -31,7 +31,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Updating utility plants from v{migration.version} to v{self.VERSION}...')
 
         # Create or update Empty Space utility plant
-        empty_space, created = Plant.objects.update_or_create(
+        empty_space, created = Plant.objects.update_or_create(  # type: ignore[attr-defined]
             name='Empty Space',
             is_default=True,
             defaults={
@@ -51,7 +51,7 @@ class Command(BaseCommand):
             self.stdout.write(f'Updated utility plant: {empty_space.name}')
 
         # Create or update Path utility plant
-        path, created = Plant.objects.update_or_create(
+        path, created = Plant.objects.update_or_create(  # type: ignore[attr-defined]
             name='Path',
             is_default=True,
             defaults={
@@ -72,6 +72,6 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         self.stdout.write(self.style.SUCCESS(f'\nUtility plants setup complete! (v{self.VERSION})'))

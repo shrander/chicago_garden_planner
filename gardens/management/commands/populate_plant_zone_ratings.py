@@ -22,7 +22,7 @@ class Command(BaseCommand):
         force = options['force']
 
         # Check version tracking
-        migration, created = DataMigration.objects.get_or_create(
+        migration, created = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='populate_plant_zone_ratings',
             defaults={'version': '0.0.0'}
         )
@@ -297,7 +297,7 @@ class Command(BaseCommand):
         for plant_name, zone_ratings in plant_zone_ratings.items():
             # Find the plant
             try:
-                plant = Plant.objects.get(name__iexact=plant_name, is_default=True)
+                plant = Plant.objects.get(name__iexact=plant_name, is_default=True)  # type: ignore[attr-defined]
             except Plant.DoesNotExist:
                 self.stdout.write(self.style.WARNING(f'Plant "{plant_name}" not found - skipping'))
                 not_found_count += 1
@@ -305,7 +305,7 @@ class Command(BaseCommand):
 
             # Create or update zone data for each zone (idempotent)
             for zone, (rating, notes) in zone_ratings.items():
-                zone_data, was_created = PlantZoneData.objects.update_or_create(
+                zone_data, was_created = PlantZoneData.objects.update_or_create(  # type: ignore[attr-defined]
                     plant=plant,
                     zone=zone,
                     defaults={
@@ -323,7 +323,7 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         # Summary
         self.stdout.write('\n' + '='*60)
@@ -331,5 +331,5 @@ class Command(BaseCommand):
         self.stdout.write(f'Created: {created_count}')
         self.stdout.write(f'Updated: {updated_count}')
         self.stdout.write(f'Plants not found: {not_found_count}')
-        self.stdout.write(f'Total PlantZoneData records in database: {PlantZoneData.objects.count()}')
+        self.stdout.write(f'Total PlantZoneData records in database: {PlantZoneData.objects.count()}')  # type: ignore[attr-defined]
         self.stdout.write('='*60)

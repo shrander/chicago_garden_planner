@@ -25,7 +25,7 @@ class Command(BaseCommand):
         force = options['force']
 
         # Check version tracking
-        migration, _ = DataMigration.objects.get_or_create(
+        migration, _ = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='populate_plant_spacing',
             defaults={'version': '0.0.0'}
         )
@@ -83,11 +83,11 @@ class Command(BaseCommand):
 
         for plant_name, (sq_ft, row_in, row_between) in spacing_data.items():
             try:
-                plant = Plant.objects.get(name=plant_name, is_default=True)
+                plant = Plant.objects.get(name=plant_name, is_default=True)  # type: ignore[attr-defined]
                 plant.sq_ft_spacing = sq_ft
                 plant.row_spacing_inches = row_in
                 plant.row_spacing_between_rows = row_between
-                plant.save()
+                plant.save()  # type: ignore[attr-defined]
                 updated_count += 1
                 self.stdout.write(self.style.SUCCESS(
                     f'✓ {plant_name}: {sq_ft}/sq ft, {row_in}" in-row, {row_between}" between rows'
@@ -98,7 +98,7 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         # Summary
         self.stdout.write('\n' + '='*70)

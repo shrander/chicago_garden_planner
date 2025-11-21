@@ -89,7 +89,7 @@ class GardenForm(forms.ModelForm):
             garden.layout_data = {'grid': empty_grid}
 
         if commit:
-            garden.save()
+            garden.save()  # type: ignore[attr-defined]
 
         return garden
 

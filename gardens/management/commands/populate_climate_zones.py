@@ -22,7 +22,7 @@ class Command(BaseCommand):
         force = options['force']
 
         # Check version tracking
-        migration, created = DataMigration.objects.get_or_create(
+        migration, created = DataMigration.objects.get_or_create(  # type: ignore[attr-defined]
             command_name='populate_climate_zones',
             defaults={'version': '0.0.0'}
         )
@@ -252,7 +252,7 @@ class Command(BaseCommand):
         # Use update_or_create for idempotent operation
         for zone_info in zones_data:
             zone_code = zone_info['zone']
-            zone, was_created = ClimateZone.objects.update_or_create(
+            zone, was_created = ClimateZone.objects.update_or_create(  # type: ignore[attr-defined]
                 zone=zone_code,
                 defaults=zone_info
             )
@@ -266,12 +266,12 @@ class Command(BaseCommand):
 
         # Update version tracking
         migration.version = self.VERSION
-        migration.save()
+        migration.save()  # type: ignore[attr-defined]
 
         # Summary
         self.stdout.write('\n' + '='*60)
         self.stdout.write(self.style.SUCCESS(f'Climate Zone Population Complete (v{self.VERSION})'))
         self.stdout.write(f'Created: {created_count}')
         self.stdout.write(f'Updated: {updated_count}')
-        self.stdout.write(f'Total zones in database: {ClimateZone.objects.count()}')
+        self.stdout.write(f'Total zones in database: {ClimateZone.objects.count()}')  # type: ignore[attr-defined]
         self.stdout.write('='*60)
