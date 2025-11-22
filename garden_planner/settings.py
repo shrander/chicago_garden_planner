@@ -69,6 +69,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "garden_planner.context_processors.version",
+                "gardens.context_processors.admin_stats",
             ],
         },
     },

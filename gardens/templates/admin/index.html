@@ -1,0 +1,109 @@
+{% extends "admin/index.html" %}
+{% load static %}
+
+{% block content %}
+<!-- System Statistics Dashboard -->
+<div style="margin-bottom: 30px;">
+    <h2 style="margin-bottom: 20px;">System Overview</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <!-- Active Users Card -->
+        <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 4px solid #417690;">
+            <h3 style="margin-top: 0; color: #417690;">
+                <span style="font-size: 24px;">👥</span> Active Users
+            </h3>
+            <div style="font-size: 32px; font-weight: bold; color: #417690; margin: 10px 0;">
+                {{ active_user_count }}
+            </div>
+            {% if active_users %}
+            <div style="margin-top: 10px;">
+                <strong>Currently online:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    {% for user in active_users %}
+                    <li>{{ user.username }}{% if user.is_superuser %} <span style="color: #ba2121;">(Admin)</span>{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                Total Users: {{ user_stats.total }} | Staff: {{ user_stats.staff }} | Admins: {{ user_stats.superusers }}
+            </div>
+        </div>
+
+        <!-- System Resources Card -->
+        <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 4px solid #79aec8;">
+            <h3 style="margin-top: 0; color: #79aec8;">
+                <span style="font-size: 24px;">💻</span> System Resources
+            </h3>
+            {% if system_stats.error %}
+                <p style="color: #ba2121;">Error: {{ system_stats.error }}</p>
+            {% else %}
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span><strong>CPU:</strong></span>
+                        <span>{{ system_stats.cpu_percent|floatformat:1 }}%</span>
+                    </div>
+                    <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: {% if system_stats.cpu_percent > 80 %}#ba2121{% elif system_stats.cpu_percent > 50 %}#ffc107{% else %}#417690{% endif %}; height: 100%; width: {{ system_stats.cpu_percent }}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span><strong>Memory:</strong></span>
+                        <span>{{ system_stats.memory_used_gb|floatformat:2 }} / {{ system_stats.memory_total_gb|floatformat:2 }} GB ({{ system_stats.memory_percent|floatformat:1 }}%)</span>
+                    </div>
+                    <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: {% if system_stats.memory_percent > 80 %}#ba2121{% elif system_stats.memory_percent > 50 %}#ffc107{% else %}#79aec8{% endif %}; height: 100%; width: {{ system_stats.memory_percent }}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span><strong>Disk:</strong></span>
+                        <span>{{ system_stats.disk_used_gb|floatformat:2 }} / {{ system_stats.disk_total_gb|floatformat:2 }} GB ({{ system_stats.disk_percent|floatformat:1 }}%)</span>
+                    </div>
+                    <div style="background: #e0e0e0; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: {% if system_stats.disk_percent > 80 %}#ba2121{% elif system_stats.disk_percent > 50 %}#ffc107{% else %}#79aec8{% endif %}; height: 100%; width: {{ system_stats.disk_percent }}%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; color: #666; margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd;">
+                    {{ system_stats.platform }} {{ system_stats.platform_release }} | Python {{ system_stats.python_version }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Application Statistics Card -->
+        <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; border-left: 4px solid #6c9b6c;">
+            <h3 style="margin-top: 0; color: #6c9b6c;">
+                <span style="font-size: 24px;">🌱</span> Application Data
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #6c9b6c;">{{ app_stats.total_gardens }}</div>
+                    <div style="font-size: 12px; color: #666;">Gardens</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #6c9b6c;">{{ app_stats.total_plant_instances }}</div>
+                    <div style="font-size: 12px; color: #666;">Plant Instances</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #6c9b6c;">{{ app_stats.total_plants }}</div>
+                    <div style="font-size: 12px; color: #666;">Total Plants</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #666;">
+                        <span style="color: #417690;">{{ app_stats.default_plants }}</span> /
+                        <span style="color: #79aec8;">{{ app_stats.custom_plants }}</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">Default / Custom</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Original Admin Content -->
+{{ block.super }}
+{% endblock %}
