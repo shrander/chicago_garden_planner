@@ -819,37 +819,62 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'Continuous';
         }
 
-        // Simple calculation - extract numbers and multiply
-        const match = yieldPerPlant.match(/(\d+)(?:-(\d+))?/);
-        if (!match) return yieldPerPlant; // Return as-is if can't parse
+        if (!count || count === 0) {
+            return 'No estimate';
+        }
 
-        const low = parseInt(match[1]);
-        const high = match[2] ? parseInt(match[2]) : low;
+        // Match range pattern (e.g., "4-6 oz per head")
+        const rangeMatch = yieldPerPlant.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s+(.+)$/);
+        if (rangeMatch) {
+            const low = parseFloat(rangeMatch[1]);
+            const high = parseFloat(rangeMatch[2]);
+            const totalLow = Math.round(low * count);
+            const totalHigh = Math.round(high * count);
 
-        const totalLow = low * count;
-        const totalHigh = high * count;
+            // Extract unit and remove "per plant", "per head", etc.
+            let unit = rangeMatch[3].replace(/\s*per\s+(plant|head|vine|bush)\s*/gi, '').trim();
 
-        // Extract and shorten unit
-        let unit = yieldPerPlant.replace(/[\d\-\s]/g, '').replace('per plant', '').replace('plant', '').trim();
+            // Compact unit names
+            const unitMap = {
+                'lbs': 'lb',
+                'pounds': 'lb',
+                'ounces': 'oz'
+            };
+            unit = unitMap[unit.toLowerCase()] || unit;
 
-        // Compact unit names for better display
-        const unitMap = {
-            'lbs': 'lb',
-            'pounds': 'lb',
-            'ounces': 'oz',
-            'peppers': 'peppers',
-            'blooms': 'blooms',
-            'heads': 'heads',
-            'bunches': 'bunches'
-        };
-
-        unit = unitMap[unit.toLowerCase()] || unit;
-
-        if (totalLow === totalHigh) {
-            return `${totalLow} ${unit}`;
-        } else {
             return `${totalLow}-${totalHigh} ${unit}`;
         }
+
+        // Match single number pattern (e.g., "1 bulb (8-10 cloves)")
+        const singleMatch = yieldPerPlant.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
+        if (singleMatch) {
+            const value = parseFloat(singleMatch[1]);
+            const total = Math.round(value * count);
+            let rest = singleMatch[2];
+
+            // Remove "per plant", "per head", etc.
+            rest = rest.replace(/\s*per\s+(plant|head|vine|bush)\s*/gi, ' ').trim();
+
+            // Handle parenthetical notes (keep them)
+            const parenMatch = rest.match(/^([^\(]+)(\(.+\))$/);
+            if (parenMatch) {
+                let unit = parenMatch[1].trim();
+                const note = parenMatch[2];
+
+                // Pluralize if needed
+                if (total !== 1) {
+                    if (unit === 'bulb') unit = 'bulbs';
+                    if (unit === 'cup') unit = 'cups';
+                }
+
+                return `${total} ${unit} ${note}`;
+            }
+
+            return `${total} ${rest}`;
+        }
+
+        // Fallback: return original
+        return `${count} × ${yieldPerPlant}`;
     }
 
     /**
