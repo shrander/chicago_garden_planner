@@ -131,7 +131,16 @@ def garden_detail(request, pk):
     # Calculate fill rate and statistics
     total_spaces = garden.width * garden.height
     plant_count = garden.get_plant_count()
-    fill_rate = (plant_count / total_spaces * 100) if total_spaces > 0 else 0
+
+    # Fill rate is based on occupied cells, not total plants
+    # Count cells with plants (not total plant count which multiplies by sq_ft_spacing)
+    occupied_cells = 0
+    for row in grid_data:
+        for cell in row:
+            if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
+                occupied_cells += 1
+
+    fill_rate = (occupied_cells / total_spaces * 100) if total_spaces > 0 else 0
 
     # Calculate detailed statistics
     plant_counts_detail = {}
@@ -139,11 +148,12 @@ def garden_detail(request, pk):
     path_cells_count = 0
     empty_cells_count = 0
 
-    # Get all plants for type lookup
-    all_plants_for_stats = Plant.objects.filter(
+    # Get all plants for type lookup and spacing
+    all_plants_for_stats = Plant.objects.filter(  # type: ignore[attr-defined]
         Q(is_default=True) | Q(created_by=request.user)
     ).exclude(plant_type='utility')
     plant_type_lookup = {p.name.lower(): p.plant_type for p in all_plants_for_stats}
+    plant_spacing_lookup = {p.name.lower(): p.sq_ft_spacing for p in all_plants_for_stats}
 
     for row in grid_data:
         for cell in row:
@@ -151,13 +161,22 @@ def garden_detail(request, pk):
                 if cell.lower() == 'path' or cell == '=':
                     path_cells_count += 1
                 else:
-                    # Count each plant
+                    # Count plants based on garden type and spacing
                     plant_lower = cell.lower()
-                    plant_counts_detail[plant_lower] = plant_counts_detail.get(plant_lower, 0) + 1
+
+                    # For square foot gardening, multiply by sq_ft_spacing
+                    # For row gardening, count as 1
+                    if garden.garden_type == 'square_foot':
+                        spacing = plant_spacing_lookup.get(plant_lower, 1)
+                        plants_in_cell = spacing if spacing else 1
+                    else:
+                        plants_in_cell = 1
+
+                    plant_counts_detail[plant_lower] = plant_counts_detail.get(plant_lower, 0) + plants_in_cell
 
                     # Count by type
                     plant_type = plant_type_lookup.get(plant_lower, 'unknown')
-                    plant_type_stats_detail[plant_type] = plant_type_stats_detail.get(plant_type, 0) + 1
+                    plant_type_stats_detail[plant_type] = plant_type_stats_detail.get(plant_type, 0) + plants_in_cell
             else:
                 empty_cells_count += 1
 

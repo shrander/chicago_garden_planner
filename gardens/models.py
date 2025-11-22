@@ -186,17 +186,44 @@ class Garden(models.Model):
             return (int(h), int(w))
 
     def get_plant_count(self):
-        """Count total plants in the garden layout (excluding paths and empty spaces)"""
+        """Count total plants in the garden layout based on garden type and spacing
+
+        For square_foot gardens: multiplies cells by sq_ft_spacing (plants per square)
+        For row gardens: counts one plant per cell
+        """
         if not self.layout_data or 'grid' not in self.layout_data:
             return 0
 
         count = 0
         grid = self.layout_data.get('grid', [])
+
+        # For row gardening, count 1 plant per cell
+        if self.garden_type == 'row':
+            for row in grid:
+                for cell in row:
+                    # Don't count paths, empty spaces, or empty cells
+                    if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
+                        count += 1
+            return count
+
+        # For square foot gardening, multiply by plants per square
         for row in grid:
             for cell in row:
                 # Don't count paths, empty spaces, or empty cells
                 if cell and cell.lower() not in ['path', 'empty space', '=', '•', '']:
-                    count += 1
+                    # Try to find the plant to get its sq_ft_spacing
+                    try:
+                        plant = Plant.objects.filter(  # type: ignore[attr-defined]
+                            Q(name__iexact=cell) | Q(symbol__iexact=cell)
+                        ).first()
+                        if plant and plant.sq_ft_spacing:
+                            count += plant.sq_ft_spacing
+                        else:
+                            # Default to 1 if no spacing info
+                            count += 1
+                    except Exception:
+                        # Default to 1 if lookup fails
+                        count += 1
         return count
 
 
