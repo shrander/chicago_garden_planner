@@ -241,6 +241,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     saveStatus.textContent = '';
                 }, 2000);
+
+                // Update yield table after save
+                const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+                if (gardenTypeSelect) {
+                    updateYieldDisplay(gardenTypeSelect.value);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -776,16 +782,24 @@ document.addEventListener('DOMContentLoaded', function() {
             plantCounts[plantName] = (plantCounts[plantName] || 0) + plantsPerCell;
         });
 
-        // Update the table rows
+        // Track which plants already have rows
+        const existingPlants = new Set();
         const rows = yieldTableBody.querySelectorAll('tr[data-plant]');
 
+        // Update existing rows or mark for removal
         rows.forEach(row => {
             const plantName = row.dataset.plant;
             const plantData = window.PLANT_MAP[plantName];
 
-            if (!plantData) return;
+            if (!plantData || !plantCounts[plantName]) {
+                // Plant is no longer in the garden, remove the row
+                row.remove();
+                return;
+            }
 
-            const newCount = plantCounts[plantName] || 0;
+            existingPlants.add(plantName);
+
+            const newCount = plantCounts[plantName];
             const quantityCell = row.querySelector('.yield-quantity strong');
             const totalCell = row.querySelector('.yield-total');
 
@@ -803,6 +817,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             console.log(`${plantData.name}: ${newCount} plants (${gardenType})`);
+        });
+
+        // Add rows for new plants
+        Object.keys(plantCounts).forEach(plantName => {
+            if (!existingPlants.has(plantName)) {
+                const plantData = window.PLANT_MAP[plantName];
+                if (!plantData) return;
+
+                const count = plantCounts[plantName];
+                const totalYield = plantData.yield_per_plant
+                    ? calculateTotalYield(plantData.yield_per_plant, count)
+                    : 'No estimate';
+
+                // Get cleaned yield_per_plant (remove "per X" text)
+                const yieldPerPlantDisplay = plantData.yield_per_plant
+                    ? plantData.yield_per_plant
+                        .replace(/\s*per\s+plant\s*/gi, ' ')
+                        .replace(/\s*per\s+head\s*/gi, ' ')
+                        .replace(/\s*per\s+radish\s*/gi, ' ')
+                        .replace(/\s*per\s+carrot\s*/gi, ' ')
+                        .replace(/\s*per\s+vine\s*/gi, ' ')
+                        .replace(/\s*per\s+bush\s*/gi, ' ')
+                        .replace(/\s*per\s+bulb\s*/gi, ' ')
+                        .replace(/\s*per\s+sq\s+ft\s*/gi, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                    : '-';
+
+                // Create new row
+                const newRow = document.createElement('tr');
+                newRow.setAttribute('data-plant', plantName);
+                newRow.innerHTML = `
+                    <td class="text-capitalize">${plantName}</td>
+                    <td class="text-center yield-quantity"><strong>${count}</strong></td>
+                    <td class="text-center">
+                        ${plantData.yield_per_plant
+                            ? `<span class="badge bg-light text-dark">${yieldPerPlantDisplay}</span>`
+                            : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td class="text-end text-success yield-total">
+                        <strong>${totalYield}</strong>
+                    </td>
+                `;
+                yieldTableBody.appendChild(newRow);
+
+                console.log(`Added new row for ${plantName}: ${count} plants`);
+            }
         });
     }
 
@@ -823,6 +884,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'No estimate';
         }
 
+        // Helper function to remove specific "per X" patterns
+        function removePerText(text) {
+            const patternsToRemove = [
+                /\s*per\s+plant\s*/gi,
+                /\s*per\s+head\s*/gi,
+                /\s*per\s+radish\s*/gi,
+                /\s*per\s+carrot\s*/gi,
+                /\s*per\s+vine\s*/gi,
+                /\s*per\s+bush\s*/gi,
+                /\s*per\s+bulb\s*/gi,
+                /\s*per\s+sq\s+ft\s*/gi,
+            ];
+            let cleaned = text;
+            patternsToRemove.forEach(pattern => {
+                cleaned = cleaned.replace(pattern, ' ');
+            });
+            return cleaned.replace(/\s+/g, ' ').trim();
+        }
+
         // Match range pattern (e.g., "4-6 oz per head")
         const rangeMatch = yieldPerPlant.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s+(.+)$/);
         if (rangeMatch) {
@@ -832,20 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalHigh = Math.round(high * count);
 
             // Extract unit and remove specific "per plant/head/etc" but keep "per season/week"
-            let unit = rangeMatch[3];
-            const patternsToRemove = [
-                /\s*per\s+plant\s*/gi,
-                /\s*per\s+head\s*/gi,
-                /\s*per\s+radish\s*/gi,
-                /\s*per\s+carrot\s*/gi,
-                /\s*per\s+vine\s*/gi,
-                /\s*per\s+bush\s*/gi,
-                /\s*per\s+bulb\s*/gi,
-            ];
-            patternsToRemove.forEach(pattern => {
-                unit = unit.replace(pattern, ' ');
-            });
-            unit = unit.trim();
+            let unit = removePerText(rangeMatch[3]);
 
             // Compact unit names
             const unitMap = {
@@ -853,7 +920,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 'pounds': 'lb',
                 'ounces': 'oz'
             };
-            unit = unitMap[unit.toLowerCase()] || unit;
+            const lowerUnit = unit.toLowerCase();
+            unit = unitMap[lowerUnit] || unit;
 
             return `${totalLow}-${totalHigh} ${unit}`;
         }
@@ -863,22 +931,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (singleMatch) {
             const value = parseFloat(singleMatch[1]);
             const total = Math.round(value * count);
-            let rest = singleMatch[2];
-
-            // Remove specific "per plant/head/etc" but keep "per season/week"
-            const patternsToRemove = [
-                /\s*per\s+plant\s*/gi,
-                /\s*per\s+head\s*/gi,
-                /\s*per\s+radish\s*/gi,
-                /\s*per\s+carrot\s*/gi,
-                /\s*per\s+vine\s*/gi,
-                /\s*per\s+bush\s*/gi,
-                /\s*per\s+bulb\s*/gi,
-            ];
-            patternsToRemove.forEach(pattern => {
-                rest = rest.replace(pattern, ' ');
-            });
-            rest = rest.trim();
+            let rest = removePerText(singleMatch[2]);
 
             // Handle parenthetical notes (keep them)
             const parenMatch = rest.match(/^([^\(]+)(\(.+\))$/);

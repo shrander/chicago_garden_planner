@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.db.models import Q
 from django.http import JsonResponse
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 import json
 import anthropic
