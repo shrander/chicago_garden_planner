@@ -762,6 +762,63 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================
 
     /**
+     * Update garden statistics (diversity, total plants, fill rate, available space)
+     */
+    function updateGardenStatistics() {
+        const grid = document.querySelectorAll('#gardenGrid .garden-cell');
+        const plantCounts = {};
+        let totalCells = 0;
+        let occupiedCells = 0;
+
+        // Count plants and cells
+        grid.forEach(cell => {
+            totalCells++;
+            const plantName = cell.dataset.plant;
+
+            if (!plantName || plantName === 'empty space' || plantName === 'path' || plantName === '') {
+                // Empty cell
+                return;
+            }
+
+            occupiedCells++;
+
+            // Count unique plant types
+            if (!plantCounts[plantName]) {
+                plantCounts[plantName] = 0;
+            }
+            plantCounts[plantName]++;
+        });
+
+        // Calculate statistics
+        const diversity = Object.keys(plantCounts).length;
+        const emptyCells = totalCells - occupiedCells;
+        const fillRate = totalCells > 0 ? (occupiedCells / totalCells) * 100 : 0;
+
+        // Update DOM elements
+        const plantDiversityEl = document.getElementById('plantDiversity');
+        const totalPlantedEl = document.getElementById('totalPlanted');
+        const totalPlantsCountEl = document.getElementById('totalPlantsCount');
+        const availableSpaceEl = document.getElementById('availableSpace');
+        const fillRateBarEl = document.getElementById('fillRateBar');
+        const fillRateTextEl = document.getElementById('fillRateText');
+        const fillRateBasicEl = document.getElementById('fillRateBasic');
+
+        if (plantDiversityEl) plantDiversityEl.textContent = diversity;
+        if (totalPlantedEl) totalPlantedEl.textContent = occupiedCells;
+        if (totalPlantsCountEl) totalPlantsCountEl.textContent = occupiedCells;
+        if (availableSpaceEl) availableSpaceEl.textContent = emptyCells;
+
+        if (fillRateBarEl) {
+            fillRateBarEl.style.width = `${Math.round(fillRate)}%`;
+            fillRateBarEl.setAttribute('aria-valuenow', Math.round(fillRate));
+        }
+        if (fillRateTextEl) fillRateTextEl.textContent = `${fillRate.toFixed(1)}%`;
+        if (fillRateBasicEl) fillRateBasicEl.textContent = `${Math.round(fillRate)}%`;
+
+        console.log(`Updated stats: diversity=${diversity}, planted=${occupiedCells}, empty=${emptyCells}, fill=${fillRate.toFixed(1)}%`);
+    }
+
+    /**
      * Update yield display based on garden type and spacing data
      * Recalculates plant quantities based on spacing method
      * @param {string} gardenType - 'square_foot' or 'row'
@@ -894,6 +951,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Re-append rows in sorted order
         allRows.forEach(row => yieldTableBody.appendChild(row));
+
+        // Update garden statistics
+        updateGardenStatistics();
     }
 
     /**

@@ -259,7 +259,7 @@
                     </div>
                     <div class="col-md-3">
                         <h6 class="text-muted">Total Plants</h6>
-                        <p><i class="bi bi-flower1 text-success"></i> <strong>{{ garden.get_plant_count }}</strong></p>
+                        <p><i class="bi bi-flower1 text-success"></i> <strong id="totalPlantsCount">{{ garden.get_plant_count }}</strong></p>
                     </div>
                 </div>
 
@@ -280,7 +280,7 @@
                     </div>
                     <div class="col-md-4">
                         <h6 class="text-muted">Fill Rate</h6>
-                        <p>{{ fill_rate|floatformat:0 }}%</p>
+                        <p id="fillRateBasic">{{ fill_rate|floatformat:0 }}%</p>
                     </div>
                 </div>
             </div>
@@ -295,28 +295,28 @@
                 <div class="row">
                     <div class="col-md-3">
                         <h6 class="text-muted">Plant Diversity</h6>
-                        <p class="h4 text-success"><i class="bi bi-stars"></i> {{ diversity }}</p>
+                        <p class="h4 text-success"><i class="bi bi-stars"></i> <span id="plantDiversity">{{ diversity }}</span></p>
                         <small class="text-muted">unique species</small>
                     </div>
                     <div class="col-md-3">
                         <h6 class="text-muted">Total Planted</h6>
-                        <p class="h4 text-primary">{{ plant_count }}</p>
-                        <small class="text-muted">of {{ total_spaces }} cells</small>
+                        <p class="h4 text-primary" id="totalPlanted">{{ plant_count }}</p>
+                        <small class="text-muted">of <span id="totalSpaces">{{ total_spaces }}</span> cells</small>
                     </div>
                     <div class="col-md-3">
                         <h6 class="text-muted">Fill Rate</h6>
                         <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-success" role="progressbar"
+                            <div class="progress-bar bg-success" role="progressbar" id="fillRateBar"
                                  style="width: {{ fill_rate|floatformat:0 }}%"
                                  aria-valuenow="{{ fill_rate|floatformat:0 }}"
                                  aria-valuemin="0" aria-valuemax="100">
-                                {{ fill_rate|floatformat:1 }}%
+                                <span id="fillRateText">{{ fill_rate|floatformat:1 }}%</span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <h6 class="text-muted">Available Space</h6>
-                        <p class="h4 text-warning">{{ empty_cells_count }}</p>
+                        <p class="h4 text-warning" id="availableSpace">{{ empty_cells_count }}</p>
                         <small class="text-muted">empty cells</small>
                     </div>
                 </div>
