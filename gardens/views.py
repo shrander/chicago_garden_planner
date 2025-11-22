@@ -317,14 +317,38 @@ def garden_create(request):
             garden = form.save(commit=False)
             garden.owner = request.user
             garden.save()
-            messages.success(request, f'Garden "{garden.name}" has been created successfully!')
-            return redirect('gardens:garden_detail', pk=garden.pk)
+
+            # Check if AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'redirect_url': reverse('gardens:garden_detail', kwargs={'pk': garden.pk}),
+                    'message': f'Garden "{garden.name}" has been created successfully!'
+                })
+            else:
+                messages.success(request, f'Garden "{garden.name}" has been created successfully!')
+                return redirect('gardens:garden_detail', pk=garden.pk)
         else:
-            # If form is invalid, show errors
+            # Collect all form errors
+            error_messages = []
             for field, errors in form.errors.items():
+                field_name = field.replace('_', ' ').title() if field != '__all__' else ''
                 for error in errors:
-                    messages.error(request, f'{field}: {error}')
-            return redirect('gardens:garden_list')
+                    if field_name:
+                        error_messages.append(f'{field_name}: {error}')
+                    else:
+                        error_messages.append(error)
+
+            # Check if AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': ' | '.join(error_messages)
+                })
+            else:
+                for error in error_messages:
+                    messages.error(request, error)
+                return redirect('gardens:garden_list')
     else:
         # GET request - redirect to garden list (modal is shown there)
         return redirect('gardens:garden_list')

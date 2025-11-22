@@ -174,6 +174,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div id="modalErrorContainer" class="alert alert-danger" style="display: none;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <span id="modalErrorMessage"></span>
+                    </div>
+
                     <div class="mb-3">
                         <label for="id_name" class="form-label">Garden Name *</label>
                         <input type="text" class="form-control" id="id_name" name="name" required
@@ -199,13 +204,27 @@
                             <small class="form-text text-muted">Select a preset size or choose custom</small>
                         </div>
 
-                        <div class="col-md-3 mb-3" id="widthField" style="display: none;">
+                        <div class="col-md-6 mb-3">
+                            <label for="id_garden_type" class="form-label">Garden Type *</label>
+                            <select class="form-select" id="id_garden_type" name="garden_type" required>
+                                <option value="square_foot" selected>Square Foot Gardening</option>
+                                <option value="row">Row Gardening</option>
+                            </select>
+                            <small class="form-text text-muted">
+                                Square Foot: Intensive planting (multiple plants per square)<br>
+                                Row: Traditional spacing (one plant per cell)
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="row" id="customDimensionsRow" style="display: none;">
+                        <div class="col-md-6 mb-3">
                             <label for="id_width" class="form-label">Width (ft)</label>
                             <input type="number" class="form-control" id="id_width" name="width"
                                    min="1" max="50" value="10">
                         </div>
 
-                        <div class="col-md-3 mb-3" id="heightField" style="display: none;">
+                        <div class="col-md-6 mb-3">
                             <label for="id_height" class="form-label">Height (ft)</label>
                             <input type="number" class="form-control" id="id_height" name="height"
                                    min="1" max="50" value="10">
@@ -241,8 +260,7 @@
     // Show/hide custom dimension fields based on size selection
     document.getElementById('id_size').addEventListener('change', function() {
         const isCustom = this.value === 'custom';
-        document.getElementById('widthField').style.display = isCustom ? 'block' : 'none';
-        document.getElementById('heightField').style.display = isCustom ? 'block' : 'none';
+        document.getElementById('customDimensionsRow').style.display = isCustom ? 'flex' : 'none';
 
         // Auto-fill dimensions for preset sizes
         if (!isCustom && this.value) {
@@ -250,6 +268,56 @@
             document.getElementById('id_width').value = width;
             document.getElementById('id_height').value = height;
         }
+    });
+
+    // Handle form submission with AJAX to keep modal open on errors
+    document.getElementById('createGardenForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const form = this;
+        const formData = new FormData(form);
+        const errorContainer = document.getElementById('modalErrorContainer');
+        const errorMessage = document.getElementById('modalErrorMessage');
+        const submitBtn = form.querySelector('button[type="submit"]');
+
+        // Disable submit button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+
+        // Hide previous errors
+        errorContainer.style.display = 'none';
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to the new garden
+                window.location.href = data.redirect_url;
+            } else {
+                // Show error in modal
+                errorMessage.textContent = data.error || 'An error occurred. Please try again.';
+                errorContainer.style.display = 'block';
+
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Create Garden';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+            errorContainer.style.display = 'block';
+
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Create Garden';
+        });
     });
 </script>
 {% endif %}
