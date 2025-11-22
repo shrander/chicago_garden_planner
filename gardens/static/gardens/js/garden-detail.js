@@ -123,6 +123,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     this.dataset.plant = 'empty space';
 
+                    // Update yield table immediately
+                    const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+                    if (gardenTypeSelect) {
+                        updateYieldDisplay(gardenTypeSelect.value);
+                    }
+
                     // Auto-save the layout
                     autoSaveLayout();
                 }
@@ -175,6 +181,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Dragging from plant library
                     updateCellContent(this, draggedPlant);
                     this.dataset.plant = draggedPlant.name;
+                }
+
+                // Update yield table immediately
+                const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+                if (gardenTypeSelect) {
+                    updateYieldDisplay(gardenTypeSelect.value);
                 }
 
                 // Auto-save the layout
@@ -497,6 +509,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+
+        // Update yield table immediately
+        const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+        if (gardenTypeSelect) {
+            updateYieldDisplay(gardenTypeSelect.value);
+        }
 
         // Auto-save the layout
         autoSaveLayout();
@@ -1378,6 +1396,12 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                         }
                     }
                 });
+
+                // Update yield table immediately (before reload)
+                const gardenTypeSelect = document.getElementById('gardenTypeSelect');
+                if (gardenTypeSelect) {
+                    updateYieldDisplay(gardenTypeSelect.value);
+                }
 
                 // Auto-save the layout with planted_date information
                 autoSaveLayoutWithDates(plantedDates);
