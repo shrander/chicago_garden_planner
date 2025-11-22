@@ -883,6 +883,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`Added new row for ${plantName}: ${count} plants`);
             }
         });
+
+        // Sort all rows alphabetically by plant name
+        const allRows = Array.from(yieldTableBody.querySelectorAll('tr[data-plant]'));
+        allRows.sort((a, b) => {
+            const nameA = a.dataset.plant.toLowerCase();
+            const nameB = b.dataset.plant.toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        // Re-append rows in sorted order
+        allRows.forEach(row => yieldTableBody.appendChild(row));
     }
 
     /**
