@@ -215,16 +215,33 @@ def calculate_total_yield(yield_str, count):
 def remove_per_text(yield_str):
     """
     Remove 'per X' text from yield strings for cleaner display.
+    Only removes "per plant", "per head", "per radish", etc.
+    Preserves "per season", "per week", "per month" for continuous harvests.
 
     Examples:
         "4-6 oz per head" → "4-6 oz"
         "2-3 lbs per radish" → "2-3 lbs"
         "10-15 lbs per plant" → "10-15 lbs"
+        "1-2 quarts per plant per season" → "1-2 quarts per season"
     """
     import re
     if not yield_str:
         return yield_str
 
-    # Remove any "per [word]" pattern
-    cleaned = re.sub(r'\s*per\s+\w+\s*', ' ', yield_str, flags=re.IGNORECASE).strip()
-    return cleaned
+    # Remove "per [plant/head/radish/vine/bush/etc]" but keep "per [season/week/month/year]"
+    # Match specific per-unit patterns to remove
+    patterns_to_remove = [
+        r'\s*per\s+plant\s*',
+        r'\s*per\s+head\s*',
+        r'\s*per\s+radish\s*',
+        r'\s*per\s+carrot\s*',
+        r'\s*per\s+vine\s*',
+        r'\s*per\s+bush\s*',
+        r'\s*per\s+bulb\s*',
+    ]
+
+    cleaned = yield_str
+    for pattern in patterns_to_remove:
+        cleaned = re.sub(pattern, ' ', cleaned, flags=re.IGNORECASE)
+
+    return cleaned.strip()

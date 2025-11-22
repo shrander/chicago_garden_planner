@@ -831,8 +831,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalLow = Math.round(low * count);
             const totalHigh = Math.round(high * count);
 
-            // Extract unit and remove ALL "per X" text
-            let unit = rangeMatch[3].replace(/\s*per\s+\w+\s*/gi, '').trim();
+            // Extract unit and remove specific "per plant/head/etc" but keep "per season/week"
+            let unit = rangeMatch[3];
+            const patternsToRemove = [
+                /\s*per\s+plant\s*/gi,
+                /\s*per\s+head\s*/gi,
+                /\s*per\s+radish\s*/gi,
+                /\s*per\s+carrot\s*/gi,
+                /\s*per\s+vine\s*/gi,
+                /\s*per\s+bush\s*/gi,
+                /\s*per\s+bulb\s*/gi,
+            ];
+            patternsToRemove.forEach(pattern => {
+                unit = unit.replace(pattern, ' ');
+            });
+            unit = unit.trim();
 
             // Compact unit names
             const unitMap = {
@@ -852,8 +865,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const total = Math.round(value * count);
             let rest = singleMatch[2];
 
-            // Remove ALL "per X" text
-            rest = rest.replace(/\s*per\s+\w+\s*/gi, ' ').trim();
+            // Remove specific "per plant/head/etc" but keep "per season/week"
+            const patternsToRemove = [
+                /\s*per\s+plant\s*/gi,
+                /\s*per\s+head\s*/gi,
+                /\s*per\s+radish\s*/gi,
+                /\s*per\s+carrot\s*/gi,
+                /\s*per\s+vine\s*/gi,
+                /\s*per\s+bush\s*/gi,
+                /\s*per\s+bulb\s*/gi,
+            ];
+            patternsToRemove.forEach(pattern => {
+                rest = rest.replace(pattern, ' ');
+            });
+            rest = rest.trim();
 
             // Handle parenthetical notes (keep them)
             const parenMatch = rest.match(/^([^\(]+)(\(.+\))$/);
