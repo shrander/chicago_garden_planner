@@ -86,6 +86,9 @@
 {% include 'gardens/partials/_plant_date_modal.html' %}
 {% endif %}
 
+<!-- Notification Banners -->
+<div id="notificationContainer"></div>
+
 <!-- Garden Grid and Plant Library Side by Side -->
 <div class="row mb-4">
     <!-- Garden Grid (Left Column) -->
@@ -456,8 +459,9 @@ window.GARDEN_DATA = {
     {% endif %}
     {% if climate_info %}
     growingSeasonDays: {{ climate_info.growing_season_days }},
-    specialConsiderations: '{{ climate_info.special_considerations|escapejs }}'
+    specialConsiderations: '{{ climate_info.special_considerations|escapejs }}',
     {% endif %}
+    notifications: {{ notifications_json|safe }}
 };
 </script>
 

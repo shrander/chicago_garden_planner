@@ -56,6 +56,74 @@ def garden_list(request):
     return render(request, 'gardens/garden_list.html', context)
 
 
+def calculate_garden_notifications(garden, user):
+    """Calculate harvest and planting notifications for a garden
+
+    Returns dict with:
+    - harvest_ready: list of plants ready to harvest now
+    - harvest_soon: list of plants approaching harvest (7 days)
+    - harvest_overdue: list of plants past harvest date
+    """
+    from datetime import date, timedelta
+    from gardens.utils import get_user_frost_dates, get_planting_window
+
+    notifications = {
+        'harvest_ready': [],
+        'harvest_soon': [],
+        'harvest_overdue': [],
+        'planting_ready': []
+    }
+
+    today = date.today()
+
+    # Get plant instances with dates
+    instances = garden.plant_instances.select_related('plant').all()  # type: ignore[attr-defined]
+
+    for instance in instances:
+        # Skip if no planted date or already harvested
+        if not instance.planted_date or instance.actual_harvest_date:
+            continue
+
+        expected_harvest = instance.expected_harvest_date
+        if not expected_harvest:
+            continue
+
+        days_until = (expected_harvest - today).days
+
+        # Categorize based on days until harvest
+        if days_until < 0:
+            # Overdue
+            notifications['harvest_overdue'].append({
+                'plant_name': instance.plant.name,
+                'row': instance.row,
+                'col': instance.col,
+                'expected_date': expected_harvest,
+                'days_overdue': abs(days_until),
+                'instance_id': instance.id
+            })
+        elif days_until == 0:
+            # Ready today
+            notifications['harvest_ready'].append({
+                'plant_name': instance.plant.name,
+                'row': instance.row,
+                'col': instance.col,
+                'expected_date': expected_harvest,
+                'instance_id': instance.id
+            })
+        elif days_until <= 7:
+            # Coming up within 7 days
+            notifications['harvest_soon'].append({
+                'plant_name': instance.plant.name,
+                'row': instance.row,
+                'col': instance.col,
+                'expected_date': expected_harvest,
+                'days_until': days_until,
+                'instance_id': instance.id
+            })
+
+    return notifications
+
+
 @login_required
 def garden_detail(request, pk):
     """Display garden detail with grid layout"""
@@ -274,6 +342,17 @@ def garden_detail(request, pk):
     frost_dates = get_user_frost_dates(request.user) if request.user.is_authenticated else None
     climate_info = get_growing_season_info(user_zone)
 
+    # Calculate notifications for harvest alerts
+    notifications = calculate_garden_notifications(garden, request.user) if request.user.is_authenticated else {
+        'harvest_ready': [],
+        'harvest_soon': [],
+        'harvest_overdue': [],
+        'planting_ready': []
+    }
+
+    # Convert notifications to JSON for JavaScript
+    notifications_json = json.dumps(notifications, default=str)
+
     context = {
         'garden': garden,
         'grid_data': grid_data,
@@ -304,6 +383,9 @@ def garden_detail(request, pk):
         'user_zone': user_zone,
         'frost_dates': frost_dates,
         'climate_info': climate_info,
+        # Notifications
+        'notifications': notifications,
+        'notifications_json': notifications_json,
     }
 
     return render(request, 'gardens/garden_detail.html', context)

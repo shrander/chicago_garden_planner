@@ -167,3 +167,114 @@
     box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
     border-color: rgba(25, 135, 84, 0.5);
 }
+
+/* ========================================
+   NOTIFICATION BANNERS
+   ======================================== */
+
+.notification-banner {
+    position: relative;
+    margin-bottom: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    border-left: 5px solid;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notification-banner.harvest-ready-banner {
+    background-color: #d1e7dd;
+    border-left-color: #198754;
+    color: #0f5132;
+}
+
+.notification-banner.harvest-soon-banner {
+    background-color: #fff3cd;
+    border-left-color: #ffc107;
+    color: #664d03;
+}
+
+.notification-banner.harvest-overdue-banner {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
+    color: #842029;
+}
+
+.notification-banner-title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.notification-banner-icon {
+    font-size: 1.5rem;
+}
+
+.notification-banner-content {
+    margin: 0.5rem 0;
+}
+
+.notification-plant-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0;
+}
+
+.notification-plant-item {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-plant-item:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.notification-plant-name {
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.notification-plant-location {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.notification-dismiss-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+}
+
+.notification-dismiss-btn:hover {
+    opacity: 1;
+}

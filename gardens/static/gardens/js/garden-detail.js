@@ -1710,6 +1710,228 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
         };
     }
 
+    // ========================================
+    // NOTIFICATION SYSTEM
+    // ========================================
+
+    /**
+     * Notification Manager for harvest and planting alerts
+     */
+    class NotificationManager {
+        constructor() {
+            this.container = document.getElementById('notificationContainer');
+            this.notifications = window.GARDEN_DATA?.notifications || {
+                harvest_ready: [],
+                harvest_soon: [],
+                harvest_overdue: [],
+                planting_ready: []
+            };
+            this.dismissedNotifications = this.loadDismissed();
+        }
+
+        loadDismissed() {
+            try {
+                const dismissed = localStorage.getItem(`garden-${gardenId}-dismissed-notifications`);
+                return dismissed ? JSON.parse(dismissed) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        saveDismissed() {
+            try {
+                localStorage.setItem(
+                    `garden-${gardenId}-dismissed-notifications`,
+                    JSON.stringify(this.dismissedNotifications)
+                );
+            } catch (e) {
+                console.error('Failed to save dismissed notifications:', e);
+            }
+        }
+
+        dismissNotification(type) {
+            const now = new Date().toISOString();
+            this.dismissedNotifications[type] = now;
+            this.saveDismissed();
+            this.render();
+        }
+
+        shouldShowNotification(type, items) {
+            if (items.length === 0) return false;
+
+            const dismissed = this.dismissedNotifications[type];
+            if (!dismissed) return true;
+
+            // Re-show if dismissed more than 24 hours ago
+            const dismissedDate = new Date(dismissed);
+            const now = new Date();
+            const hoursSinceDismissed = (now - dismissedDate) / (1000 * 60 * 60);
+
+            return hoursSinceDismissed > 24;
+        }
+
+        highlightCells(items) {
+            // Add highlight classes to grid cells
+            items.forEach(item => {
+                const cell = document.querySelector(
+                    `.garden-cell[data-row="${item.row}"][data-col="${item.col}"]`
+                );
+                if (cell) {
+                    // Cell might already have harvest-* class from date-management.js
+                    // We just ensure the visual highlighting is present
+                    if (!cell.classList.contains('harvest-ready') &&
+                        !cell.classList.contains('harvest-soon') &&
+                        !cell.classList.contains('harvest-overdue')) {
+                        // Determine which class based on notification type
+                        if (item.days_overdue !== undefined) {
+                            cell.classList.add('harvest-overdue');
+                        } else if (item.days_until === 0) {
+                            cell.classList.add('harvest-ready');
+                        } else if (item.days_until !== undefined && item.days_until <= 7) {
+                            cell.classList.add('harvest-soon');
+                        }
+                    }
+                }
+            });
+        }
+
+        createBanner(type, title, icon, items, bannerClass) {
+            if (!this.shouldShowNotification(type, items)) {
+                return null;
+            }
+
+            const banner = document.createElement('div');
+            banner.className = `notification-banner ${bannerClass}`;
+            banner.setAttribute('data-notification-type', type);
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'notification-banner-title';
+            titleEl.innerHTML = `<span class="notification-banner-icon">${icon}</span> ${title}`;
+
+            const content = document.createElement('div');
+            content.className = 'notification-banner-content';
+
+            const list = document.createElement('ul');
+            list.className = 'notification-plant-list';
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'notification-plant-item';
+
+                const plantName = document.createElement('span');
+                plantName.className = 'notification-plant-name';
+                plantName.textContent = item.plant_name;
+
+                const location = document.createElement('span');
+                location.className = 'notification-plant-location';
+                location.textContent = `Row ${item.row + 1}, Col ${item.col + 1}`;
+
+                const details = document.createElement('span');
+                details.className = 'notification-plant-details';
+                if (item.days_until !== undefined && item.days_until > 0) {
+                    details.textContent = `${item.days_until} days`;
+                } else if (item.days_overdue !== undefined) {
+                    details.textContent = `${item.days_overdue} days overdue`;
+                } else {
+                    details.textContent = 'Ready now!';
+                }
+
+                const leftContent = document.createElement('div');
+                leftContent.appendChild(plantName);
+                leftContent.appendChild(document.createTextNode(' - '));
+                leftContent.appendChild(location);
+
+                li.appendChild(leftContent);
+                li.appendChild(details);
+
+                // Click to scroll to cell
+                li.addEventListener('click', () => {
+                    const cell = document.querySelector(
+                        `.garden-cell[data-row="${item.row}"][data-col="${item.col}"]`
+                    );
+                    if (cell) {
+                        cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        cell.style.transform = 'scale(1.2)';
+                        setTimeout(() => {
+                            cell.style.transform = '';
+                        }, 1000);
+                    }
+                });
+
+                list.appendChild(li);
+            });
+
+            content.appendChild(list);
+
+            const dismissBtn = document.createElement('button');
+            dismissBtn.className = 'notification-dismiss-btn';
+            dismissBtn.innerHTML = '×';
+            dismissBtn.title = 'Dismiss for 24 hours';
+            dismissBtn.addEventListener('click', () => {
+                this.dismissNotification(type);
+            });
+
+            banner.appendChild(titleEl);
+            banner.appendChild(content);
+            banner.appendChild(dismissBtn);
+
+            return banner;
+        }
+
+        render() {
+            if (!this.container) return;
+
+            this.container.innerHTML = '';
+
+            // Harvest Overdue
+            const overdueBanner = this.createBanner(
+                'harvest_overdue',
+                `${this.notifications.harvest_overdue.length} Plant${this.notifications.harvest_overdue.length !== 1 ? 's' : ''} Overdue for Harvest`,
+                '🚨',
+                this.notifications.harvest_overdue,
+                'harvest-overdue-banner'
+            );
+            if (overdueBanner) {
+                this.container.appendChild(overdueBanner);
+                this.highlightCells(this.notifications.harvest_overdue);
+            }
+
+            // Harvest Ready
+            const readyBanner = this.createBanner(
+                'harvest_ready',
+                `${this.notifications.harvest_ready.length} Plant${this.notifications.harvest_ready.length !== 1 ? 's' : ''} Ready to Harvest`,
+                '🌾',
+                this.notifications.harvest_ready,
+                'harvest-ready-banner'
+            );
+            if (readyBanner) {
+                this.container.appendChild(readyBanner);
+                this.highlightCells(this.notifications.harvest_ready);
+            }
+
+            // Harvest Soon
+            const soonBanner = this.createBanner(
+                'harvest_soon',
+                `${this.notifications.harvest_soon.length} Plant${this.notifications.harvest_soon.length !== 1 ? 's' : ''} Ready Soon`,
+                '⏰',
+                this.notifications.harvest_soon,
+                'harvest-soon-banner'
+            );
+            if (soonBanner) {
+                this.container.appendChild(soonBanner);
+                this.highlightCells(this.notifications.harvest_soon);
+            }
+        }
+
+        init() {
+            this.render();
+        }
+    }
+
+    // Initialize notification system
+    const notificationManager = new NotificationManager();
+    notificationManager.init();
+
     // Initialize all handlers
     console.log('Initializing all handlers...');
     setupGardenNameEditing();
