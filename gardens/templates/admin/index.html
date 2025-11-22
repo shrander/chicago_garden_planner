@@ -13,13 +13,17 @@
 
 {% block content %}
 <div id="content-main">
-    <!-- System Statistics Dashboard at Top -->
-    <div style="margin-bottom: 30px;">
-        <h2>System Overview</h2>
+    <!-- Three Column Layout: App List (Left), System Stats (Center), Recent Actions (Right) -->
+    <div style="display: grid; grid-template-columns: minmax(250px, 1fr) minmax(400px, 2fr) minmax(250px, 1fr); gap: 20px;">
+        <!-- Left Column: App List -->
+        <div style="overflow-wrap: break-word; word-wrap: break-word;">
+            {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+        </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <!-- Center Column: System Statistics -->
+        <div>
             <!-- Active Users Card -->
-            <div class="module">
+            <div class="module" style="margin-bottom: 20px;">
                 <table style="width: 100%;">
                     <caption style="text-align: left; padding: 10px; background: #417690; color: white; font-weight: bold;">
                         <span style="font-size: 18px;">👥</span> Active Users
@@ -50,7 +54,7 @@
             </div>
 
             <!-- System Resources Card -->
-            <div class="module">
+            <div class="module" style="margin-bottom: 20px;">
                 <table style="width: 100%;">
                     <caption style="text-align: left; padding: 10px; background: #79aec8; color: white; font-weight: bold;">
                         <span style="font-size: 18px;">💻</span> System Resources
@@ -146,58 +150,9 @@
                 </table>
             </div>
         </div>
-    </div>
-
-    <!-- Three Column Layout: App List (Left), System Stats (Center), Recent Actions (Right) -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
-        <!-- Left Column: App List -->
-        <div>
-            {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
-        </div>
-
-        <!-- Middle Column: Additional Stats or Info -->
-        <div>
-            <div class="module">
-                <table style="width: 100%;">
-                    <caption>
-                        <span>📊 Quick Stats</span>
-                    </caption>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 15px;">
-                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 13px; color: #666;">Total Gardens</span>
-                                        <span style="font-size: 20px; font-weight: bold; color: #417690;">{{ app_stats.total_gardens }}</span>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 13px; color: #666;">Plants in Library</span>
-                                        <span style="font-size: 20px; font-weight: bold; color: #417690;">{{ app_stats.total_plants }}</span>
-                                    </div>
-                                </div>
-                                <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e0e0e0;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 13px; color: #666;">Active Plantings</span>
-                                        <span style="font-size: 20px; font-weight: bold; color: #417690;">{{ app_stats.total_plant_instances }}</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <span style="font-size: 13px; color: #666;">Registered Users</span>
-                                        <span style="font-size: 20px; font-weight: bold; color: #417690;">{{ user_stats.total }}</span>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
         <!-- Right Column: Recent Actions -->
-        <div>
+        <div style="overflow-wrap: break-word; word-wrap: break-word;">
             {% load log %}
             {% get_admin_log 10 as admin_log for_user user %}
             <div class="module">
@@ -213,7 +168,7 @@
                                 {% else %}
                                 <ul style="list-style: none; padding: 0; margin: 0;">
                                     {% for entry in admin_log %}
-                                    <li style="padding: 10px 15px; border-bottom: 1px solid #e0e0e0;">
+                                    <li style="padding: 10px 15px; border-bottom: 1px solid #e0e0e0; word-break: break-word;">
                                         {% if entry.is_deletion %}
                                             <span style="color: #ba2121;">{% trans 'Deleted' %}</span>
                                         {% elif entry.is_change %}
@@ -229,11 +184,11 @@
                                         {% endif %}
 
                                         {% if not entry.is_deletion %}
-                                            <a href="{{ entry.get_admin_url }}" style="display: block; margin-top: 3px;">
+                                            <a href="{{ entry.get_admin_url }}" style="display: block; margin-top: 3px; word-break: break-word;">
                                                 {{ entry.object_repr }}
                                             </a>
                                         {% else %}
-                                            <span style="display: block; margin-top: 3px; color: #999;">
+                                            <span style="display: block; margin-top: 3px; color: #999; word-break: break-word;">
                                                 {{ entry.object_repr }}
                                             </span>
                                         {% endif %}
