@@ -81,6 +81,157 @@ function setupDateManagement() {
         return diffDays;
     }
 
+    // Helper function to update modal notifications
+    function updateModalNotifications(instanceData, plantData, isDirectSown) {
+        // Get notification elements
+        const seedStartNotification = document.getElementById('seedStartNotification');
+        const transplantNotification = document.getElementById('transplantNotification');
+        const plantingNotification = document.getElementById('plantingNotification');
+        const harvestNotification = document.getElementById('harvestNotification');
+
+        // Hide all notifications by default
+        seedStartNotification.style.display = 'none';
+        transplantNotification.style.display = 'none';
+        plantingNotification.style.display = 'none';
+        harvestNotification.style.display = 'none';
+
+        if (!plantData) return;
+
+        // Build current state from form inputs (may differ from saved instanceData)
+        const currentState = {
+            planned_seed_start_date: plannedSeedStartInput.value || instanceData?.planned_seed_start_date || null,
+            seed_started_date: seedStartedDateInput.value || instanceData?.seed_started_date || null,
+            planned_planting_date: plannedPlantingInput.value || instanceData?.planned_planting_date || null,
+            planted_date: plantedDateInput.value || instanceData?.planted_date || null,
+            actual_harvest_date: actualHarvestDateInput.value || instanceData?.actual_harvest_date || null,
+        };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Seed Start Notifications (only if not direct sown and not started yet)
+        if (!isDirectSown && !currentState.seed_started_date) {
+            const plannedSeedStart = currentState.planned_seed_start_date;
+            if (plannedSeedStart) {
+                const daysTillSeedStart = daysUntil(plannedSeedStart);
+
+                if (daysTillSeedStart < 0) {
+                    // Overdue
+                    seedStartNotification.className = 'alert alert-danger';
+                    seedStartNotification.querySelector('#seedStartNotificationTitle').textContent = 'Seed Starting Overdue';
+                    seedStartNotification.querySelector('#seedStartNotificationText').textContent =
+                        `Planned seed start was ${Math.abs(daysTillSeedStart)} day${Math.abs(daysTillSeedStart) === 1 ? '' : 's'} ago. Start seeds soon or adjust planned date.`;
+                    seedStartNotification.style.display = 'block';
+                } else if (daysTillSeedStart === 0) {
+                    // Due today
+                    seedStartNotification.className = 'alert alert-success';
+                    seedStartNotification.querySelector('#seedStartNotificationTitle').textContent = 'Start Seeds Today!';
+                    seedStartNotification.querySelector('#seedStartNotificationText').textContent =
+                        'Today is your planned seed starting date. Get those seeds started!';
+                    seedStartNotification.style.display = 'block';
+                } else if (daysTillSeedStart <= 7) {
+                    // Coming up soon
+                    seedStartNotification.className = 'alert alert-warning';
+                    seedStartNotification.querySelector('#seedStartNotificationTitle').textContent = 'Seed Starting Soon';
+                    seedStartNotification.querySelector('#seedStartNotificationText').textContent =
+                        `Start seeds in ${daysTillSeedStart} day${daysTillSeedStart === 1 ? '' : 's'}. Get your supplies ready!`;
+                    seedStartNotification.style.display = 'block';
+                }
+            }
+        }
+
+        // 2. Transplant Notifications (only if pot-started and seeds started but not planted yet)
+        if (!isDirectSown && currentState.seed_started_date && !currentState.planted_date) {
+            const expectedTransplant = calculateExpectedTransplantDate(currentState.seed_started_date, plantData, false);
+            if (expectedTransplant) {
+                const daysTillTransplant = daysUntil(expectedTransplant);
+
+                if (daysTillTransplant < 0) {
+                    // Overdue
+                    transplantNotification.className = 'alert alert-danger';
+                    transplantNotification.querySelector('#transplantNotificationTitle').textContent = 'Transplant Overdue';
+                    transplantNotification.querySelector('#transplantNotificationText').textContent =
+                        `Ready to transplant ${Math.abs(daysTillTransplant)} day${Math.abs(daysTillTransplant) === 1 ? '' : 's'} ago. Transplant soon or seedlings may become root-bound.`;
+                    transplantNotification.style.display = 'block';
+                } else if (daysTillTransplant === 0) {
+                    // Ready today
+                    transplantNotification.className = 'alert alert-success';
+                    transplantNotification.querySelector('#transplantNotificationTitle').textContent = 'Ready to Transplant!';
+                    transplantNotification.querySelector('#transplantNotificationText').textContent =
+                        'Seedlings are ready to transplant to the garden today!';
+                    transplantNotification.style.display = 'block';
+                } else if (daysTillTransplant <= 7) {
+                    // Coming up soon
+                    transplantNotification.className = 'alert alert-info';
+                    transplantNotification.querySelector('#transplantNotificationTitle').textContent = 'Transplant Soon';
+                    transplantNotification.querySelector('#transplantNotificationText').textContent =
+                        `Seedlings will be ready to transplant in ${daysTillTransplant} day${daysTillTransplant === 1 ? '' : 's'}.`;
+                    transplantNotification.style.display = 'block';
+                }
+            }
+        }
+
+        // 3. Planting Notifications (for direct sown or if planned planting exists but not planted)
+        if (!currentState.planted_date && currentState.planned_planting_date) {
+            const daysTillPlanting = daysUntil(currentState.planned_planting_date);
+            const plantingType = isDirectSown ? 'sowing' : 'planting';
+
+            if (daysTillPlanting < 0) {
+                // Overdue
+                plantingNotification.className = 'alert alert-danger';
+                plantingNotification.querySelector('#plantingNotificationTitle').textContent = `${isDirectSown ? 'Sowing' : 'Planting'} Overdue`;
+                plantingNotification.querySelector('#plantingNotificationText').textContent =
+                    `Planned ${plantingType} was ${Math.abs(daysTillPlanting)} day${Math.abs(daysTillPlanting) === 1 ? '' : 's'} ago. ${isDirectSown ? 'Sow' : 'Plant'} soon or adjust date.`;
+                plantingNotification.style.display = 'block';
+            } else if (daysTillPlanting === 0) {
+                // Due today
+                plantingNotification.className = 'alert alert-success';
+                plantingNotification.querySelector('#plantingNotificationTitle').textContent = `${isDirectSown ? 'Sow' : 'Plant'} Today!`;
+                plantingNotification.querySelector('#plantingNotificationText').textContent =
+                    `Today is your planned ${plantingType} date!`;
+                plantingNotification.style.display = 'block';
+            } else if (daysTillPlanting <= 7) {
+                // Coming up soon
+                plantingNotification.className = 'alert alert-warning';
+                plantingNotification.querySelector('#plantingNotificationTitle').textContent = `${isDirectSown ? 'Sowing' : 'Planting'} Soon`;
+                plantingNotification.querySelector('#plantingNotificationText').textContent =
+                    `${isDirectSown ? 'Sow' : 'Plant'} in ${daysTillPlanting} day${daysTillPlanting === 1 ? '' : 's'}.`;
+                plantingNotification.style.display = 'block';
+            }
+        }
+
+        // 4. Harvest Notifications (only if planted and not harvested yet)
+        if (currentState.planted_date && !currentState.actual_harvest_date) {
+            const expectedHarvest = calculateExpectedHarvestDate(currentState.planted_date, plantData);
+            if (expectedHarvest) {
+                const daysTillHarvest = daysUntil(expectedHarvest);
+
+                if (daysTillHarvest < 0) {
+                    // Overdue
+                    harvestNotification.className = 'alert alert-danger';
+                    harvestNotification.querySelector('#harvestNotificationTitle').textContent = 'Harvest Overdue';
+                    harvestNotification.querySelector('#harvestNotificationText').textContent =
+                        `Expected harvest was ${Math.abs(daysTillHarvest)} day${Math.abs(daysTillHarvest) === 1 ? '' : 's'} ago. Check your plants!`;
+                    harvestNotification.style.display = 'block';
+                } else if (daysTillHarvest === 0) {
+                    // Ready today
+                    harvestNotification.className = 'alert alert-success';
+                    harvestNotification.querySelector('#harvestNotificationTitle').textContent = 'Ready to Harvest!';
+                    harvestNotification.querySelector('#harvestNotificationText').textContent =
+                        'Your plants are ready to harvest today!';
+                    harvestNotification.style.display = 'block';
+                } else if (daysTillHarvest <= 7) {
+                    // Coming up soon
+                    harvestNotification.className = 'alert alert-warning';
+                    harvestNotification.querySelector('#harvestNotificationTitle').textContent = 'Harvest Soon';
+                    harvestNotification.querySelector('#harvestNotificationText').textContent =
+                        `Harvest in ${daysTillHarvest} day${daysTillHarvest === 1 ? '' : 's'}. Start monitoring!`;
+                    harvestNotification.style.display = 'block';
+                }
+            }
+        }
+    }
+
     // Helper function to update UI based on seed starting method
     function updateUIForSeedingMethod(isDirectSown) {
         if (isDirectSown) {
@@ -132,6 +283,11 @@ function setupDateManagement() {
         if (isDirectSown) {
             expectedTransplantInfo.style.display = 'none';
         }
+
+        // Update notifications based on new seeding method
+        const instanceKey = `${currentRow},${currentCol}`;
+        const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
+        updateModalNotifications(currentInstanceData, currentPlantData, isDirectSown);
     });
 
     // Add click handlers to all plant cells
@@ -270,6 +426,9 @@ function setupDateManagement() {
                 updateUIForSeedingMethod(false);
             }
 
+            // Update modal notifications
+            updateModalNotifications(currentInstanceData, plantData, currentInstanceData?.seed_starting_method === 'direct' || false);
+
             modal.show();
         });
     });
@@ -304,6 +463,11 @@ function setupDateManagement() {
                 expectedTransplantInfo.style.display = 'none';
             }
         }
+
+        // Update notifications
+        const instanceKey = `${currentRow},${currentCol}`;
+        const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
+        updateModalNotifications(currentInstanceData, currentPlantData, isDirectSown);
     });
 
     // Real-time calculation when actual seed started date changes
@@ -327,6 +491,11 @@ function setupDateManagement() {
                 expectedTransplantInfo.style.display = 'none';
             }
         }
+
+        // Update notifications
+        const instanceKey = `${currentRow},${currentCol}`;
+        const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
+        updateModalNotifications(currentInstanceData, currentPlantData, isDirectSown);
     });
 
     // Real-time calculation when planned planting date changes
@@ -347,6 +516,12 @@ function setupDateManagement() {
                 expectedHarvestInfo.style.display = 'none';
             }
         }
+
+        // Update notifications
+        const instanceKey = `${currentRow},${currentCol}`;
+        const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
+        const isDirectSown = directSownCheck.checked;
+        updateModalNotifications(currentInstanceData, currentPlantData, isDirectSown);
     });
 
     // Real-time calculation when actual planted date changes
@@ -374,6 +549,12 @@ function setupDateManagement() {
                 expectedHarvestInfo.style.display = 'none';
             }
         }
+
+        // Update notifications
+        const instanceKey = `${currentRow},${currentCol}`;
+        const currentInstanceData = window.INSTANCE_MAP && window.INSTANCE_MAP[instanceKey] ? window.INSTANCE_MAP[instanceKey] : null;
+        const isDirectSown = directSownCheck.checked;
+        updateModalNotifications(currentInstanceData, currentPlantData, isDirectSown);
     });
 
     // Save dates
