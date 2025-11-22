@@ -209,3 +209,22 @@ def calculate_total_yield(yield_str, count):
 
     # Fallback: just show count × original
     return f"{count} × {yield_str}"
+
+
+@register.filter
+def remove_per_text(yield_str):
+    """
+    Remove 'per X' text from yield strings for cleaner display.
+
+    Examples:
+        "4-6 oz per head" → "4-6 oz"
+        "2-3 lbs per radish" → "2-3 lbs"
+        "10-15 lbs per plant" → "10-15 lbs"
+    """
+    import re
+    if not yield_str:
+        return yield_str
+
+    # Remove any "per [word]" pattern
+    cleaned = re.sub(r'\s*per\s+\w+\s*', ' ', yield_str, flags=re.IGNORECASE).strip()
+    return cleaned

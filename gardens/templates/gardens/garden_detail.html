@@ -360,7 +360,7 @@
                                         <td class="text-center">
                                             {% with plant_obj=plant_yields|get_item:plant %}
                                                 {% if plant_obj.yield_per_plant %}
-                                                    <span class="badge bg-light text-dark">{{ plant_obj.yield_per_plant }}</span>
+                                                    <span class="badge bg-light text-dark">{{ plant_obj.yield_per_plant|remove_per_text }}</span>
                                                 {% else %}
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
