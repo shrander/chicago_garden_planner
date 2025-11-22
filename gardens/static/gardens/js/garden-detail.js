@@ -831,8 +831,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalLow = Math.round(low * count);
             const totalHigh = Math.round(high * count);
 
-            // Extract unit and remove "per plant", "per head", etc.
-            let unit = rangeMatch[3].replace(/\s*per\s+(plant|head|vine|bush)\s*/gi, '').trim();
+            // Extract unit and remove ALL "per X" text
+            let unit = rangeMatch[3].replace(/\s*per\s+\w+\s*/gi, '').trim();
 
             // Compact unit names
             const unitMap = {
@@ -852,8 +852,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const total = Math.round(value * count);
             let rest = singleMatch[2];
 
-            // Remove "per plant", "per head", etc.
-            rest = rest.replace(/\s*per\s+(plant|head|vine|bush)\s*/gi, ' ').trim();
+            // Remove ALL "per X" text
+            rest = rest.replace(/\s*per\s+\w+\s*/gi, ' ').trim();
 
             // Handle parenthetical notes (keep them)
             const parenMatch = rest.match(/^([^\(]+)(\(.+\))$/);
