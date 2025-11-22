@@ -1,5 +1,4 @@
 """Custom admin views for system statistics"""
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
@@ -9,7 +8,6 @@ import platform
 User = get_user_model()
 
 
-@staff_member_required
 def get_system_stats():
     """Get system statistics for admin dashboard"""
     # Get active users (sessions active in last 15 minutes)
