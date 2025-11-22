@@ -64,8 +64,7 @@ def calculate_garden_notifications(garden, user):
     - harvest_soon: list of plants approaching harvest (7 days)
     - harvest_overdue: list of plants past harvest date
     """
-    from datetime import date, timedelta
-    from gardens.utils import get_user_frost_dates, get_planting_window
+    from datetime import date
 
     notifications = {
         'harvest_ready': [],
