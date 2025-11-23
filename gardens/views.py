@@ -693,9 +693,9 @@ def garden_save_layout(request, pk):
                 ).first()
 
                 if plant:
-                    # Check if planted_date was provided for this position
+                    # Check if date info was provided for this position
                     position_key = f"{row_idx},{col_idx}"
-                    provided_date = planted_dates.get(position_key)
+                    provided_dates = planted_dates.get(position_key)
 
                     # Check if instance already exists at this position
                     if (row_idx, col_idx) in existing_instances:
@@ -706,10 +706,27 @@ def garden_save_layout(request, pk):
                             instance.plant = plant
                             instance.save()
 
-                        # Update planned_planting_date if provided (AI suggestions are planned dates)
-                        if provided_date:
+                        # Update all date fields if provided (AI suggestions and imports)
+                        if provided_dates:
                             from datetime import datetime
-                            instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
+
+                            # Handle both old format (string) and new format (dict)
+                            if isinstance(provided_dates, str):
+                                # Legacy format: single date string = planned_planting_date
+                                instance.planned_planting_date = datetime.fromisoformat(provided_dates).date()
+                            elif isinstance(provided_dates, dict):
+                                # New format: dict with all date fields
+                                if 'seed_starting_method' in provided_dates:
+                                    instance.seed_starting_method = provided_dates['seed_starting_method']
+                                if 'planned_seed_start_date' in provided_dates:
+                                    instance.planned_seed_start_date = datetime.fromisoformat(provided_dates['planned_seed_start_date']).date()
+                                if 'seed_started_date' in provided_dates:
+                                    instance.seed_started_date = datetime.fromisoformat(provided_dates['seed_started_date']).date()
+                                if 'planned_planting_date' in provided_dates:
+                                    instance.planned_planting_date = datetime.fromisoformat(provided_dates['planned_planting_date']).date()
+                                if 'planted_date' in provided_dates:
+                                    instance.planted_date = datetime.fromisoformat(provided_dates['planted_date']).date()
+
                             instance.save()
                     else:
                         # Check if this plant was moved from another position (preserve dates)
@@ -721,25 +738,61 @@ def garden_save_layout(request, pk):
                                 break
 
                         if moved_instance:
-                            # Update position, preserve dates (unless new date provided)
+                            # Update position, preserve dates (unless new dates provided)
                             moved_instance.row = row_idx
                             moved_instance.col = col_idx
-                            if provided_date:
+
+                            if provided_dates:
                                 from datetime import datetime
-                                moved_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
+
+                                # Handle both old format (string) and new format (dict)
+                                if isinstance(provided_dates, str):
+                                    # Legacy format: single date string = planned_planting_date
+                                    moved_instance.planned_planting_date = datetime.fromisoformat(provided_dates).date()
+                                elif isinstance(provided_dates, dict):
+                                    # New format: dict with all date fields
+                                    if 'seed_starting_method' in provided_dates:
+                                        moved_instance.seed_starting_method = provided_dates['seed_starting_method']
+                                    if 'planned_seed_start_date' in provided_dates:
+                                        moved_instance.planned_seed_start_date = datetime.fromisoformat(provided_dates['planned_seed_start_date']).date()
+                                    if 'seed_started_date' in provided_dates:
+                                        moved_instance.seed_started_date = datetime.fromisoformat(provided_dates['seed_started_date']).date()
+                                    if 'planned_planting_date' in provided_dates:
+                                        moved_instance.planned_planting_date = datetime.fromisoformat(provided_dates['planned_planting_date']).date()
+                                    if 'planted_date' in provided_dates:
+                                        moved_instance.planted_date = datetime.fromisoformat(provided_dates['planted_date']).date()
+
                             moved_instance.save()
                             current_positions.add((moved_instance.row, moved_instance.col))
                         else:
-                            # New plant placement - create instance with optional planned date
+                            # New plant placement - create instance with optional dates
                             new_instance = PlantInstance(
                                 garden=garden,
                                 plant=plant,
                                 row=row_idx,
                                 col=col_idx
                             )
-                            if provided_date:
+
+                            if provided_dates:
                                 from datetime import datetime
-                                new_instance.planned_planting_date = datetime.fromisoformat(provided_date).date()
+
+                                # Handle both old format (string) and new format (dict)
+                                if isinstance(provided_dates, str):
+                                    # Legacy format: single date string = planned_planting_date
+                                    new_instance.planned_planting_date = datetime.fromisoformat(provided_dates).date()
+                                elif isinstance(provided_dates, dict):
+                                    # New format: dict with all date fields
+                                    if 'seed_starting_method' in provided_dates:
+                                        new_instance.seed_starting_method = provided_dates['seed_starting_method']
+                                    if 'planned_seed_start_date' in provided_dates:
+                                        new_instance.planned_seed_start_date = datetime.fromisoformat(provided_dates['planned_seed_start_date']).date()
+                                    if 'seed_started_date' in provided_dates:
+                                        new_instance.seed_started_date = datetime.fromisoformat(provided_dates['seed_started_date']).date()
+                                    if 'planned_planting_date' in provided_dates:
+                                        new_instance.planned_planting_date = datetime.fromisoformat(provided_dates['planned_planting_date']).date()
+                                    if 'planted_date' in provided_dates:
+                                        new_instance.planted_date = datetime.fromisoformat(provided_dates['planted_date']).date()
+
                             new_instance.save()
 
         # Remove instances that no longer have plants
@@ -930,16 +983,20 @@ def garden_ai_assistant(request, pk):
                     # Check for planted instance data
                     instance = instance_map.get((row_idx, col_idx))
                     if instance:
-                        # Use actual planted date if available, otherwise use planned
-                        effective_planted_date = instance.planted_date or instance.planned_planting_date
-                        if effective_planted_date:
+                        # Include instance if any date is set
+                        if (instance.planned_seed_start_date or instance.seed_started_date or
+                            instance.planned_planting_date or instance.planted_date):
                             planted_instances_info.append({
                                 'plant': cell,
                                 'row': row_idx,
                                 'col': col_idx,
-                                'planted_date': effective_planted_date.isoformat(),
-                                'is_planned': instance.planted_date is None,  # Flag to indicate if date is planned
+                                'seed_starting_method': instance.seed_starting_method,
+                                'planned_seed_start_date': instance.planned_seed_start_date.isoformat() if instance.planned_seed_start_date else None,
+                                'seed_started_date': instance.seed_started_date.isoformat() if instance.seed_started_date else None,
+                                'planned_planting_date': instance.planned_planting_date.isoformat() if instance.planned_planting_date else None,
+                                'planted_date': instance.planted_date.isoformat() if instance.planted_date else None,
                                 'expected_harvest': instance.expected_harvest_date.isoformat() if instance.expected_harvest_date else None,
+                                'actual_harvest_date': instance.actual_harvest_date.isoformat() if instance.actual_harvest_date else None,
                                 'status': instance.harvest_status(),
                                 'days_until_harvest': instance.days_until_harvest()
                             })

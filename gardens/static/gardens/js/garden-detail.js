@@ -1246,13 +1246,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Check if there's instance data for this position
                             const instanceKey = `${rowIdx},${colIdx}`;
                             const instance = window.INSTANCE_MAP[instanceKey];
-                            if (instance && instance.planted_date) {
+                            if (instance && (instance.planted_date || instance.planned_planting_date || instance.planned_seed_start_date || instance.seed_started_date)) {
                                 plantedInstances.push({
                                     plant: cell,
                                     row: rowIdx,
                                     col: colIdx,
+                                    seed_starting_method: instance.seed_starting_method,
+                                    planned_seed_start_date: instance.planned_seed_start_date,
+                                    seed_started_date: instance.seed_started_date,
+                                    planned_planting_date: instance.planned_planting_date,
                                     planted_date: instance.planted_date,
                                     expected_harvest: instance.expected_harvest_date,
+                                    actual_harvest_date: instance.actual_harvest_date,
                                     status: instance.harvest_status,
                                     days_until_harvest: instance.days_until_harvest
                                 });
@@ -1298,13 +1303,45 @@ document.addEventListener('DOMContentLoaded', function() {
             if (plantedInstances.length > 0) {
                 plantedInfo = '\n\nPLANTED CROPS WITH DATES:\n';
                 plantedInstances.forEach(inst => {
-                    plantedInfo += `- ${inst.plant} at (${inst.row},${inst.col}): planted ${inst.planted_date}`;
+                    plantedInfo += `- ${inst.plant} at (${inst.row},${inst.col}): `;
+
+                    // Seed starting method
+                    const isDirect = inst.seed_starting_method === 'direct';
+                    plantedInfo += `${isDirect ? 'direct sown' : 'pot-started'}`;
+
+                    // Planned seed start date (pot-started only)
+                    if (!isDirect && inst.planned_seed_start_date) {
+                        plantedInfo += `, planned seed start ${inst.planned_seed_start_date}`;
+                    }
+
+                    // Actual seed started date
+                    if (inst.seed_started_date) {
+                        plantedInfo += `, seed started ${inst.seed_started_date}`;
+                    }
+
+                    // Planned planting/sowing date
+                    if (inst.planned_planting_date) {
+                        plantedInfo += `, planned ${isDirect ? 'sowing' : 'transplant'} ${inst.planned_planting_date}`;
+                    }
+
+                    // Actual planted date
+                    if (inst.planted_date) {
+                        plantedInfo += `, ${isDirect ? 'sown' : 'planted'} ${inst.planted_date}`;
+                    }
+
+                    // Expected harvest
                     if (inst.expected_harvest) {
                         plantedInfo += `, expected harvest ${inst.expected_harvest}`;
                         if (inst.days_until_harvest !== null) {
                             plantedInfo += ` (${inst.days_until_harvest} days)`;
                         }
                     }
+
+                    // Actual harvest
+                    if (inst.actual_harvest_date) {
+                        plantedInfo += `, harvested ${inst.actual_harvest_date}`;
+                    }
+
                     plantedInfo += ` [${inst.status}]\n`;
                 });
             }
@@ -1458,10 +1495,34 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                         const symbol = plantInfo ? plantInfo.symbol : suggestion.plant_name[0].toUpperCase();
                         const color = plantInfo ? plantInfo.color : '#90EE90';
 
-                        // Build date info string if planted_date is present
+                        // Build date info string with all available dates
                         let dateInfo = '';
+                        const dates = [];
+
+                        if (suggestion.seed_starting_method) {
+                            dates.push(`${suggestion.seed_starting_method === 'direct' ? 'Direct sown' : 'Pot-started'}`);
+                        }
+
+                        if (suggestion.planned_seed_start_date) {
+                            dates.push(`Planned seed start: ${suggestion.planned_seed_start_date}`);
+                        }
+
+                        if (suggestion.seed_started_date) {
+                            dates.push(`Seed started: ${suggestion.seed_started_date}`);
+                        }
+
+                        if (suggestion.planned_planting_date) {
+                            const isDirect = suggestion.seed_starting_method === 'direct';
+                            dates.push(`Planned ${isDirect ? 'sowing' : 'transplant'}: ${suggestion.planned_planting_date}`);
+                        }
+
                         if (suggestion.planted_date) {
-                            dateInfo = `<br><small class="text-success"><i class="bi bi-calendar-check"></i> Planting date: ${suggestion.planted_date}</small>`;
+                            const isDirect = suggestion.seed_starting_method === 'direct';
+                            dates.push(`${isDirect ? 'Sown' : 'Planted'}: ${suggestion.planted_date}`);
+                        }
+
+                        if (dates.length > 0) {
+                            dateInfo = `<br><small class="text-success"><i class="bi bi-calendar-check"></i> ${dates.join(' | ')}</small>`;
                         }
 
                         const item = document.createElement('div');
@@ -1499,7 +1560,7 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
             applyImportBtn.addEventListener('click', function() {
                 if (!parsedImportData || !parsedImportData.suggestions) return;
 
-                // Collect planted_date information
+                // Collect all date information
                 const plantedDates = {};
 
                 // Apply each suggestion to the grid
@@ -1508,10 +1569,29 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                     const row = suggestion.row;
                     const col = suggestion.col;
 
-                    // Store planted_date if present
+                    // Store all date fields if present
+                    const key = `${row},${col}`;
+                    const dateData = {};
+
+                    if (suggestion.seed_starting_method) {
+                        dateData.seed_starting_method = suggestion.seed_starting_method;
+                    }
+                    if (suggestion.planned_seed_start_date) {
+                        dateData.planned_seed_start_date = suggestion.planned_seed_start_date;
+                    }
+                    if (suggestion.seed_started_date) {
+                        dateData.seed_started_date = suggestion.seed_started_date;
+                    }
+                    if (suggestion.planned_planting_date) {
+                        dateData.planned_planting_date = suggestion.planned_planting_date;
+                    }
                     if (suggestion.planted_date) {
-                        const key = `${row},${col}`;
-                        plantedDates[key] = suggestion.planted_date;
+                        dateData.planted_date = suggestion.planted_date;
+                    }
+
+                    // Only store if at least one date field is present
+                    if (Object.keys(dateData).length > 0) {
+                        plantedDates[key] = dateData;
                     }
 
                     // Find the cell
