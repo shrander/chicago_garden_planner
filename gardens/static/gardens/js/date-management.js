@@ -709,37 +709,53 @@ function updateCellHarvestStatus(row, col) {
         existingBadge.remove();
     }
 
-    if (instance && instance.harvest_status) {
-        // Add harvest status class
-        cell.classList.add(`harvest-${instance.harvest_status}`);
+    if (instance) {
+        // Determine plant stage
+        const isDirectSown = instance.seed_starting_method === 'direct';
+        const hasSeedStarted = !!instance.seed_started_date;
+        const hasPlanted = !!instance.planted_date;
+        const hasHarvested = !!instance.actual_harvest_date;
 
-        // Add date badge - only show for actionable states (soon, ready, overdue, harvested)
-        // Don't show for "growing" to reduce visual clutter
-        if (instance.days_until_harvest !== null) {
-            const badge = document.createElement('span');
-            badge.className = 'date-badge';
+        // Add harvest status class if available
+        if (instance.harvest_status) {
+            cell.classList.add(`harvest-${instance.harvest_status}`);
+        }
 
-            if (instance.harvest_status === 'ready') {
-                badge.classList.add('ready');
-                badge.textContent = 'Ready!';
-            } else if (instance.harvest_status === 'soon') {
-                badge.classList.add('soon');
-                badge.textContent = `${instance.days_until_harvest}d`;
-            } else if (instance.harvest_status === 'overdue') {
-                badge.classList.add('overdue');
-                badge.textContent = 'Overdue';
-            }
-            // Removed: growing status badge - reduces visual clutter
+        // Determine stage and create appropriate badge
+        const badge = document.createElement('span');
+        badge.className = 'date-badge';
 
-            if (badge.textContent) {
-                cell.appendChild(badge);
-            }
-        } else if (instance.harvest_status === 'harvested') {
-            const badge = document.createElement('span');
-            badge.className = 'date-badge ready';
+        if (hasHarvested) {
+            // Stage: Harvested
+            badge.classList.add('ready');
             badge.textContent = 'Harvested';
             cell.appendChild(badge);
+        } else if (hasPlanted) {
+            // Stage: In ground growing - only show actionable harvest states
+            if (instance.days_until_harvest !== null) {
+                if (instance.harvest_status === 'ready') {
+                    badge.classList.add('ready');
+                    badge.textContent = 'Ready!';
+                    cell.appendChild(badge);
+                } else if (instance.harvest_status === 'soon') {
+                    badge.classList.add('soon');
+                    badge.textContent = `${instance.days_until_harvest}d`;
+                    cell.appendChild(badge);
+                } else if (instance.harvest_status === 'overdue') {
+                    badge.classList.add('overdue');
+                    badge.textContent = 'Overdue';
+                    cell.appendChild(badge);
+                }
+                // For "growing" status, don't show badge to reduce clutter
+            }
+        } else if (!isDirectSown && hasSeedStarted) {
+            // Stage: Seed started, awaiting transplant (pot-started only)
+            badge.classList.add('seedling');
+            badge.textContent = '🌱';
+            badge.title = 'Seedling - ready for transplant';
+            cell.appendChild(badge);
         }
+        // No badge for: planned but not started, or direct sown not yet planted
     }
 }
 

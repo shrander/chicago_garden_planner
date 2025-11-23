@@ -147,6 +147,12 @@
     background-color: #dc3545;
 }
 
+.date-badge.seedling {
+    background-color: #17a2b8;
+    font-size: 0.85rem;
+    padding: 1px 4px;
+}
+
 /* Garden Title Edit Input - maintain display-5 size */
 #gardenNameInput {
     font-size: 3rem !important;
