@@ -221,6 +221,67 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ========================================
+    // PLANT LIBRARY SEARCH AND FILTER
+    // ========================================
+
+    /**
+     * Filter plant library items based on search term and plant type
+     */
+    function filterPlantLibrary() {
+        const searchTerm = document.getElementById('plantSearchInput')?.value.toLowerCase().trim() || '';
+        const selectedType = document.getElementById('plantTypeFilter')?.value || '';
+        const plantItems = document.querySelectorAll('#plantLibrary .plant-item');
+
+        let visibleCount = 0;
+
+        plantItems.forEach(item => {
+            const plantName = (item.dataset.plantName || '').toLowerCase();
+            const plantLatin = (item.dataset.plantLatin || '').toLowerCase();
+            const plantType = item.dataset.plantType || '';
+
+            // Check if item matches search term (search in both name and latin name)
+            const matchesSearch = searchTerm === '' ||
+                                 plantName.includes(searchTerm) ||
+                                 plantLatin.includes(searchTerm);
+
+            // Check if item matches selected type
+            const matchesType = selectedType === '' || plantType === selectedType;
+
+            // Show item if it matches both filters
+            if (matchesSearch && matchesType) {
+                item.classList.remove('d-none');
+                visibleCount++;
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        // Update count display
+        const countElement = document.getElementById('plantCount');
+        if (countElement) {
+            const totalCount = plantItems.length;
+            countElement.textContent = visibleCount === totalCount
+                ? `${totalCount} plants`
+                : `${visibleCount} of ${totalCount}`;
+        }
+    }
+
+    // Set up search and filter event listeners
+    const searchInput = document.getElementById('plantSearchInput');
+    const typeFilter = document.getElementById('plantTypeFilter');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterPlantLibrary);
+    }
+
+    if (typeFilter) {
+        typeFilter.addEventListener('change', filterPlantLibrary);
+    }
+
+    // Initialize count on page load
+    filterPlantLibrary();
+
+    // ========================================
     // AUTO-SAVE FUNCTIONALITY
     // ========================================
 
