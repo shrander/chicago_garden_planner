@@ -713,7 +713,8 @@ function updateCellHarvestStatus(row, col) {
         // Add harvest status class
         cell.classList.add(`harvest-${instance.harvest_status}`);
 
-        // Add date badge
+        // Add date badge - only show for actionable states (soon, ready, overdue, harvested)
+        // Don't show for "growing" to reduce visual clutter
         if (instance.days_until_harvest !== null) {
             const badge = document.createElement('span');
             badge.className = 'date-badge';
@@ -727,9 +728,8 @@ function updateCellHarvestStatus(row, col) {
             } else if (instance.harvest_status === 'overdue') {
                 badge.classList.add('overdue');
                 badge.textContent = 'Overdue';
-            } else if (instance.harvest_status === 'growing' && instance.days_until_harvest > 0) {
-                badge.textContent = `${instance.days_until_harvest}d`;
             }
+            // Removed: growing status badge - reduces visual clutter
 
             if (badge.textContent) {
                 cell.appendChild(badge);
