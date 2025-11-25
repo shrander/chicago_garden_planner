@@ -716,6 +716,16 @@ function updateCellHarvestStatus(row, col) {
         const hasPlanted = !!instance.planted_date;
         const hasHarvested = !!instance.actual_harvest_date;
 
+        // Check for overdue planned dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const plannedSeedStartOverdue = instance.planned_seed_start_date && !hasSeedStarted &&
+            new Date(instance.planned_seed_start_date) < today;
+
+        const plannedPlantingOverdue = instance.planned_planting_date && !hasPlanted &&
+            new Date(instance.planned_planting_date) < today;
+
         // Add harvest status class if available
         if (instance.harvest_status) {
             cell.classList.add(`harvest-${instance.harvest_status}`);
@@ -754,8 +764,21 @@ function updateCellHarvestStatus(row, col) {
             badge.textContent = '🌱';
             badge.title = 'Seedling - ready for transplant';
             cell.appendChild(badge);
+        } else if (plannedPlantingOverdue) {
+            // Planned planting/transplant date is overdue
+            badge.classList.add('overdue');
+            const isDirect = instance.seed_starting_method === 'direct';
+            badge.textContent = isDirect ? 'Sow!' : 'Transplant!';
+            badge.title = `Planned ${isDirect ? 'sowing' : 'transplant'} was ${instance.planned_planting_date}`;
+            cell.appendChild(badge);
+        } else if (plannedSeedStartOverdue) {
+            // Planned seed start date is overdue
+            badge.classList.add('overdue');
+            badge.textContent = 'Start Seeds!';
+            badge.title = `Planned seed start was ${instance.planned_seed_start_date}`;
+            cell.appendChild(badge);
         }
-        // No badge for: planned but not started, or direct sown not yet planted
+        // No badge for: planned but not overdue
     }
 }
 
