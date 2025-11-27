@@ -1,0 +1,11 @@
+# Garden Planner Cron Jobs
+# Format: minute hour day month dayofweek command
+# All times are in UTC - adjust based on your server timezone
+
+# Send daily notifications at 6:00 AM Central Time (12:00 PM UTC)
+0 12 * * * cd /app && python manage.py send_daily_notifications >> /var/log/cron.log 2>&1
+
+# Send weekly digest on Sundays at 8:00 AM Central Time (2:00 PM UTC)
+0 14 * * 0 cd /app && python manage.py send_weekly_digest >> /var/log/cron.log 2>&1
+
+# Keep the container alive (required for cron to work)

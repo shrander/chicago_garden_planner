@@ -32,6 +32,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     curl \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user
@@ -50,7 +51,7 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --chown=django:django . .
 
 # Make scripts executable
-RUN chmod +x /app/docker-entrypoint.sh /app/wait-for-db.sh
+RUN chmod +x /app/docker-entrypoint.sh /app/wait-for-db.sh /app/cron-entrypoint.sh
 
 # Switch to non-root user
 USER django

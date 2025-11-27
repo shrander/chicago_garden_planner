@@ -162,11 +162,28 @@ class UserProfileForm(forms.ModelForm):
         fields = [
             'bio', 'location', 'gardening_zone', 'year_started_gardening',
             'organics_only', 'interests', 'email_notifications',
-            'weekly_tips', 'avatar'
+            'weekly_tips', 'notification_timezone', 'avatar'
         ]
         widgets = {
             'bio': forms.Textarea(attrs={'rows': 4}),
-            'interests': forms.Textarea(attrs={'rows': 3})
+            'interests': forms.Textarea(attrs={'rows': 3}),
+            'notification_timezone': forms.Select(choices=[
+                # US Timezones (most common)
+                ('America/New_York', 'Eastern Time (US)'),
+                ('America/Chicago', 'Central Time (US)'),
+                ('America/Denver', 'Mountain Time (US)'),
+                ('America/Phoenix', 'Mountain Time - Arizona (no DST)'),
+                ('America/Los_Angeles', 'Pacific Time (US)'),
+                ('America/Anchorage', 'Alaska Time'),
+                ('Pacific/Honolulu', 'Hawaii Time'),
+                # Canada
+                ('America/Toronto', 'Eastern Time (Canada)'),
+                ('America/Winnipeg', 'Central Time (Canada)'),
+                ('America/Edmonton', 'Mountain Time (Canada)'),
+                ('America/Vancouver', 'Pacific Time (Canada)'),
+                ('America/St_Johns', 'Newfoundland Time'),
+                ('America/Halifax', 'Atlantic Time (Canada)'),
+            ])
         }
 
     def clean_anthropic_api_key(self):
