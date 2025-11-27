@@ -1,0 +1,59 @@
+🌱 GARDEN TASKS FOR {{ notification_date|date:"l, F j, Y"|upper }}
+
+Hi {{ user.first_name|default:user.username }},
+
+{% if not has_notifications %}
+✅ ALL CAUGHT UP!
+
+No garden tasks need your attention right now. Enjoy your day!
+
+{% else %}
+Here are your gardening tasks for today{% if total_overdue %} - {{ total_overdue }} overdue{% endif %}{% if total_due_today %}, {{ total_due_today }} due today{% endif %}{% if total_coming_up %}, {{ total_coming_up }} coming up{% endif %}.
+
+{% if total_overdue > 0 %}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️  OVERDUE TASKS ({{ total_overdue }})
+
+{% for garden_data in gardens %}{% if garden_data.overdue %}
+📍 {{ garden_data.garden.name }}
+{% for task in garden_data.overdue %}  🔴 {% if task.type == 'seed_start' %}Seed Starting Overdue{% elif task.type == 'transplant' %}Transplant Overdue{% elif task.type == 'planting' %}{% if task.is_direct_sown %}Sowing{% else %}Planting{% endif %} Overdue{% elif task.type == 'harvest' %}Harvest Overdue{% endif %} ({{ task.days_overdue }} day{{ task.days_overdue|pluralize }})
+     • {{ task.plant_name }} at {{ task.position }} - Expected {{ task.date|date:"M j" }}
+{% endfor %}
+{% endif %}{% endfor %}{% endif %}
+{% if total_due_today > 0 %}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ DUE TODAY ({{ total_due_today }})
+
+{% for garden_data in gardens %}{% if garden_data.due_today %}
+📍 {{ garden_data.garden.name }}
+{% for task in garden_data.due_today %}  🟢 {% if task.type == 'seed_start' %}Start Seeds Today!{% elif task.type == 'transplant' %}Ready to Transplant!{% elif task.type == 'planting' %}{% if task.is_direct_sown %}Sow Today!{% else %}Plant Today!{% endif %}{% elif task.type == 'harvest' %}Ready to Harvest!{% endif %}
+     • {{ task.plant_name }} at {{ task.position }}
+{% endfor %}
+{% endif %}{% endfor %}{% endif %}
+{% if total_coming_up > 0 %}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📅 COMING UP (Within 7 days) ({{ total_coming_up }})
+
+{% for garden_data in gardens %}{% if garden_data.coming_up %}
+📍 {{ garden_data.garden.name }}
+{% for task in garden_data.coming_up %}  🟡 {% if task.type == 'seed_start' %}Seed Starting in {{ task.days_until }} day{{ task.days_until|pluralize }}{% elif task.type == 'transplant' %}Transplant in {{ task.days_until }} day{{ task.days_until|pluralize }}{% elif task.type == 'planting' %}{% if task.is_direct_sown %}Sow{% else %}Plant{% endif %} in {{ task.days_until }} day{{ task.days_until|pluralize }}{% elif task.type == 'harvest' %}Harvest in {{ task.days_until }} day{{ task.days_until|pluralize }}{% endif %}
+     • {{ task.plant_name }} at {{ task.position }} - {{ task.date|date:"M j" }}
+{% endfor %}
+{% endif %}{% endfor %}{% endif %}
+{% endif %}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👉 View & update your gardens:
+   {{ site_url }}
+
+To adjust notification preferences:
+   {{ profile_url }}
+
+Happy Gardening! 🌿
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Chicago Garden Planner
+{{ site_url }}

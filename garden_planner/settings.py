@@ -169,6 +169,9 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@chicagogarden.com')
 CONTACT_EMAIL = 'help@chicagogarden.com'
 
+# Site URL for email links (set in production)
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+
 # login URLs
 LOGIN_URL = 'accounts:login'
 

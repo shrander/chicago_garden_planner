@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden Tasks for {{ notification_date|date:"F j, Y" }}</title>
+    <style>
+        /* Inline styles for email compatibility */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #6B46C1 0%, #10B981 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-header {
+            border-left: 4px solid;
+            padding-left: 12px;
+            margin-bottom: 15px;
+        }
+        .section-header.overdue {
+            border-color: #DC2626;
+        }
+        .section-header.due-today {
+            border-color: #10B981;
+        }
+        .section-header.coming-up {
+            border-color: #F59E0B;
+        }
+        .section-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .section-header .count {
+            color: #666;
+            font-size: 14px;
+            font-weight: normal;
+        }
+        .garden-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #6B46C1;
+            margin: 20px 0 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .garden-name::before {
+            content: "📍";
+            margin-right: 8px;
+        }
+        .task-item {
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+        }
+        .task-item.overdue {
+            background-color: #FEE2E2;
+            border-color: #FCA5A5;
+        }
+        .task-item.due-today {
+            background-color: #D1FAE5;
+            border-color: #6EE7B7;
+        }
+        .task-item.coming-up {
+            background-color: #FEF3C7;
+            border-color: #FDE68A;
+        }
+        .task-type {
+            display: inline-block;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        .task-type.seed-start::before {
+            content: "🌱 ";
+        }
+        .task-type.transplant::before {
+            content: "🌿 ";
+        }
+        .task-type.planting::before {
+            content: "🌾 ";
+        }
+        .task-type.harvest::before {
+            content: "🥕 ";
+        }
+        .task-details {
+            font-size: 14px;
+            color: #555;
+            margin-top: 4px;
+        }
+        .position {
+            font-family: monospace;
+            background-color: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .date-info {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .divider {
+            border: 0;
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 25px 0;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #6B46C1;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        .footer-links {
+            font-size: 12px;
+            color: #666;
+            margin-top: 15px;
+        }
+        .footer-links a {
+            color: #6B46C1;
+            text-decoration: none;
+        }
+        .no-tasks {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        .no-tasks-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 Garden Tasks for {{ notification_date|date:"l, F j, Y" }}</h1>
+            {% if total_overdue or total_due_today or total_coming_up %}
+            <p>
+                {% if total_overdue %}<strong>{{ total_overdue }} overdue</strong>{% if total_due_today or total_coming_up %} | {% endif %}{% endif %}
+                {% if total_due_today %}<strong>{{ total_due_today }} due today</strong>{% if total_coming_up %} | {% endif %}{% endif %}
+                {% if total_coming_up %}<strong>{{ total_coming_up }} coming up</strong>{% endif %}
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="content">
+            {% if not has_notifications %}
+            <div class="no-tasks">
+                <div class="no-tasks-icon">✅</div>
+                <p><strong>All caught up!</strong></p>
+                <p>No garden tasks need your attention right now.</p>
+            </div>
+            {% else %}
+
+            {# OVERDUE TASKS #}
+            {% if total_overdue > 0 %}
+            <div class="section">
+                <div class="section-header overdue">
+                    <h2>⚠️  OVERDUE TASKS <span class="count">({{ total_overdue }})</span></h2>
+                </div>
+
+                {% for garden_data in gardens %}
+                    {% if garden_data.overdue %}
+                    <div class="garden-name">{{ garden_data.garden.name }}</div>
+
+                    {% for task in garden_data.overdue %}
+                    <div class="task-item overdue">
+                        <div>
+                            <span class="task-type {{ task.type }}">
+                                {% if task.type == 'seed_start' %}
+                                    Seed Starting Overdue
+                                {% elif task.type == 'transplant' %}
+                                    Transplant Overdue
+                                {% elif task.type == 'planting' %}
+                                    {% if task.is_direct_sown %}Sowing{% else %}Planting{% endif %} Overdue
+                                {% elif task.type == 'harvest' %}
+                                    Harvest Overdue
+                                {% endif %}
+                            </span>
+                            ({{ task.days_overdue }} day{{ task.days_overdue|pluralize }})
+                        </div>
+                        <div class="task-details">
+                            • {{ task.plant_name }} at <span class="position">{{ task.position }}</span>
+                        </div>
+                        <div class="date-info">
+                            Expected {{ task.date|date:"M j" }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <hr class="divider">
+            {% endif %}
+
+            {# DUE TODAY #}
+            {% if total_due_today > 0 %}
+            <div class="section">
+                <div class="section-header due-today">
+                    <h2>✅ DUE TODAY <span class="count">({{ total_due_today }})</span></h2>
+                </div>
+
+                {% for garden_data in gardens %}
+                    {% if garden_data.due_today %}
+                    <div class="garden-name">{{ garden_data.garden.name }}</div>
+
+                    {% for task in garden_data.due_today %}
+                    <div class="task-item due-today">
+                        <div>
+                            <span class="task-type {{ task.type }}">
+                                {% if task.type == 'seed_start' %}
+                                    Start Seeds Today!
+                                {% elif task.type == 'transplant' %}
+                                    Ready to Transplant!
+                                {% elif task.type == 'planting' %}
+                                    {% if task.is_direct_sown %}Sow Today!{% else %}Plant Today!{% endif %}
+                                {% elif task.type == 'harvest' %}
+                                    Ready to Harvest!
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="task-details">
+                            • {{ task.plant_name }} at <span class="position">{{ task.position }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <hr class="divider">
+            {% endif %}
+
+            {# COMING UP #}
+            {% if total_coming_up > 0 %}
+            <div class="section">
+                <div class="section-header coming-up">
+                    <h2>📅 COMING UP (Within 7 days) <span class="count">({{ total_coming_up }})</span></h2>
+                </div>
+
+                {% for garden_data in gardens %}
+                    {% if garden_data.coming_up %}
+                    <div class="garden-name">{{ garden_data.garden.name }}</div>
+
+                    {% for task in garden_data.coming_up %}
+                    <div class="task-item coming-up">
+                        <div>
+                            <span class="task-type {{ task.type }}">
+                                {% if task.type == 'seed_start' %}
+                                    Seed Starting in {{ task.days_until }} day{{ task.days_until|pluralize }}
+                                {% elif task.type == 'transplant' %}
+                                    Transplant in {{ task.days_until }} day{{ task.days_until|pluralize }}
+                                {% elif task.type == 'planting' %}
+                                    {% if task.is_direct_sown %}Sow{% else %}Plant{% endif %} in {{ task.days_until }} day{{ task.days_until|pluralize }}
+                                {% elif task.type == 'harvest' %}
+                                    Harvest in {{ task.days_until }} day{{ task.days_until|pluralize }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="task-details">
+                            • {{ task.plant_name }} at <span class="position">{{ task.position }}</span>
+                        </div>
+                        <div class="date-info">
+                            Scheduled for {{ task.date|date:"M j" }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <a href="{{ site_url }}" class="button">👉 View & Update Your Gardens</a>
+
+            <div class="footer-links">
+                <a href="{{ profile_url }}">Notification Preferences</a> |
+                <a href="{{ site_url }}">Chicago Garden Planner</a>
+            </div>
+            <div class="footer-links" style="margin-top: 10px;">
+                Happy Gardening! 🌿
+            </div>
+        </div>
+    </div>
+</body>
+</html>

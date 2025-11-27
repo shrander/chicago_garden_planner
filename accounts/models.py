@@ -139,14 +139,19 @@ class UserProfile(models.Model):
         help_text='What are you most interested in growing?'
     )
 
-    # Email
+    # Email and notifications
     email_notifications = models.BooleanField(
         default=True,
-        help_text='Receive email notifications about planting reminders'
+        help_text='Receive daily email notifications about planting and harvest reminders'
     )
     weekly_tips = models.BooleanField(
         default=True,
-        help_text='Receive weekly gardening tips'
+        help_text='Receive weekly gardening digest and tips'
+    )
+    notification_timezone = models.CharField(
+        max_length=50,
+        default='America/Chicago',
+        help_text='Your local timezone for scheduling notifications (e.g., America/New_York, America/Los_Angeles)'
     )
 
     # avatar
