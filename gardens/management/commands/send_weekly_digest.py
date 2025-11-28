@@ -97,6 +97,7 @@ class Command(BaseCommand):
                 continue
 
             # Prepare email context
+            site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
             context = {
                 'user': user,
                 'notification_date': date.today(),
@@ -105,8 +106,8 @@ class Command(BaseCommand):
                 'total_due_today': notifications['total_due_today'],
                 'total_coming_up': notifications['total_coming_up'],
                 'has_notifications': notifications['has_notifications'],
-                'site_url': f"{settings.SITE_URL or 'http://127.0.0.1:8000'}/gardens/",
-                'profile_url': f"{settings.SITE_URL or 'http://127.0.0.1:8000'}/accounts/profile/edit/",
+                'site_url': f"{site_url}/gardens/",
+                'profile_url': f"{site_url}/accounts/profile/edit/",
             }
 
             # Render email templates
