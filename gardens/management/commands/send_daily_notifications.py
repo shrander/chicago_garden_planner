@@ -78,7 +78,7 @@ class Command(BaseCommand):
         for user in users:
             # Get user's timezone
             try:
-                user_tz = zoneinfo.ZoneInfo(user.profile.notification_timezone)
+                user_tz = zoneinfo.ZoneInfo(user.profile.notification_timezone) # type: ignore
             except:
                 user_tz = zoneinfo.ZoneInfo('America/Chicago')  # Default fallback
 
