@@ -819,6 +819,179 @@ def garden_save_layout(request, pk):
 
 @login_required
 @require_POST
+def apply_corrections(request, pk):
+    """AJAX endpoint to apply LLM-generated corrections to plant instance data.
+
+    Accepts a corrections format with human-readable field names and validates
+    old_value before applying changes to prevent stale corrections.
+
+    Field mapping (correction field → model field):
+        planned_transplant → planned_planting_date
+        planned_seed_start → planned_seed_start_date
+        planned_sowing     → planned_planting_date
+        method             → seed_starting_method (pot-started→pot, direct_sown→direct)
+    """
+    # Field name mapping from LLM-friendly names to model field names
+    FIELD_MAP = {
+        'planned_transplant': 'planned_planting_date',
+        'planned_seed_start': 'planned_seed_start_date',
+        'planned_sowing': 'planned_planting_date',
+        'method': 'seed_starting_method',
+    }
+
+    # Value mapping for the method field
+    METHOD_VALUE_MAP = {
+        'pot-started': 'pot',
+        'direct_sown': 'direct',
+    }
+
+    try:
+        garden = get_object_or_404(Garden, pk=pk)
+
+        # Check permissions: must be owner OR have edit share permission
+        is_owner = garden.owner == request.user
+        can_edit = is_owner
+
+        if not is_owner:
+            share = GardenShare.objects.filter(
+                garden=garden,
+                shared_with_user=request.user,
+                permission='edit',
+                accepted_at__isnull=False
+            ).first()
+            if share:
+                can_edit = True
+
+        if not can_edit:
+            return JsonResponse({
+                'success': False,
+                'error': 'You do not have permission to edit this garden'
+            }, status=403)
+
+        data = json.loads(request.body)
+        corrections = data.get('corrections', [])
+        if not corrections:
+            return JsonResponse({
+                'success': False,
+                'error': 'No corrections provided'
+            }, status=400)
+
+        from datetime import datetime
+
+        applied = []
+        skipped = []
+
+        for correction in corrections:
+            plant_name = correction.get('plant_name')
+            row = correction.get('row')
+            col = correction.get('col')
+            field = correction.get('field')
+            old_value = correction.get('old_value')
+            new_value = correction.get('new_value')
+            reason = correction.get('reason', '')
+
+            # Validate required fields
+            if not all([plant_name, field is not None, row is not None, col is not None]):
+                skipped.append({
+                    'plant_name': plant_name, 'row': row, 'col': col,
+                    'field': field, 'reason': 'Missing required fields'
+                })
+                continue
+
+            # Map correction field name to model field name
+            model_field = FIELD_MAP.get(field)
+            if not model_field:
+                skipped.append({
+                    'plant_name': plant_name, 'row': row, 'col': col,
+                    'field': field, 'reason': f'Unknown field: {field}'
+                })
+                continue
+
+            # Find the PlantInstance at this position
+            try:
+                instance = PlantInstance.objects.get(garden=garden, row=row, col=col)
+            except PlantInstance.DoesNotExist:
+                skipped.append({
+                    'plant_name': plant_name, 'row': row, 'col': col,
+                    'field': field, 'reason': 'No plant instance at this position'
+                })
+                continue
+
+            # Validate plant name matches
+            if instance.plant.name.lower() != plant_name.lower():
+                skipped.append({
+                    'plant_name': plant_name, 'row': row, 'col': col,
+                    'field': field,
+                    'reason': f'Plant mismatch: expected {plant_name}, found {instance.plant.name}'
+                })
+                continue
+
+            # Get current value from the instance for old_value validation
+            current_value = getattr(instance, model_field)
+
+            # Normalize current value for comparison
+            if current_value is None:
+                current_normalized = None
+            elif model_field == 'seed_starting_method':
+                # Reverse map model value to LLM-friendly value for comparison
+                reverse_method = {v: k for k, v in METHOD_VALUE_MAP.items()}
+                current_normalized = reverse_method.get(current_value, current_value)
+            else:
+                # Date fields - convert to ISO string
+                current_normalized = current_value.isoformat() if current_value else None
+
+            # Validate old_value matches current value
+            if old_value != current_normalized:
+                skipped.append({
+                    'plant_name': plant_name, 'row': row, 'col': col,
+                    'field': field,
+                    'reason': f'Stale value: expected old_value={old_value}, '
+                              f'current={current_normalized}'
+                })
+                continue
+
+            # Apply the new value
+            if model_field == 'seed_starting_method':
+                if new_value is None:
+                    setattr(instance, model_field, None)
+                else:
+                    mapped_value = METHOD_VALUE_MAP.get(new_value, new_value)
+                    setattr(instance, model_field, mapped_value)
+            else:
+                # Date field
+                if new_value is None:
+                    setattr(instance, model_field, None)
+                else:
+                    setattr(instance, model_field, datetime.fromisoformat(new_value).date())
+
+            instance.save()
+            applied.append({
+                'plant_name': plant_name, 'row': row, 'col': col,
+                'field': field, 'new_value': new_value, 'reason': reason
+            })
+
+        return JsonResponse({
+            'success': True,
+            'applied': len(applied),
+            'skipped': len(skipped),
+            'applied_details': applied,
+            'skipped_details': skipped,
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
 def garden_update_name(request, pk):
     """AJAX endpoint to update garden name"""
     try:

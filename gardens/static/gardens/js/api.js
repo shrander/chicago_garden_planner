@@ -70,4 +70,16 @@ class GardenAPI {
             method: 'POST'
         });
     }
+
+    /**
+     * Apply LLM-generated corrections to plant instance data
+     * @param {Array} corrections - Array of correction objects
+     * @returns {Promise<Object>} Response with applied/skipped counts and details
+     */
+    async applyCorrections(corrections) {
+        return gardenFetch(`${this.baseUrl}/apply-corrections/`, {
+            method: 'POST',
+            body: JSON.stringify({ corrections })
+        });
+    }
 }

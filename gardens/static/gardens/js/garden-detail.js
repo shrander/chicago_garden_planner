@@ -1393,7 +1393,9 @@ Create a comprehensive garden layout by filling ALL ${emptyCells.length} empty s
 5. Climate Zone: All plants are pre-selected for zone ${userZone} - consider the growing season and frost dates above
 6. Succession Planting: Consider planting dates and harvest times - suggest plants to replace crops nearing harvest${plantedInstances.length > 0 ? ' (see PLANTED CROPS section above)' : ''}
 
-RESPONSE FORMAT (JSON):
+RESPONSE FORMAT — Use ONE of these two formats:
+
+FORMAT 1 — SUGGESTIONS (for filling empty cells with new plants):
 {
     "reasoning": "Brief explanation of your planting strategy (3-4 sentences)",
     "suggestions": [
@@ -1402,11 +1404,32 @@ RESPONSE FORMAT (JSON):
     ]
 }
 
-IMPORTANT NOTES:
+FORMAT 2 — CORRECTIONS (for fixing dates/methods on existing plants):
+{
+    "reasoning": "Brief explanation of what corrections are needed",
+    "corrections": [
+        {"plant_name": "Basil", "row": 1, "col": 0, "field": "planned_transplant", "old_value": "2026-04-12", "new_value": "2026-05-10", "reason": "Frost-tender — before last frost"},
+        {"plant_name": "Kale", "row": 7, "col": 4, "field": "method", "old_value": "pot-started", "new_value": "direct_sown", "reason": "Seed start and plant date identical"},
+        {"plant_name": "Kale", "row": 7, "col": 4, "field": "planned_seed_start", "old_value": "2026-03-01", "new_value": null, "reason": "Not applicable for direct sown"}
+    ]
+}
+
+CORRECTION FIELD NAMES:
+- "planned_transplant" — planned transplant/planting date (YYYY-MM-DD)
+- "planned_seed_start" — planned indoor seed start date (YYYY-MM-DD)
+- "planned_sowing" — planned direct sow date (YYYY-MM-DD)
+- "method" — planting method: "pot-started" or "direct_sown"
+
+CORRECTION RULES:
+- "old_value" MUST match the current value exactly (null if empty) — stale corrections are rejected
+- "new_value" can be null to clear a field
+- Multiple corrections for the same cell are allowed (e.g., change method AND clear seed start)
+- Only use corrections for EXISTING plants — use suggestions for new placements
+
+SUGGESTION NOTES:
 - Include "planted_date" field (YYYY-MM-DD format) for each suggestion if planting date is relevant
 - The system will auto-calculate expected_harvest_date based on the plant's days_to_harvest
-- planted_date is OPTIONAL - omit it if you're just suggesting plant placement without dates
-- If suggesting succession planting, include planted_date to indicate when to plant (e.g., future date for crops to follow current harvest)
+- planted_date is OPTIONAL — omit it if you're just suggesting plant placement without dates
 
 Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
 
@@ -1479,10 +1502,16 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
 
                     parsedImportData = JSON.parse(cleanJson);
 
-                    // Validate structure
-                    if (!parsedImportData.suggestions || !Array.isArray(parsedImportData.suggestions)) {
-                        throw new Error('Invalid format: "suggestions" array is required');
+                    // Detect format: corrections or suggestions
+                    const isCorrections = parsedImportData.corrections && Array.isArray(parsedImportData.corrections);
+                    const isSuggestions = parsedImportData.suggestions && Array.isArray(parsedImportData.suggestions);
+
+                    if (!isCorrections && !isSuggestions) {
+                        throw new Error('Invalid format: "suggestions" or "corrections" array is required');
                     }
+
+                    // Store format type for the apply handler
+                    parsedImportData._type = isCorrections ? 'corrections' : 'suggestions';
 
                     // Display preview
                     document.getElementById('importReasoning').textContent = parsedImportData.reasoning || 'No strategy provided';
@@ -1490,57 +1519,86 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                     const suggestionsList = document.getElementById('importSuggestionsList');
                     suggestionsList.innerHTML = '';
 
-                    parsedImportData.suggestions.forEach(suggestion => {
-                        const plantInfo = plantMap[suggestion.plant_name.toLowerCase()];
-                        const symbol = plantInfo ? plantInfo.symbol : suggestion.plant_name[0].toUpperCase();
-                        const color = plantInfo ? plantInfo.color : '#90EE90';
+                    if (isCorrections) {
+                        // Preview corrections
+                        parsedImportData.corrections.forEach(correction => {
+                            const plantInfo = plantMap[correction.plant_name.toLowerCase()];
+                            const symbol = plantInfo ? plantInfo.symbol : correction.plant_name[0].toUpperCase();
+                            const color = plantInfo ? plantInfo.color : '#90EE90';
 
-                        // Build date info string with all available dates
-                        let dateInfo = '';
-                        const dates = [];
+                            const oldVal = correction.old_value === null ? '<em>empty</em>' : `<code>${correction.old_value}</code>`;
+                            const newVal = correction.new_value === null ? '<em>clear</em>' : `<code>${correction.new_value}</code>`;
 
-                        if (suggestion.seed_starting_method) {
-                            dates.push(`${suggestion.seed_starting_method === 'direct' ? 'Direct sown' : 'Pot-started'}`);
-                        }
+                            const item = document.createElement('div');
+                            item.className = 'mb-2 p-2 border rounded d-flex align-items-center';
+                            item.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-center me-3"
+                                     style="min-width: 40px; min-height: 40px; background-color: ${color}; color: white; font-size: 1.2rem; font-weight: bold; border-radius: 4px;">
+                                    ${symbol}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong>${correction.plant_name}</strong> at Row ${correction.row}, Col ${correction.col}
+                                    — <span class="badge bg-warning text-dark">${correction.field}</span>: ${oldVal} → ${newVal}
+                                    <br>
+                                    <small class="text-muted">${correction.reason || 'No reason provided'}</small>
+                                </div>
+                            `;
+                            suggestionsList.appendChild(item);
+                        });
+                    } else {
+                        // Preview suggestions (existing logic)
+                        parsedImportData.suggestions.forEach(suggestion => {
+                            const plantInfo = plantMap[suggestion.plant_name.toLowerCase()];
+                            const symbol = plantInfo ? plantInfo.symbol : suggestion.plant_name[0].toUpperCase();
+                            const color = plantInfo ? plantInfo.color : '#90EE90';
 
-                        if (suggestion.planned_seed_start_date) {
-                            dates.push(`Planned seed start: ${suggestion.planned_seed_start_date}`);
-                        }
+                            // Build date info string with all available dates
+                            let dateInfo = '';
+                            const dates = [];
 
-                        if (suggestion.seed_started_date) {
-                            dates.push(`Seed started: ${suggestion.seed_started_date}`);
-                        }
+                            if (suggestion.seed_starting_method) {
+                                dates.push(`${suggestion.seed_starting_method === 'direct' ? 'Direct sown' : 'Pot-started'}`);
+                            }
 
-                        if (suggestion.planned_planting_date) {
-                            const isDirect = suggestion.seed_starting_method === 'direct';
-                            dates.push(`Planned ${isDirect ? 'sowing' : 'transplant'}: ${suggestion.planned_planting_date}`);
-                        }
+                            if (suggestion.planned_seed_start_date) {
+                                dates.push(`Planned seed start: ${suggestion.planned_seed_start_date}`);
+                            }
 
-                        if (suggestion.planted_date) {
-                            const isDirect = suggestion.seed_starting_method === 'direct';
-                            dates.push(`${isDirect ? 'Sown' : 'Planted'}: ${suggestion.planted_date}`);
-                        }
+                            if (suggestion.seed_started_date) {
+                                dates.push(`Seed started: ${suggestion.seed_started_date}`);
+                            }
 
-                        if (dates.length > 0) {
-                            dateInfo = `<br><small class="text-success"><i class="bi bi-calendar-check"></i> ${dates.join(' | ')}</small>`;
-                        }
+                            if (suggestion.planned_planting_date) {
+                                const isDirect = suggestion.seed_starting_method === 'direct';
+                                dates.push(`Planned ${isDirect ? 'sowing' : 'transplant'}: ${suggestion.planned_planting_date}`);
+                            }
 
-                        const item = document.createElement('div');
-                        item.className = 'mb-2 p-2 border rounded d-flex align-items-center';
-                        item.innerHTML = `
-                            <div class="d-flex align-items-center justify-content-center me-3"
-                                 style="min-width: 40px; min-height: 40px; background-color: ${color}; color: white; font-size: 1.2rem; font-weight: bold; border-radius: 4px;">
-                                ${symbol}
-                            </div>
-                            <div class="flex-grow-1">
-                                <strong>${suggestion.plant_name}</strong> at Row ${suggestion.row}, Col ${suggestion.col}
-                                <br>
-                                <small class="text-muted">${suggestion.reason || 'No reason provided'}</small>
-                                ${dateInfo}
-                            </div>
-                        `;
-                        suggestionsList.appendChild(item);
-                    });
+                            if (suggestion.planted_date) {
+                                const isDirect = suggestion.seed_starting_method === 'direct';
+                                dates.push(`${isDirect ? 'Sown' : 'Planted'}: ${suggestion.planted_date}`);
+                            }
+
+                            if (dates.length > 0) {
+                                dateInfo = `<br><small class="text-success"><i class="bi bi-calendar-check"></i> ${dates.join(' | ')}</small>`;
+                            }
+
+                            const item = document.createElement('div');
+                            item.className = 'mb-2 p-2 border rounded d-flex align-items-center';
+                            item.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-center me-3"
+                                     style="min-width: 40px; min-height: 40px; background-color: ${color}; color: white; font-size: 1.2rem; font-weight: bold; border-radius: 4px;">
+                                    ${symbol}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong>${suggestion.plant_name}</strong> at Row ${suggestion.row}, Col ${suggestion.col}
+                                    <br>
+                                    <small class="text-muted">${suggestion.reason || 'No reason provided'}</small>
+                                    ${dateInfo}
+                                </div>
+                            `;
+                            suggestionsList.appendChild(item);
+                        });
+                    }
 
                     previewDiv.classList.remove('d-none');
                     document.getElementById('applyImportBtn').disabled = false;
@@ -1557,8 +1615,58 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
         // Apply imported layout
         const applyImportBtn = document.getElementById('applyImportBtn');
         if (applyImportBtn) {
-            applyImportBtn.addEventListener('click', function() {
-                if (!parsedImportData || !parsedImportData.suggestions) return;
+            applyImportBtn.addEventListener('click', async function() {
+                if (!parsedImportData) return;
+
+                const saveStatus = document.getElementById('saveStatus');
+
+                // Handle corrections format
+                if (parsedImportData._type === 'corrections') {
+                    if (!parsedImportData.corrections) return;
+
+                    const btnManager = new ButtonStateManager(applyImportBtn);
+                    btnManager.setLoading('Applying...');
+
+                    try {
+                        const result = await gardenAPI.applyCorrections(parsedImportData.corrections);
+
+                        // Close modal
+                        importLayoutModal.hide();
+                        btnManager.reset();
+
+                        // Show result summary
+                        let message = `Corrections: ${result.applied} applied`;
+                        if (result.skipped > 0) {
+                            message += `, ${result.skipped} skipped`;
+                            console.warn('Skipped corrections:', result.skipped_details);
+                        }
+
+                        saveStatus.textContent = message;
+                        saveStatus.className = result.skipped > 0
+                            ? 'badge bg-warning text-dark ms-2'
+                            : 'badge bg-success ms-2';
+                        setTimeout(() => {
+                            saveStatus.textContent = '';
+                        }, 5000);
+
+                        // Reload page to reflect updated instance data
+                        if (result.applied > 0) {
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    } catch (error) {
+                        console.error('Error applying corrections:', error);
+                        btnManager.reset();
+                        saveStatus.textContent = 'Error applying corrections';
+                        saveStatus.className = 'badge bg-danger ms-2';
+                        setTimeout(() => {
+                            saveStatus.textContent = '';
+                        }, 3000);
+                    }
+                    return;
+                }
+
+                // Handle suggestions format (existing logic)
+                if (!parsedImportData.suggestions) return;
 
                 // Collect all date information
                 const plantedDates = {};
@@ -1622,7 +1730,6 @@ Empty cell coordinates to fill: ${JSON.stringify(emptyCells)}`;
                 importLayoutModal.hide();
 
                 // Show success message
-                const saveStatus = document.getElementById('saveStatus');
                 saveStatus.textContent = 'Imported layout applied!';
                 saveStatus.className = 'badge bg-success ms-2';
                 setTimeout(() => {
